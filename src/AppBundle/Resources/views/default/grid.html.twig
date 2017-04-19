@@ -1,0 +1,49 @@
+<html>
+<head>
+    <style>
+        .dv {
+            width: 50px;
+            height: 50px;
+            line-height: 50px;
+            float: left;
+            border: 1px solid blue;
+            text-align: center;
+        }
+        .blnk {
+            background-color: lightblue;
+            color: lightblue;
+        }
+        .clr {
+            clear: both;
+        }
+        .sum-box {
+            background-color: lightblue;
+        }
+    </style>
+</head>
+<body>
+kakuro <br/><br/>
+    {% for i, row in data %}
+        {% for j, cell in row %}
+            {% if i == 0 or j == 0 %}
+                {% if cell is empty %}
+                    <div class='dv blnk'>&nbsp;</div>
+                {% else %}
+                    <div class='dv sum-box'>" . $sum_cell . "</div>
+                {% endif %}
+            {% else %}
+                {% if cell is empty %}
+                    <div class='dv'>&nbsp;</div>
+                {% else %}
+                    {% if cell == '\\' %}
+                        <div class='dv blnk'></div>
+                    {% else %}
+                        <div class='dv sum-box'>" . $sum_cell . "</div>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+        <br class='clr'/>
+    {% endfor %}
+</body>
+</html>
