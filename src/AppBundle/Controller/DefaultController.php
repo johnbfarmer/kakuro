@@ -25,15 +25,8 @@ class DefaultController extends Controller
      */
     public function gridAction(Request $request, $filename)
     {
-        $dir = realpath($this->getParameter('kernel.root_dir').'/..').DIRECTORY_SEPARATOR.'files'.DIRECTORY_SEPARATOR;
-        $data = file_get_contents($dir.$filename);
-        $rows = explode("\n", $data);
-        $grid = [];
-        foreach ($rows as $row) {
-            $grid[] = explode("\t", $row);
-        }
         return $this->render('default/grid.html.twig', [
-            'data' => $grid,
+            'filename' => $filename,
         ]);
     }
 

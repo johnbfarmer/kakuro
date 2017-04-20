@@ -27,6 +27,11 @@ class ApiController extends Controller
         ];
         foreach ($rows as $i => $row) {
             $cell_contents = explode("\t", $row);
+            if (count($cell_contents) < 2) {
+                continue; // blank last line is ok for example
+            }
+// $this->get('logger')->error('jbf');
+// $this->get('logger')->error($row);
             $arr = [];
             foreach ($cell_contents as $cell) {
                 if (strpos($cell, '\\') !== false) {

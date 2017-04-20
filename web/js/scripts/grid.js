@@ -1,29 +1,35 @@
 var Grid = React.createClass({
     getInitialState: function() {
-        return { cells: [], height: 0, width: 0, active_row: null, active_col: null };
+        return { cells: [], height: 0, width: 0, active_row: 1, active_col: 2, cell_choices: [] };
     },
     componentDidMount: function() {
         // console.log(this.getDOMNode());
         this.getGrid();
     },
     getGrid: function() {
+            console.log(this.props.filename);
         return $.getJSON(
-            "http://kak.uro/app_dev.php/api/grid/medium1.kak"
+            // "http://kak.uro/app_dev.php/api/grid/medium1.kak"
+            "http://kak.uro/app_dev.php/api/grid/" + this.props.filename
         ).then(data => {
             // console.log(data);
             this.setState({ cells: data.cells, height: data.height, width: data.width });
             // console.log(this.state.cells);
         });
     },
+    setActive: function(row, col) {
+        this.setState({active_row: row, active_col: col});
+    },
     render: function() {
         var cells = this.state.cells.map(function(cell, index) {
+            var choices = this.state.cell_choices[index];
             var col = index % this.state.width;
             var row = Math.floor(index / this.state.width);
-            var new_row = col === 0;
-            return <Cell cell={cell} key={index} row={row} col={col} new_row={new_row} />;
+            var active = row === this.state.active_row && col === this.state.active_col;
+            return <Cell cell={cell} choices={choices} key={index} row={row} col={col} active={active} onClick={() => this.setActive(row, col)} />;
         }, this);
         return (
-            <div>
+            <div className="kakuro-grid">
                {cells}
             </div>
         );
@@ -32,19 +38,20 @@ var Grid = React.createClass({
 
 var Cell = React.createClass({
     getInitialState: function() {
-        var editable = this.props.cell == null;
-        if (!editable) {
+        var editable = this.props.row > 0 && this.props.col > 0 && this.props.cell == null;
+        var blank = !$.isArray(this.props.cell);
+        if (!blank) {
             var leftText = this.props.cell[0] ? this.props.cell[0] : "";
             var rightText = this.props.cell[1] ? this.props.cell[1] : "";
         }
-        var txt = editable ? "" : leftText + "\\" + rightText;
+        var txt = blank ? "" : leftText + "\\" + rightText;
         return { 
             cell: txt, 
+            choices: this.props.choices,
             editable: editable, 
             active: this.props.active, 
             row: this.props.row,
-            col: this.props.col,
-            new_row: this.props.new_row,
+            col: this.props.col
         };
     },
     getClasses: function() {
@@ -52,25 +59,36 @@ var Cell = React.createClass({
         if (!this.state.editable) {
             classes = classes + " blnk";
         }
-        if (this.state.active) {
+        if (this.props.active) {
             classes = classes + " red";
         }
-        if (this.state.new_row) {
+        if (this.props.col === 0) {
             classes = classes + " clr";
         }
         return classes;
     },
     setActive: function() {
-        this.setState({ active: true });
+        if (this.state.editable) {
+            this.props.onClick();
+        }
+    },
+    handleKeyDown: function(event) {
+        console.log(event.key);
     },
     render: function() {
+        if (this.props.active) {
+            return (
+                <div className={this.getClasses()}>
+                    <input type="text" onKeyDown={this.handleKeyDown} />
+                </div>
+            );
+        }
         return (
-            <div className={this.getClasses()} onClick={this.setActive}>
+            <div className={this.getClasses()} onClick={() => this.setActive()}>
                 {this.state.cell}
             </div>
         );
     }
 });
 
-React.render(<Grid />, document.getElementById("content"));
-// ReactDOM.render(<Grid />, document.getElementById('content'));
+ReactDOM.render(<Grid filename={filename}/>, document.getElementById("content"));
