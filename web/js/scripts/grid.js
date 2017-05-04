@@ -20,13 +20,23 @@ var Grid = React.createClass({
     setActive: function(row, col) {
         this.setState({active_row: row, active_col: col});
     },
+    handleChangedCell: function(row, col, val) {
+        // this.setState({active_row: row, active_col: col});
+        var idx = row * this.state.width + col;
+        console.log(row,col, val, idx);
+        var cells = this.state.cells;
+        var cell = cells[idx];
+        console.log(cell);
+        cells[idx] = val;
+        this.setState({cells: cells});
+    },
     render: function() {
         var cells = this.state.cells.map(function(cell, index) {
             var choices = this.state.cell_choices[index];
             var col = index % this.state.width;
             var row = Math.floor(index / this.state.width);
             var active = row === this.state.active_row && col === this.state.active_col;
-            return <Cell cell={cell} choices={choices} key={index} row={row} col={col} active={active} onClick={() => this.setActive(row, col)} />;
+            return <Cell cell={cell} choices={choices} key={index} row={row} col={col} active={active} onClick={() => this.setActive(row, col)} onChange={this.handleChangedCell} />;
         }, this);
         return (
             <div className="kakuro-grid">
@@ -73,7 +83,15 @@ var Cell = React.createClass({
         }
     },
     handleKeyDown: function(event) {
+        if ($.inArray(parseInt(event.key), [1,2,3,4,5,6,7,8,9]) < 0) {
+            return;
+        }
         console.log(event.key);
+        var currStateArr = this.state.cell.split('');
+        currStateArr.push(event.key);
+        var newVal = currStateArr.join('');
+        this.setState({cell: newVal});
+        this.props.onChange(this.state.row, this.state.col, newVal);
     },
     render: function() {
         if (this.props.active) {
