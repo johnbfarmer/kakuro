@@ -1,42 +1,34 @@
 var Grid = React.createClass({
     getInitialState: function() {
-        return { cells: [], height: 0, width: 0, active_row: 1, active_col: 2, cell_choices: [] };
+        return { cells: [], height: 0, width: 0, active_row: 1, active_col: 2 };
     },
     componentDidMount: function() {
-        // console.log(this.getDOMNode());
         this.getGrid();
     },
     getGrid: function() {
-            console.log(this.props.filename);
         return $.getJSON(
-            // "http://kak.uro/app_dev.php/api/grid/medium1.kak"
             "http://kak.uro/app_dev.php/api/grid/" + this.props.filename
         ).then(data => {
-            // console.log(data);
             this.setState({ cells: data.cells, height: data.height, width: data.width });
-            // console.log(this.state.cells);
         });
     },
     setActive: function(row, col) {
         this.setState({active_row: row, active_col: col});
     },
     handleChangedCell: function(row, col, val) {
-        // this.setState({active_row: row, active_col: col});
         var idx = row * this.state.width + col;
-        console.log(row,col, val, idx);
         var cells = this.state.cells;
         var cell = cells[idx];
-        console.log(cell);
-        cells[idx] = val;
+        // console.log('ch cell', cell);
+        cells[idx].choices = val;
         this.setState({cells: cells});
     },
     render: function() {
         var cells = this.state.cells.map(function(cell, index) {
-            var choices = this.state.cell_choices[index];
             var col = index % this.state.width;
             var row = Math.floor(index / this.state.width);
             var active = row === this.state.active_row && col === this.state.active_col;
-            return <Cell cell={cell} choices={choices} key={index} row={row} col={col} active={active} onClick={() => this.setActive(row, col)} onChange={this.handleChangedCell} />;
+            return <Cell cell={cell} key={index} row={row} col={col} active={active} onClick={() => this.setActive(row, col)} onChange={this.handleChangedCell} />;
         }, this);
         return (
             <div className="kakuro-grid">
@@ -48,21 +40,39 @@ var Grid = React.createClass({
 
 var Cell = React.createClass({
     getInitialState: function() {
-        var editable = this.props.row > 0 && this.props.col > 0 && this.props.cell == null;
-        var blank = !$.isArray(this.props.cell);
-        if (!blank) {
-            var leftText = this.props.cell[0] ? this.props.cell[0] : "";
-            var rightText = this.props.cell[1] ? this.props.cell[1] : "";
+        var cell = this.props.cell;
+        var editable = cell.is_data;
+        var display = cell.choices.join('');
+        if (!editable) {
+            var leftText = cell.display[0] ? cell.display[0].toString() : "";
+            var rightText = cell.display[1] ? cell.display[1].toString() : "";
+            if (leftText.length > 0 || rightText.length > 0) {
+                display = leftText + "\\" + rightText;
+            }
         }
-        var txt = blank ? "" : leftText + "\\" + rightText;
         return { 
-            cell: txt, 
-            choices: this.props.choices,
+            display: display, 
+            choices: cell.choices,
             editable: editable, 
             active: this.props.active, 
             row: this.props.row,
-            col: this.props.col
+            col: this.props.col,
+            cursorPos: 0
         };
+    },
+    componentDidUpdate: function() {
+        // console.log(this.state.row, this.state.col, ' updated');
+        this.state.cell = this.props.cell;
+        this.state.active = this.props.active;
+        this.state.choices = this.props.cell.choices;
+        this.state.display = this.state.choices.join('');
+        if (this.state.active) {
+            if (this.choiceInput) {
+                console.log(this.state.row, this.state.col)
+                this.choiceInput.focus();
+                this.state.cursorPos = 0;
+            }
+        }
     },
     getClasses: function() {
         var classes = "kakuro-cell";
@@ -83,27 +93,51 @@ var Cell = React.createClass({
         }
     },
     handleKeyDown: function(event) {
-        if ($.inArray(parseInt(event.key), [1,2,3,4,5,6,7,8,9]) < 0) {
+        if (!this.state.active) {
+            console.log('hkd',this);
             return;
         }
-        console.log(event.key);
-        var currStateArr = this.state.cell.split('');
-        currStateArr.push(event.key);
-        var newVal = currStateArr.join('');
-        this.setState({cell: newVal});
-        this.props.onChange(this.state.row, this.state.col, newVal);
+        var choices = this.state.choices;
+        var evtCode = event.keyCode;
+        if (evtCode === 39) {
+            console.log(event.key);
+            this.state.cursorPos++;
+        }
+        if (evtCode === 37) {
+            console.log(event.key);
+            this.state.cursorPos--;
+        }
+        if (evtCode === 8) {
+            console.log(event.key);
+            var idx = this.state.cursorPos - 1;
+            choices.splice(idx, 1);
+            this.setState({choices: choices, display: choices.join('')});
+        }
+        var val = parseInt(event.key);
+        console.log(event.keyCode);
+        if ($.inArray(val, [1,2,3,4,5,6,7,8,9]) > 0 && $.inArray(val, choices) < 0) {
+            choices.push(val);
+            choices.sort(); 
+            this.setState({choices: choices, display: choices.join('')});
+        }
+    },
+    handleChange: function(event) {
+        // console.log(909, event.target.value);
+        this.props.onChange(this.state.row, this.state.col, this.state.choices);
     },
     render: function() {
+        // console.log(this.props.row, this.props.col, this.props.active);
         if (this.props.active) {
+            // console.log('actv',this.props.cell);
             return (
                 <div className={this.getClasses()}>
-                    <input type="text" onKeyDown={this.handleKeyDown} />
+                    <input type="text" onKeyDown={this.handleKeyDown} value={this.state.display} onChange={this.handleChange} ref={(input) => { this.choiceInput = input; }} />
                 </div>
             );
         }
         return (
             <div className={this.getClasses()} onClick={() => this.setActive()}>
-                {this.state.cell}
+                {this.state.display}
             </div>
         );
     }

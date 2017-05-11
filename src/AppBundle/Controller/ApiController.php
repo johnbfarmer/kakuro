@@ -32,7 +32,7 @@ class ApiController extends Controller
             }
 // $this->get('logger')->error('jbf');
 // $this->get('logger')->error($row);
-            $arr = [];
+
             foreach ($cell_contents as $cell) {
                 if (strpos($cell, '\\') !== false) {
                     $c = explode('\\', $cell);
@@ -41,10 +41,12 @@ class ApiController extends Controller
                 } else {
                     $c = null;
                 }
-                $grid['cells'][] = $c;
+                $grid['cells'][] = [
+                    'display' => $c,
+                    'is_data' => empty($c),
+                    'choices' => [1,2],
+                ];
             }
-
-            // $grid['cells'][] = $arr;
         }
 
         return new JsonResponse($grid);
