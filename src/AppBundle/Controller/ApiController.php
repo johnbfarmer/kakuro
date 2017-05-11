@@ -38,13 +38,15 @@ class ApiController extends Controller
                     $c = explode('\\', $cell);
                     $c[0] = $c[0] ? (int)$c[0] : 0;
                     $c[1] = $c[1] ? (int)$c[1] : 0;
+                    $choices = [];
                 } else {
                     $c = null;
+                    $choices = [1,2];
                 }
                 $grid['cells'][] = [
                     'display' => $c,
                     'is_data' => empty($c),
-                    'choices' => [1,2],
+                    'choices' => $choices,
                 ];
             }
         }
