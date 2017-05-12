@@ -41,7 +41,7 @@ class ApiController extends Controller
                     $choices = [];
                 } else {
                     $c = null;
-                    $choices = [1,2];
+                    $choices = [];
                 }
                 $grid['cells'][] = [
                     'display' => $c,

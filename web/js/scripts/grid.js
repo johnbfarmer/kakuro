@@ -1,6 +1,6 @@
 var Grid = React.createClass({
     getInitialState: function() {
-        return { cells: [], height: 0, width: 0, active_row: 1, active_col: 2 };
+        return { cells: [], height: 0, width: 0, active_row: -1, active_col: -1 };
     },
     componentDidMount: function() {
         this.getGrid();
@@ -23,8 +23,12 @@ var Grid = React.createClass({
         return cells;
     },
     setActive: function(row, col) {
+        var fidx = this.state.active_row * this.state.width + this.state.active_col;
         var idx = row * this.state.width + col;
         var cells = this.state.cells;
+        if (fidx >= 0) {
+            cells[fidx].active = false;
+        }
         cells[idx].active = true;
         this.setState({cells: cells, active_row: row, active_col: col});
     },
@@ -99,12 +103,13 @@ var Cell = React.createClass({
     },
     componentDidUpdate: function() {
         // console.log(this.state.row, this.state.col, ' updated');
-        this.state.cell = this.props.cell;
-        this.state.active = this.state.cell.active;
-        this.state.choices = this.props.cell.choices;
+        var cell = this.props.cell;
+        // this.state.cell = cell;
+        this.state.active = cell.active;
+        this.state.choices = cell.choices;
         this.state.remove = [];
-        if (this.props.editable) {
-            this.state.display = this.state.choices.join('');
+        if (this.state.editable) {
+            this.state.display = cell.choices.join('');
         }
         if (this.state.active) {
             if (this.choiceInput) {
@@ -117,7 +122,7 @@ var Cell = React.createClass({
         if (!this.state.editable) {
             classes = classes + " blnk";
         }
-        if (this.state.active) {
+        if (this.props.cell.active) {
             classes = classes + " red";
         }
         if (this.state.col === 0) {
