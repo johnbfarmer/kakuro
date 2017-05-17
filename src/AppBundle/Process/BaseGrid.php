@@ -397,12 +397,17 @@ class BaseGrid extends BaseProcess
         $vstrip = $this->strips[$vidx];
         $hsum = $hstrip['total'];
         $vsum = $vstrip['total'];
+// $this->log("pv $i $j $hsum $vsum");
         $hsize = $hstrip['len'];
         $vsize = $vstrip['len'];
 
         $ha = $this->getValues($hsum, $hsize);
         $va = $this->getValues($vsum, $vsize);
         $a = array_values(array_intersect($ha, $va));
+// $this->log($ha);
+// $this->log($va);
+// $this->log($a);
+// $this->log('---');
         sort($a);
         return $a;
     }

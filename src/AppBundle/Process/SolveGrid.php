@@ -18,6 +18,8 @@ class SolveGrid extends BaseGrid
         $avoid_picks = [],
         $use_advanced_reduction = true,
         $use_advanced_threshold = 50,
+        $simple_reduction,
+        $reduce_only,
         $last_output_time;
 
     public function __construct($parameters = [], $em = [])
@@ -25,6 +27,8 @@ class SolveGrid extends BaseGrid
         parent::__construct($parameters, $em);
         if (!empty($this->parameters['file'])) {
             $this->input_file = $this->parameters['file'];
+        // } elseif (!empty($this->parameters['cells'])) {
+        //     $this->getReducedGridFromCells($this->parameters['cells']);
         } else {
             $this->sums = !empty($this->parameters['sums']) ? $this->parameters['sums'] : [];
             $this->hsums = $this->sums['h'];
@@ -42,7 +46,12 @@ class SolveGrid extends BaseGrid
         if (!empty($this->parameters['time-limit'])) {
             $this->time_limit = $this->parameters['time-limit'];
         }
+        if (!empty($this->parameters['cells'])) {
+            $this->cells = $this->parameters['cells'];
+        }
 
+        $this->simple_reduction = !empty($this->parameters['simple_reduction']);
+        $this->reduce_only = !empty($this->parameters['reduce_only']);
         $this->start_time = microtime(true);
         $this->last_output_time = $this->start_time;
     }
@@ -70,6 +79,26 @@ class SolveGrid extends BaseGrid
                         $this->log($this->displaySolutions(), true);
                         return;
                     }
+
+                    if (!empty($this->cells)) {
+                        $idx = ($i+1) * ($this->width + 1) + ($j+1);
+                        if (!empty($this->cells[$idx]['choices'])) {
+                            $xxx = $this->cells[$idx]['choices'];
+// $this->log("m $i $j idx $idx");
+// $this->log($this->cells[$idx]);
+// $this->log($this->cells[$idx]['row']);
+// $this->log($this->cells[$idx]['col']);
+// $this->log($pv);
+// $this->log($xxx);
+                            $pv = array_values(array_intersect($xxx, $pv));
+// if (empty($pv)) {
+//     $this->log('blank pv');
+//     return;
+// }
+// $this->log($pv);
+// $this->log('###');
+                        }
+                    }
                     $this->grid['cells'][$i][$j]['choices'] = $pv;
                 }
             }
@@ -83,7 +112,7 @@ class SolveGrid extends BaseGrid
         $this->grid['changed_strips'] = [];
         $this->display($this->grid);
         $this->log("DOING INITIAL REDUCTION", $this->debug);
-        $this->grid = $this->reduceGrid($this->grid);
+        $this->grid = $this->reduceGrid($this->grid, [], !$this->simple_reduction);
         $this->timeCheck();
         if (empty($this->grid)) {
             throw new \Exception("Initial Reduction fails");
@@ -91,6 +120,10 @@ class SolveGrid extends BaseGrid
 
         $this->paths[] = $this->grid;
         $this->display($this->grid);
+
+        if ($this->reduce_only) {
+            return;
+        }
 
         $this->routine();
         $this->log($this->displaySolutions(), true);
@@ -144,6 +177,25 @@ class SolveGrid extends BaseGrid
                 }
             }
         }
+    }
+
+    public function getApiResponse()
+    {
+        $cells = [];
+        foreach ($this->cells as $idx => $cell) {
+            if (!array_key_exists('row', $cell)) {
+                throw new \Exception("No 'row' idx: $idx" . json_encode($cell));
+            }
+            $i = $cell['row'] - 1;
+            $j = $cell['col'] - 1;
+            if (!empty($this->grid['cells'][$i][$j]['choices'])) {
+                $cell['choices'] = array_values($this->grid['cells'][$i][$j]['choices']);
+                $cell['display'] = implode('', $cell['choices']);
+            }
+            $cells[] = $cell;
+        }
+// $this->log($cells);
+        return $cells;
     }
 
     protected function pickTargetCell($grid)
@@ -514,7 +566,6 @@ $this->log($idx . ' has difficulty ' . $grid['difficulty']);
         // TBI -- what if adv redux was not used beofre and now the flag is set to true?
         $key = $sgx['key'];
         if (!$skip_cache && isset($this->saved_grids[$key])) {
-$this->log('cache hit saved grid '.$key);
             return $this->saved_grids[$key];
         }
 
@@ -599,6 +650,7 @@ $this->log('cache hit saved grid '.$key);
             $i = $dir === 'v' ? $k : $row; 
             $j = $dir === 'h' ? $k : $col;
             if (!isset($sgx['cells'][$i][$j])) {
+$this->log("e $i $j grid val not set");
                 return false;
             }
             $cell = $sgx['cells'][$i][$j];
@@ -623,9 +675,10 @@ $this->log('cache hit saved grid '.$key);
             $pv = $cell['choices'];
             $new_pv = array_values(array_intersect($pv, $choices));
             if (empty($new_pv)) {
-// $this->log('jbf pv and choices for cell '.$cell['i'].' '.$cell['j']);
-// $this->log($pv);
-// $this->log($choices);
+$this->log('e '.$cell['i'].' '.$cell['j']);
+$this->log($cell);
+$this->log($pv);
+$this->log($choices);
                 return false;
             }
             if (count($new_pv) < count($pv)) {
@@ -645,6 +698,7 @@ $this->log('cache hit saved grid '.$key);
 
         if (empty($still_undecided_cells)) {
             if (!$this->checkStrip($strip, $sgx)) {
+$this->log("e strip fails check");
                 return false;
             }
             return $sgx;

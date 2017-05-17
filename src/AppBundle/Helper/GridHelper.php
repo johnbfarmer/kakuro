@@ -4,6 +4,14 @@ namespace AppBundle\Helper;
 
 class GridHelper
 {
+    public static 
+        $logger;
+
+    public function __construct($logger)
+    {
+        self::$logger = $logger;
+    }
+
     public static function isBlank($i, $j, $grid)
     {
         $val = $grid[$i][$j];
@@ -130,5 +138,38 @@ class GridHelper
         $keys = array_keys($arr);
         $index = rand(1, count($keys)) - 1;
         return $keys[$index];
+    }
+
+    public static function log($str, $level = 'notice')
+    {
+        if (!is_string($str))
+        {
+            $str = print_r($str, TRUE);
+        }
+        $accepted_levels = array(
+            'emergency',
+            'alert',
+            'critical',
+            'warning',
+            'notice',
+            'info',
+            'debug'
+        );
+
+        if (!in_array($level, $accepted_levels))
+        {
+            $level = 'info';
+        }
+        self::$logger->$level($str);
+    }
+
+    public function onKernelRequest($event)
+    {
+        return;
+    }
+
+    public function onConsoleCommand($event)
+    {
+        return;
     }
 }

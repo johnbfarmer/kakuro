@@ -13,6 +13,44 @@ var Grid = React.createClass({
             this.setState({ cells: cells, height: data.height, width: data.width });
         });
     },
+    reduce: function(advanced) {
+        var cells = JSON.stringify(this.state.cells);
+        return $.post(
+            "http://kak.uro/app_dev.php/api/get-choices",
+            {
+                file: this.props.filename,
+                cells: cells,
+                advanced: ~~advanced
+            },
+            function(resp) {
+                console.log(resp);
+            },
+            'json'
+        ).then(data => {
+            this.setState({ cells: data.cells });
+        });
+    },
+    simpleReduce: function() {
+        this.reduce(false);
+    },
+    advancedReduce: function() {
+        this.reduce(true);
+    },
+    clearChoices: function() {
+        var cells = this.state.cells;
+        var idx = this.state.active_row * this.state.width + this.state.active_col;
+        cells[idx].choices = [];
+
+        this.setState({ cells: cells });
+    },
+    clearAllChoices: function() {
+        var cells = this.state.cells;
+        cells.forEach((cell, idx) => {
+            cell.choices = [];
+        });
+
+        this.setState({ cells: cells });
+    },
     processNewData: function(cells, height, width) {
         cells.forEach((cell, idx) => {
             cell.col = idx % width;
@@ -67,9 +105,35 @@ var Grid = React.createClass({
         console.log('ch cell', row, col, val);
         this.setState({cells: cells});
     },
+    handleKey: function(keyCode) {
+        if (keyCode === 38) { // up
+            this.moveActive(-1,0);
+        }
+        if (keyCode === 40) {
+            this.moveActive(1,0);
+        }
+        if (keyCode === 37) {
+            this.moveActive(0,-1);
+        }
+        if (keyCode === 39) {
+            this.moveActive(0,1);
+        }
+        if (keyCode === 82) { // r
+            this.simpleReduce();
+        }
+        if (keyCode === 65) { // a
+            this.advancedReduce();
+        }
+        if (keyCode === 88) { // x
+            this.clearChoices();
+        }
+        if (keyCode === 67) { // c
+            this.clearAllChoices();
+        }
+    },
     render: function() {
         var cells = this.state.cells.map(function(cell, index) {
-            return <Cell cell={cell} key={index} moveActive={this.moveActive} onClick={() => this.setActive(cell.row, cell.col)} onChange={this.handleChangedCell} />;
+            return <Cell cell={cell} key={index} handleKey={this.handleKey} onClick={() => this.setActive(cell.row, cell.col)} onChange={this.handleChangedCell} />;
         }, this);
         return (
             <div className="kakuro-grid">
@@ -104,7 +168,6 @@ var Cell = React.createClass({
     componentDidUpdate: function() {
         // console.log(this.state.row, this.state.col, ' updated');
         var cell = this.props.cell;
-        // this.state.cell = cell;
         this.state.active = cell.active;
         this.state.choices = cell.choices;
         this.state.remove = [];
@@ -136,29 +199,20 @@ var Cell = React.createClass({
         }
     },
     handleKeyDown: function(event) {
-        var keyCode = event.keyCode;
-        if (keyCode === 38) { // up
-            this.props.moveActive(-1,0);
-        }
-        if (keyCode === 40) {
-            this.props.moveActive(1,0);
-        }
-        if (keyCode === 37) {
-            this.props.moveActive(0,-1);
-        }
-        if (keyCode === 39) {
-            this.props.moveActive(0,1);
-        }
-
         var key = parseInt(event.key);
-        var arr_pos = this.state.choices.indexOf(key);
-        if (arr_pos > -1) {
-            this.state.remove.push(key);
-        } else {
-            arr_pos = this.state.remove.indexOf(key);
+        if (key > 0) {
+            var arr_pos = this.state.choices.indexOf(key);
             if (arr_pos > -1) {
-                this.state.remove.splice(arr_pos, 1);
+                this.state.remove.push(key);
+            } else {
+                arr_pos = this.state.remove.indexOf(key);
+                if (arr_pos > -1) {
+                    this.state.remove.splice(arr_pos, 1);
+                }
             }
+        } else {
+            var keyCode = event.keyCode;
+            this.props.handleKey(keyCode);
         }
     },
     handleChange: function(event) {

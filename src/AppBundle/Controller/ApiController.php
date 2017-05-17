@@ -8,6 +8,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
+use AppBundle\Process\SolveGrid;
+
 class ApiController extends Controller
 {
     /**
@@ -51,6 +53,23 @@ class ApiController extends Controller
             }
         }
 
+        return new JsonResponse($grid);
+    }
+
+    /**
+     * @Route("api/get-choices", name="grid_get_choices")
+     */
+    public function getChoicesAction(Request $request)
+    {
+        // $cells = $request->request->get('cells');
+        $cells = json_decode($request->request->get('cells'), true);
+        $advanced_reduction = $request->request->has('advanced') && $request->request->get('advanced');
+        $dir = realpath($this->getParameter('kernel.root_dir').'/..').DIRECTORY_SEPARATOR.'files'.DIRECTORY_SEPARATOR;
+        $filename = $request->request->get('file');
+        $file = $dir.$filename;
+        $parameters = ['file' => $file, 'cells' => $cells, 'simple_reduction' => !$advanced_reduction, 'reduce_only' => true];
+        $x = SolveGrid::autoExecute($parameters, null);
+        $grid = ['cells' => $x->getApiResponse()];
         return new JsonResponse($grid);
     }
 }

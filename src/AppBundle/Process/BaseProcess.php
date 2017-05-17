@@ -6,6 +6,8 @@ use Monolog\Logger;
 use Monolog\Handler\StreamHandler;
 use Monolog\Formatter\LineFormatter;
 
+use AppBundle\Helper\GridHelper;
+
 class BaseProcess
 {
     protected
@@ -19,11 +21,11 @@ class BaseProcess
     {
         $this->parameters = $parameters;
         $this->em = $em;
-        $this->logger = new Logger('Kakuro');
-        $formatter = new LineFormatter(null, null, true);
-        $stream = new StreamHandler($this->log_file, Logger::INFO);
-        $stream->setFormatter($formatter);
-        $this->logger->pushHandler($stream);
+        // $this->logger = new Logger('Kakuro');
+        // $formatter = new LineFormatter(null, null, true);
+        // $stream = new StreamHandler($this->log_file, Logger::INFO);
+        // $stream->setFormatter($formatter);
+        // $this->logger->pushHandler($stream);
     }
 
     protected function execute()
@@ -38,7 +40,8 @@ class BaseProcess
         }
 
         if ($this->logging) {
-            $this->logger->info($msg);
+            GridHelper::log($msg);
+            // $this->logger->info($msg);
         }
 
         if ($std_out) {
