@@ -29,6 +29,7 @@ body {
 }
 .kakuro-grid {
     padding: 20px;
+    outline: none;
 }
 .kakuro-cell input {
     width: 48px;
