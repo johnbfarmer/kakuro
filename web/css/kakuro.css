@@ -13,8 +13,9 @@ body {
 .blnk {
     background-color: lightblue;
 }
-.red {
-    border: 2px solid red;
+.actv {
+    color: red;
+    background-color: lightgray;
 }
 .clr {
     clear: both;
