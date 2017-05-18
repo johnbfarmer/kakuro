@@ -1,6 +1,6 @@
 var Grid = React.createClass({
     getInitialState: function() {
-        return { cells: [], height: 0, width: 0, active_row: -1, active_col: -1 };
+        return { cells: [], height: 0, width: 0, active_row: -1, active_col: -1, saved_states: [] };
     },
     componentDidMount: function() {
         this.getGrid();
@@ -11,7 +11,27 @@ var Grid = React.createClass({
         ).then(data => {
             cells = this.processNewData(data.cells, data.height, data.width);
             this.setState({ cells: cells, height: data.height, width: data.width });
+            this.saveState();
         });
+    },
+    saveState: function() {
+        var cells = $.extend(true, [], this.state.cells);
+        this.state.saved_states.push(cells);
+    },
+    restoreSavedState: function() {
+        var cells = this.state.saved_states.pop();
+        if (!cells) {
+            return;
+        }
+        var active_row = -1;
+        var active_col = -1;
+        cells.forEach((cell, idx) => {
+            if(cell.active) {
+                active_row = cell.row;
+                active_col = cell.col;
+            }
+        });
+        this.setState({cells: cells, active_row: active_row, active_col: active_col});
     },
     reduce: function(advanced) {
         var cells = JSON.stringify(this.state.cells);
@@ -68,6 +88,7 @@ var Grid = React.createClass({
             cells[fidx].active = false;
         }
         cells[idx].active = true;
+        this.saveState();
         this.setState({cells: cells, active_row: row, active_col: col});
     },
     moveActive: function(v,h, row, col) {
@@ -151,6 +172,9 @@ var Grid = React.createClass({
         if (keyCode === 67) { // c
             this.clearAllChoices();
         }
+        if (keyCode === 85) { // u
+            this.restoreSavedState();
+        }
     },
     render: function() {
         var cells = this.state.cells.map(function(cell, index) {
@@ -194,9 +218,9 @@ var Cell = React.createClass({
         if (this.state.editable) {
             this.state.display = cell.choices.join('');
         }
-        if (this.state.active) {
-            console.log(this.state, ' actv');
-        }
+        // if (this.state.active) {
+        //     console.log(this.state, ' actv');
+        // }
     },
     getClasses: function() {
         var classes = "kakuro-cell";
