@@ -47,6 +47,58 @@ class BaseGrid extends BaseProcess
         );
     }
 
+    protected function readInputFromDb()
+    {
+        $name = 'easy1';
+        $name = pathinfo($this->input_file, PATHINFO_FILENAME);
+        $sql = '
+        select * from grids G
+        inner join cells C ON C.grid_id = G.id
+        where G.name = "' . $name . '"
+        ORDER BY row, col';
+        $cells = $this->fetchAll($sql, true);
+        $this->height = $cells[0]['height'];
+        $this->width = $cells[0]['width'];
+        for ($k = 0; $k < $this->height; $k++) {
+            $this->hsums[$k] = array_fill(0, $this->width, 0);
+        }
+        for ($k = 0; $k < $this->width; $k++) {
+            $this->vsums[$k] = array_fill(0, $this->height, 0);
+        }
+        foreach($cells as $cell) {
+            $row = $cell['row'];
+            $col = $cell['col'];
+            $anchor[$row][$col] = [(int)$cell['label_h'], (int)$cell['label_v']];
+        }
+        foreach($cells as $cell) {
+            $row = $cell['row'];
+            $col = $cell['col'];
+            $hsum = $anchor[$row][$col][0];
+            $vsum = $anchor[$row][$col][1];
+            if ($vsum) {
+                $r = $row + 1;
+                $c = $col;
+                while ($r <= $this->height && empty($anchor[$r][$c])) {
+                    $this->vsums[$r-1][$c-1] = $vsum;
+                    $r++;
+                }
+            }
+            if ($hsum) {
+                $r = $row;
+                $c = $col + 1;
+                while ($c <= $this->width && empty($anchor[$r][$c])) {
+                    $this->hsums[$r-1][$c-1] = $hsum;
+                    $c++;
+                }
+            }
+
+        }
+        $this->log('vsums');
+        $this->log($this->vsums);
+        $this->log('hsums');
+        $this->log($this->hsums);
+    }
+
     protected function readInputFile()
     {
         $file = $this->input_file;

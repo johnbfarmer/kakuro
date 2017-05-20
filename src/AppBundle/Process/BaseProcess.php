@@ -13,6 +13,7 @@ class BaseProcess
     protected
         $parameters,
         $em,
+        $connection,
         $logging = true,
         $log_file = 'app/log/app.log',
         $logger;
@@ -21,11 +22,7 @@ class BaseProcess
     {
         $this->parameters = $parameters;
         $this->em = $em;
-        // $this->logger = new Logger('Kakuro');
-        // $formatter = new LineFormatter(null, null, true);
-        // $stream = new StreamHandler($this->log_file, Logger::INFO);
-        // $stream->setFormatter($formatter);
-        // $this->logger->pushHandler($stream);
+        $this->connection = GridHelper::getConnection();
     }
 
     protected function execute()
@@ -47,6 +44,31 @@ class BaseProcess
         if ($std_out) {
             print "$msg\n";
         }
+    }
+
+    protected function exec($sql, $log = true)
+    {
+        if ($log) {
+            $this->log($sql);
+        }
+        $connection = $this->connection;
+        $stmt = $connection->prepare($sql);
+        $stmt->execute();
+        return $stmt;
+    }
+
+    protected function fetch($sql, $log = false)
+    {
+        $stmt = $this->exec($sql, $log);
+        $records = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $records;
+    }
+
+    protected function fetchAll($sql, $log = false)
+    {
+        $stmt = $this->exec($sql, $log);
+        $records = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        return $records;
     }
 
     public static function autoExecute($parameters, $em)

@@ -75,6 +75,10 @@ var Grid = React.createClass({
         cells.forEach((cell, idx) => {
             cell.col = idx % width;
             cell.row = Math.floor(idx / width);
+            if (cell.row == 0 || cell.col == 0) {
+                cell.is_data = false;
+                cell.display = cell.display || [0,0];
+            }
             cell.active = cell.row === this.state.active_row && cell.col === this.state.active_col;
             cells[idx] = cell;
         });
@@ -123,7 +127,6 @@ var Grid = React.createClass({
         var idx = row * this.state.width + col;
         var cells = this.state.cells;
         cells[idx].choices = val;
-        // console.log('ch cell', row, col, val);
         this.setState({cells: cells});
     },
     handleKeyDown: function(event) {
@@ -193,15 +196,18 @@ var Cell = React.createClass({
         var cell = this.props.cell;
         var editable = cell.is_data;
         var display = cell.choices.join('');
+        var sum_box = false;
         if (!editable) {
             var leftText = cell.display[0] ? cell.display[0].toString() : "";
             var rightText = cell.display[1] ? cell.display[1].toString() : "";
             if (leftText.length > 0 || rightText.length > 0) {
-                display = leftText + "\\" + rightText;
+                display = leftText + " " + rightText;
+                sum_box = true;
             }
         }
         return { 
-            display: display, 
+            display: display,
+            sum_box: sum_box,
             choices: cell.choices,
             editable: editable, 
             active: cell.active, 
@@ -218,14 +224,14 @@ var Cell = React.createClass({
         if (this.state.editable) {
             this.state.display = cell.choices.join('');
         }
-        // if (this.state.active) {
-        //     console.log(this.state, ' actv');
-        // }
     },
     getClasses: function() {
         var classes = "kakuro-cell";
         if (!this.state.editable) {
             classes = classes + " blnk";
+        }
+        if (this.state.sum_box) {
+            classes = classes + " sum-box";
         }
         if (this.props.cell.active) {
             classes = classes + " actv";

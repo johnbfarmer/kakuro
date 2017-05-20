@@ -36,7 +36,7 @@ class BuildTables extends BaseProcess
 
     public function findValues($target, $size, $used = [])
     {
-        $stored = $this->fetch($target, $size, $used);
+        $stored = $this->fetchTarget($target, $size, $used);
         if (!empty($stored)) {
             return $stored;
         }
@@ -51,7 +51,7 @@ class BuildTables extends BaseProcess
         return $solutions;
     }
 
-    protected function fetch($target, $size, $used)
+    protected function fetchTarget($target, $size, $used)
     {
         $key = $this->getStorageKey($used);
         return !empty($this->known[$target][$size][$key]) ? $this->known[$target][$size][$key] : [];

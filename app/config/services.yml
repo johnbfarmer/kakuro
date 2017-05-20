@@ -2,14 +2,26 @@
 # http://symfony.com/doc/current/service_container.html
 parameters:
     #parameter_name: value
+    database_dsn: "mysql:host=%database_host%;dbname=%database_name%"
 
 services:
     #service_name:
     #    class: AppBundle\Directory\ClassName
     #    arguments: ['@another_service_name', 'plain_value', '%parameter_name%']
+    db_connection:
+        class: PDO
+        arguments:
+            - %database_dsn%;charset=UTF8
+            - %database_user%
+            - %database_password%
+            - {PDO:: {ATTR_ERRMODE: PDO::ERRMODE_EXCEPTION, MYSQL_ATTR_INIT_COMMAND: 'SET NAMES "utf8"'}}
+
+    custom_formatter:
+        class: AppBundle\Monolog\CustomFormatter
+
     grid_helper:
         class: AppBundle\Helper\GridHelper
-        arguments: [ '@logger' ]
+        arguments: [ '@logger', "@db_connection" ]
         tags:
             - {name: kernel.event_listener, event: kernel.request, method: onKernelRequest}
             - {name: kernel.event_listener, event: console.command, method: onConsoleCommand}

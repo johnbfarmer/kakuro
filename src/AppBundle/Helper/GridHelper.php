@@ -5,11 +5,13 @@ namespace AppBundle\Helper;
 class GridHelper
 {
     public static 
-        $logger;
+        $logger,
+        $connection;
 
-    public function __construct($logger)
+    public function __construct($logger, $connection)
     {
         self::$logger = $logger;
+        self::$connection = $connection;
     }
 
     public static function isBlank($i, $j, $grid)
@@ -17,6 +19,40 @@ class GridHelper
         $val = $grid[$i][$j];
 
         return !empty($val['blank']);
+    }
+
+    public static function getGrid($name)
+    {
+        $name = pathinfo($name, PATHINFO_FILENAME);
+        $sql = '
+        select * from grids G
+        inner join cells C ON C.grid_id = G.id
+        where G.name = "' . $name . '"
+        ORDER BY row, col';
+        $connection = self::$connection;
+        $stmt = $connection->prepare($sql);
+        $stmt->execute();
+        $anchors = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $height = 1 + $anchors[0]['height'];
+        $width = 1 + $anchors[0]['width'];
+        $default_cell = [
+            'display' => null,
+            'is_data' => true,
+            'choices' => [],
+        ];
+        $cells = array_fill(0, $width * $height, $default_cell);
+        foreach ($anchors as $anchor) {
+            $row = $anchor['row'];
+            $col = $anchor['col'];
+            $cells[$row * $width + $col]['display'] = [(int)$anchor['label_v'], (int)$anchor['label_h']];
+            $cells[$row * $width + $col]['is_data'] = false;
+        }
+
+        return [
+            'height' => $height,
+            'width' => $width,
+            'cells' => array_values($cells),
+        ];
     }
 
     public static function hstrip($i, $j, $grid)
@@ -161,6 +197,11 @@ class GridHelper
             $level = 'info';
         }
         self::$logger->$level($str);
+    }
+
+    public static function getConnection()
+    {
+        return self::$connection;
     }
 
     public function onKernelRequest($event)
