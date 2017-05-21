@@ -23,7 +23,6 @@ class GridHelper
 
     public static function getGrid($name)
     {
-        $name = pathinfo($name, PATHINFO_FILENAME);
         $sql = '
         select * from grids G
         inner join cells C ON C.grid_id = G.id

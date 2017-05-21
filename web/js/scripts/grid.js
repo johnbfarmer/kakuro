@@ -7,7 +7,7 @@ var Grid = React.createClass({
     },
     getGrid: function() {
         return $.getJSON(
-            "http://kak.uro/app_dev.php/api/grid/" + this.props.filename
+            "http://kak.uro/app_dev.php/api/grid/" + this.props.grid_name
         ).then(data => {
             cells = this.processNewData(data.cells, data.height, data.width);
             this.setState({ cells: cells, height: data.height, width: data.width });
@@ -33,12 +33,28 @@ var Grid = React.createClass({
         });
         this.setState({cells: cells, active_row: active_row, active_col: active_col});
     },
+    saveChoices: function() {
+        var cells = JSON.stringify(this.state.cells);
+        return $.post(
+            "http://kak.uro/app_dev.php/api/save-choices",
+            {
+                grid_name: this.props.grid_name,
+                cells: cells
+            },
+            function(resp) {
+                if (resp.error) {
+                    alert(resp.message);
+                }
+            },
+            'json'
+        );
+    },
     reduce: function(advanced) {
         var cells = JSON.stringify(this.state.cells);
         return $.post(
             "http://kak.uro/app_dev.php/api/get-choices",
             {
-                file: this.props.filename,
+                grid_name: this.props.grid_name,
                 cells: cells,
                 advanced: ~~advanced
             },
@@ -180,6 +196,9 @@ var Grid = React.createClass({
         if (keyCode === 85) { // u
             this.restoreSavedState();
         }
+        if (keyCode === 83) { // s
+            this.saveChoices();
+        }
     },
     render: function() {
         var cells = this.state.cells.map(function(cell, index) {
@@ -267,4 +286,4 @@ var Cell = React.createClass({
     }
 });
 
-ReactDOM.render(<Grid filename={filename}/>, document.getElementById("content"));
+ReactDOM.render(<Grid grid_name={grid_name}/>, document.getElementById("content"));

@@ -27,7 +27,7 @@ class BaseGrid extends BaseProcess
         $nonempty_cell_count = 0,
         $solutions_desired = 2,
         $table_builder,
-        $input_file,
+        $grid_name,
         $open_browser,
         $debug,
         $options_by_target_and_size = [];
@@ -49,8 +49,7 @@ class BaseGrid extends BaseProcess
 
     protected function readInputFromDb()
     {
-        $name = 'easy1';
-        $name = pathinfo($this->input_file, PATHINFO_FILENAME);
+        $name = $this->grid_name;
         $sql = '
         select * from grids G
         inner join cells C ON C.grid_id = G.id
@@ -99,46 +98,6 @@ class BaseGrid extends BaseProcess
         $this->log($this->hsums);
     }
 
-    protected function readInputFile()
-    {
-        $file = $this->input_file;
-        $fp = fopen($file, "r");
-        if (!$fp) {
-            throw new \Exception("problem with file " . $file);
-        }
-        $this->log("READING FILE " . $file, $this->debug);
-        $first_row_done = false;
-
-        while (($entry = fgetcsv($fp, 100, "\t")) !== false) {
-            if (empty($this->width)) {
-                if (!empty($entry)) {
-                    $this->width = current($entry);
-                }
-                continue;
-            }
-            if (empty($this->height)) {
-                if (!empty($entry)) {
-                    $this->height = current($entry);
-                }
-                continue;
-            }
-            if (!$first_row_done) {
-                if (!empty($entry)) {
-                    $first_row_done = $this->processFirstRow($entry);
-                }
-                $linecount = 0;
-                continue;
-            }
-            $this->processFileRow($entry, $linecount++);
-            if ($linecount >= $this->height) {
-                break;
-            }
-        }
-        unset($this->vsums[-1]);
-        $this->vsums = array_values($this->vsums);
-        fclose($fp);
-    }
-
     protected function openGridInBrowser()
     {
         if (empty($this->sums)) {
@@ -147,7 +106,7 @@ class BaseGrid extends BaseProcess
 
         if ($this->open_browser) {
             // $link = "http://localhost/kakuro/index.php?g=" . urlencode(json_encode($this->grid['cells'])) . "&s=" . urlencode(json_encode($this->sums)) . "&show=0";
-            $f = pathinfo($this->input_file, PATHINFO_BASENAME);
+            $f = $this->grid_name;
             // $link = "http://localhost/kakuro/web/kakuro.php?f=$f";
             $link = "http://localhost/kakuro/index.php?f=$f";
             `open "$link"`;

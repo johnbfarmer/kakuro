@@ -25,8 +25,8 @@ class SolveGrid extends BaseGrid
     public function __construct($parameters = [], $em = [])
     {
         parent::__construct($parameters, $em);
-        if (!empty($this->parameters['file'])) {
-            $this->input_file = $this->parameters['file'];
+        if (!empty($this->parameters['grid_name'])) {
+            $this->grid_name = $this->parameters['grid_name'];
         } else {
             $this->sums = !empty($this->parameters['sums']) ? $this->parameters['sums'] : [];
             $this->hsums = $this->sums['h'];
@@ -57,7 +57,7 @@ class SolveGrid extends BaseGrid
     protected function execute()
     {
         parent::execute();
-        if ($this->input_file) {
+        if ($this->grid_name) {
             // $this->readInputFile();
             $this->readInputFromDb();
             // $this->log('File read. Alternatively call with args ' . json_encode($this->hsums). ' ' . json_encode($this->vsums));
