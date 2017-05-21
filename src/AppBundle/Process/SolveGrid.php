@@ -83,19 +83,7 @@ class SolveGrid extends BaseGrid
                         $idx = ($i+1) * ($this->width + 1) + ($j+1);
                         if (!empty($this->cells[$idx]['choices'])) {
                             $xxx = $this->cells[$idx]['choices'];
-// $this->log("m $i $j idx $idx");
-// $this->log($this->cells[$idx]);
-// $this->log($this->cells[$idx]['row']);
-// $this->log($this->cells[$idx]['col']);
-// $this->log($pv);
-// $this->log($xxx);
                             $pv = array_values(array_intersect($xxx, $pv));
-// if (empty($pv)) {
-//     $this->log('blank pv');
-//     return;
-// }
-// $this->log($pv);
-// $this->log('###');
                         }
                     }
                     $this->grid['cells'][$i][$j]['choices'] = $pv;
@@ -113,16 +101,16 @@ class SolveGrid extends BaseGrid
         $this->log("DOING INITIAL REDUCTION", $this->debug);
         $this->grid = $this->reduceGrid($this->grid, [], !$this->simple_reduction);
         $this->timeCheck();
-        if (empty($this->grid)) {
-            throw new \Exception("Initial Reduction fails");
-        }
-
-        $this->paths[] = $this->grid;
-        $this->display($this->grid);
+        // if (empty($this->grid)) {
+            // throw new \Exception("Initial Reduction fails");
+        // }
 
         if ($this->reduce_only) {
             return;
         }
+
+        $this->paths[] = $this->grid;
+        $this->display($this->grid);
 
         $this->routine();
         $this->log($this->displaySolutions(), true);
@@ -194,7 +182,12 @@ class SolveGrid extends BaseGrid
             $cells[] = $cell;
         }
 // $this->log($cells);
-        return $cells;
+        $grid = ['cells' => $cells, 'error' => false];
+        if (!empty($this->problem_strips)) {
+            $grid['error'] = true;
+            $grid['message'] = 'problem reducing';
+        }
+        return $grid;
     }
 
     protected function pickTargetCell($grid)

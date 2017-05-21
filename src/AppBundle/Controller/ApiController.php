@@ -34,7 +34,7 @@ class ApiController extends Controller
         $file = $dir.$filename;
         $parameters = ['file' => $file, 'cells' => $cells, 'simple_reduction' => !$advanced_reduction, 'reduce_only' => true];
         $x = SolveGrid::autoExecute($parameters, null);
-        $grid = ['cells' => $x->getApiResponse()];
+        $grid = $x->getApiResponse();
         return new JsonResponse($grid);
     }
 }

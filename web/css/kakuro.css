@@ -24,9 +24,9 @@ body {
     background: 
        linear-gradient(to top right,
            lightblue 0%,
-           rgba(0,0,0,0) calc(50% - 0.8px),
+           lightblue calc(50% - 0.8px),
            rgba(0,0,0,1) 50%,
-           rgba(0,0,0,0) calc(50% + 0.8px),
+           lightblue calc(50% + 0.8px),
            lightblue 100%);
 }
 .kakuro-row {
@@ -40,4 +40,25 @@ body {
 .kakuro-cell input {
     width: 48px;
     height: 48px;
+}
+
+.label-v {
+  width: 20px;
+  margin-left: 2px;
+  margin-top: 10px;
+  float: left;
+}
+
+.label-h {
+  width: 20px;
+  margin-right: 2px;
+  margin-top: -10px;
+  float: right;
+}
+
+.choice-box {
+  overflow: auto;
+  word-break: break-all;
+  line-height: 16px;
+  padding: 0px 4px;
 }

@@ -43,7 +43,9 @@ var Grid = React.createClass({
                 advanced: ~~advanced
             },
             function(resp) {
-                console.log(resp);
+                if (resp.error) {
+                    alert(resp.message);
+                }
             },
             'json'
         ).then(data => {
@@ -196,17 +198,20 @@ var Cell = React.createClass({
         var cell = this.props.cell;
         var editable = cell.is_data;
         var display = cell.choices.join('');
+        var label_v = '';
+        var label_h = '';
         var sum_box = false;
         if (!editable) {
-            var leftText = cell.display[0] ? cell.display[0].toString() : "";
-            var rightText = cell.display[1] ? cell.display[1].toString() : "";
-            if (leftText.length > 0 || rightText.length > 0) {
-                display = leftText + " " + rightText;
+            label_v = cell.display[0] ? cell.display[0].toString() : '';
+            label_h = cell.display[1] ? cell.display[1].toString() : '';
+            if (label_h.length > 0 || label_v.length > 0) {
                 sum_box = true;
             }
         }
         return { 
             display: display,
+            label_v: label_v,
+            label_h: label_h,
             sum_box: sum_box,
             choices: cell.choices,
             editable: editable, 
@@ -247,10 +252,16 @@ var Cell = React.createClass({
         }
     },
     render: function() {
-        var display = this.state.editable ? this.props.cell.choices.join('') : this.state.display;
+        if (this.state.editable) {
+            return (
+                <div className={this.getClasses()} onClick={() => this.setActive()}>
+                    <span className='choice-box'>{this.props.cell.choices.join('')}</span>
+                </div>
+            );
+        }
         return (
-            <div className={this.getClasses()} onClick={() => this.setActive()}>
-                {display}
+            <div className={this.getClasses()}>
+                <div className='label-v'>{this.state.label_v}</div><div className='label-h'>{this.state.label_h}</div>
             </div>
         );
     }
