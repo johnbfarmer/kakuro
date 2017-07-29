@@ -778,11 +778,24 @@ $this->log("e strip fails check");
     protected function isPossible($cells, $sum, $used)
     {
         $pv = $this->getValues($sum, count($cells), $used);
+
         foreach ($cells as $cell) {
             if (empty(array_values(array_intersect($cell['choices'], $pv)))) {
                 return false;
             }
-            
+        }
+
+        // if there are 2 in the set, test for complement:
+        if (count($cells) === 2) {
+            $cells = array_values($cells);
+            foreach ($cells[0]['choices'] as $choice) {
+                $complement = $sum - $choice;
+                if (in_array($complement, $cells[1]['choices'])) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         return true;
