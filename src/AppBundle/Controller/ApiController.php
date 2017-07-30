@@ -12,6 +12,7 @@ use AppBundle\Process\SolveGrid;
 use AppBundle\Process\SaveGrid;
 use AppBundle\Process\LoadSavedGrid;
 use AppBundle\Helper\GridHelper;
+use AppBundle\Entity\Grid;
 
 class ApiController extends Controller
 {
@@ -20,7 +21,10 @@ class ApiController extends Controller
      */
     public function gridAction(Request $request, $name)
     {
-        return new JsonResponse(GridHelper::getGrid($name));
+        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findOneBy(['name' => $name]);
+        GridHelper::log($grid->getName());
+        return new JsonResponse($grid->getForApi());
+        // return new JsonResponse(GridHelper::getGrid($name));
     }
 
     /**

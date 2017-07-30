@@ -18,3 +18,5 @@
 files/*.kak
 
 /node_modules/
+
+/tmp/
