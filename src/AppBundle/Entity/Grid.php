@@ -91,15 +91,20 @@ class Grid
             'is_data' => true,
             'choices' => [],
         ];
-        $cells = array_fill(0, $this->width * $this->height, $default_cell);
+        $height = $this->height + 1;
+        $width = $this->width + 1;
+        $cells = array_fill(0, $width * $height, $default_cell);
         foreach ($this->cells as $cell) {
-            $a = $cell->getForApi($this->width);
-            $cells[$a['idx']] = $a;
+            $a = $cell->getForApi($width);
+            $idx = $a['idx'];
+            $a['choices'] = [];
+            unset($a['idx']);
+            $cells[$idx] = $a;
         } 
 
         return [
-            'height' => $this->height,
-            'width' => $this->width,
+            'height' => $height,
+            'width' => $width,
             'cells' => array_values($cells),
         ];
     }
