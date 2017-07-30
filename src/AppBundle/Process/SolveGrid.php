@@ -638,6 +638,7 @@ $this->log($idx . ' has difficulty ' . $grid['difficulty']);
 
         // see if anything to do, get ready if so
         $undecided_cells = [];
+        $decided_cells = [];
         for ($k = $start; $k < $start + $len; $k++) {
             $i = $dir === 'v' ? $k : $row; 
             $j = $dir === 'h' ? $k : $col;
@@ -650,11 +651,13 @@ $this->log("e $i $j grid val not set");
                 $num = current($cell['choices']);
                 $sum -= $num;
                 $used_numbers[] = $num;
+                $decided_cells[] = $cell;
             } else {
                 $undecided_cells[] = $cell;
             }
         }
 
+        
         if (empty($undecided_cells)) { // nothing to do
             return $sgx;
         }
@@ -666,6 +669,13 @@ $this->log("e $i $j grid val not set");
         foreach ($undecided_cells as $cell) {
             $pv = $cell['choices'];
             $new_pv = array_values(array_intersect($pv, $choices));
+            if (count($undecided_cells) === 2) {
+                $sum = $strip['total'];
+                foreach ($decided_cells as $dc) {
+                    $sum -= current($dc['choices']);
+                }
+                $new_pv = $this->reduceDuplet($sum, $cell, $undecided_cells);
+            }
             if (empty($new_pv)) {
 $this->log('e '.$cell['i'].' '.$cell['j']);
 $this->log($cell);
@@ -697,6 +707,28 @@ $this->log("e strip fails check");
         }
 
         return $use_advanced_reduction ? $this->advancedStripReduction($sgx, $still_undecided_cells, $sum, $used_numbers) : $sgx;
+    }
+
+    protected function reduceDuplet($sum, $cell, $cells)
+    {
+        $choices = $cell['choices'];
+        if (count($cells) === 2) {
+            $pv = [];
+            $cell_idx = $cells[0]['i'] === $cell['i'] && $cells[0]['j'] === $cell['j'] ? 0 : 1;
+            $other_idx = $cell_idx ? 0 : 1;
+            foreach($choices as $idx => $choice) {
+                if (in_array($sum - $choice, $cells[$other_idx]['choices'])) {
+                    $pv[] = $choice;
+                }
+            }
+
+            if (empty($pv)) {
+                $x = 1;
+            }
+            return $pv;
+        }
+
+        return $choices;
     }
 
     protected function advancedStripReduction($grid, $cells, $sum, $used)
@@ -788,7 +820,7 @@ $this->log("e strip fails check");
         // if there are 2 in the set, test for complement:
         if (count($cells) === 2) {
             $cells = array_values($cells);
-            foreach ($cells[0]['choices'] as $choice) {
+            foreach ($cells[0]['choices'] as $choice) { // one way is sufficient
                 $complement = $sum - $choice;
                 if (in_array($complement, $cells[1]['choices'])) {
                     return true;
