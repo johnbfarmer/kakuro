@@ -4,15 +4,12 @@
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
     <link rel="stylesheet" href="{{ asset('css/kakuro.css') }}" />
     <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
-    <script src="https://fb.me/react-0.14.0.js"></script>
-    <script src="https://fb.me/react-dom-0.14.0.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/0.13.0/JSXTransformer.js"></script>
 </head>
 <body>
     <h1>Kakuro</h1>
     <div id="content"></div>
     <script> var grid_name = "{{ grid_name }}"</script>
-    <script type="text/jsx;" src="{{ asset('js/scripts/grid.js') }}"></script>
+    <script src="{{ asset('js/main.js') }}"></script>
 </body>
 </body>
 </html>

@@ -1,24 +1,48 @@
-var Grid = React.createClass({
-    getInitialState: function() {
-        return { cells: [], height: 0, width: 0, active_row: -1, active_col: -1, saved_states: [] };
-    },
-    componentDidMount: function() {
+import React from 'react';
+import Cell from './Cell.jsx';
+
+export default class Grid extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { cells: [], height: 0, width: 0, active_row: -1, active_col: -1, saved_states: [] };
+        this.getGrid = this.getGrid.bind(this);
+        this.saveState = this.saveState.bind(this);
+        this.restoreSavedState = this.restoreSavedState.bind(this);
+        this.saveChoices = this.saveChoices.bind(this);
+        this.loadSavedChoices = this.loadSavedChoices.bind(this);
+        this.simpleReduce = this.simpleReduce.bind(this);
+        this.advancedReduce = this.advancedReduce.bind(this);
+        this.clearChoices = this.clearChoices.bind(this);
+        this.clearAllChoices = this.clearAllChoices.bind(this);
+        this.reduce = this.reduce.bind(this);
+        this.processNewData = this.processNewData.bind(this);
+        this.setActive = this.setActive.bind(this);
+        this.moveActive = this.moveActive.bind(this);
+        this.handleChangedCell = this.handleChangedCell.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKey = this.handleKey.bind(this);
+    }
+
+    componentDidMount() {
         this.getGrid();
-    },
-    getGrid: function() {
+    }
+
+    getGrid() {
         return $.getJSON(
             "http://kak.uro/app_dev.php/api/grid/" + this.props.grid_name
         ).then(data => {
-            cells = this.processNewData(data.cells, data.height, data.width);
+            var cells = this.processNewData(data.cells, data.height, data.width);
             this.setState({ cells: cells, height: data.height, width: data.width });
             this.saveState();
         });
-    },
-    saveState: function() {
+    }
+
+    saveState() {
         var cells = $.extend(true, [], this.state.cells);
         this.state.saved_states.push(cells);
-    },
-    restoreSavedState: function() {
+    }    
+
+    restoreSavedState() {
         var cells = this.state.saved_states.pop();
         if (!cells) {
             return;
@@ -32,13 +56,15 @@ var Grid = React.createClass({
             }
         });
         this.setState({cells: cells, active_row: active_row, active_col: active_col});
-    },
-    saveChoices: function() {
+    }
+
+    saveChoices() {
         var cells = JSON.stringify(this.state.cells);
         return $.post(
             "http://kak.uro/app_dev.php/api/save-choices",
             {
                 grid_name: this.props.grid_name,
+                saved_grid_name: 'jbf',
                 cells: cells
             },
             function(resp) {
@@ -48,8 +74,28 @@ var Grid = React.createClass({
             },
             'json'
         );
-    },
-    reduce: function(advanced) {
+    }
+    loadSavedChoices() {
+        var cells = JSON.stringify(this.state.cells);
+        return $.post(
+            "http://kak.uro/app_dev.php/api/load-choices",
+            {
+                grid_name: this.props.grid_name
+            },
+            function(resp) {
+                if (resp.error) {
+                    alert(resp.message);
+                }
+            },
+            'json'
+        ).then(data => {
+            cells = this.processNewData(data.cells, data.height, data.width);
+            this.setState({ cells: cells, height: data.height, width: data.width });
+            this.saveState();
+        });
+    }
+
+    reduce(advanced) {
         var cells = JSON.stringify(this.state.cells);
         return $.post(
             "http://kak.uro/app_dev.php/api/get-choices",
@@ -67,29 +113,34 @@ var Grid = React.createClass({
         ).then(data => {
             this.setState({ cells: data.cells });
         });
-    },
-    simpleReduce: function() {
+    }
+
+    simpleReduce() {
         this.reduce(false);
-    },
-    advancedReduce: function() {
+    }
+
+    advancedReduce() {
         this.reduce(true);
-    },
-    clearChoices: function() {
+    }
+
+    clearChoices() {
         var cells = this.state.cells;
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         cells[idx].choices = [];
 
         this.setState({ cells: cells });
-    },
-    clearAllChoices: function() {
+    }
+
+    clearAllChoices() {
         var cells = this.state.cells;
         cells.forEach((cell, idx) => {
             cell.choices = [];
         });
 
         this.setState({ cells: cells });
-    },
-    processNewData: function(cells, height, width) {
+    }
+
+    processNewData(cells, height, width) {
         cells.forEach((cell, idx) => {
             cell.col = idx % width;
             cell.row = Math.floor(idx / width);
@@ -101,8 +152,9 @@ var Grid = React.createClass({
             cells[idx] = cell;
         });
         return cells;
-    },
-    setActive: function(row, col) {
+    }
+
+    setActive(row, col) {
         var fidx = this.state.active_row * this.state.width + this.state.active_col;
         var idx = row * this.state.width + col;
         var cells = this.state.cells;
@@ -112,8 +164,9 @@ var Grid = React.createClass({
         cells[idx].active = true;
         this.saveState();
         this.setState({cells: cells, active_row: row, active_col: col});
-    },
-    moveActive: function(v,h, row, col) {
+    }
+
+    moveActive(v,h, row, col) {
         if (typeof row === 'undefined') {
             row = this.state.active_row;
         }
@@ -140,14 +193,16 @@ var Grid = React.createClass({
         } else {
             this.setActive(active_row, active_col);
         }
-    },
-    handleChangedCell: function(row, col, val) {
+    }
+
+    handleChangedCell(row, col, val) {
         var idx = row * this.state.width + col;
         var cells = this.state.cells;
         cells[idx].choices = val;
         this.setState({cells: cells});
-    },
-    handleKeyDown: function(event) {
+    }
+
+    handleKeyDown(event) {
         var key = parseInt(event.key);
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         var cells = this.state.cells;
@@ -167,8 +222,9 @@ var Grid = React.createClass({
             var keyCode = event.keyCode;
             this.handleKey(keyCode);
         }
-    },
-    handleKey: function(keyCode) {
+    }
+
+    handleKey(keyCode) {
         if (keyCode === 38) { // up
             this.moveActive(-1,0);
         }
@@ -199,8 +255,12 @@ var Grid = React.createClass({
         if (keyCode === 83) { // s
             this.saveChoices();
         }
-    },
-    render: function() {
+        if (keyCode === 76) { // l
+            this.loadSavedChoices();
+        }
+    }
+
+    render() {
         var cells = this.state.cells.map(function(cell, index) {
             return <Cell cell={cell} key={index} handleKey={this.handleKey} onClick={() => this.setActive(cell.row, cell.col)} onChange={this.handleChangedCell} />;
         }, this);
@@ -210,80 +270,5 @@ var Grid = React.createClass({
             </span>
         );
     }
-});
+}
 
-var Cell = React.createClass({
-    getInitialState: function() {
-        var cell = this.props.cell;
-        var editable = cell.is_data;
-        var display = cell.choices.join('');
-        var label_v = '';
-        var label_h = '';
-        var sum_box = false;
-        if (!editable) {
-            label_v = cell.display[0] ? cell.display[0].toString() : '';
-            label_h = cell.display[1] ? cell.display[1].toString() : '';
-            if (label_h.length > 0 || label_v.length > 0) {
-                sum_box = true;
-            }
-        }
-        return { 
-            display: display,
-            label_v: label_v,
-            label_h: label_h,
-            sum_box: sum_box,
-            choices: cell.choices,
-            editable: editable, 
-            active: cell.active, 
-            row: cell.row,
-            col: cell.col,
-            remove: []
-        };
-    },
-    componentDidUpdate: function() {
-        var cell = this.props.cell;
-        this.state.active = cell.active;
-        this.state.choices = cell.choices;
-        this.state.remove = [];
-        if (this.state.editable) {
-            this.state.display = cell.choices.join('');
-        }
-    },
-    getClasses: function() {
-        var classes = "kakuro-cell";
-        if (!this.state.editable) {
-            classes = classes + " blnk";
-        }
-        if (this.state.sum_box) {
-            classes = classes + " sum-box";
-        }
-        if (this.props.cell.active) {
-            classes = classes + " actv";
-        }
-        if (this.state.col === 0) {
-            classes = classes + " clr";
-        }
-        return classes;
-    },
-    setActive: function() {
-        if (this.state.editable) {
-            this.props.onClick();
-        }
-    },
-    render: function() {
-        if (this.state.editable) {
-            return (
-                <div className={this.getClasses()} onClick={() => this.setActive()}>
-                    <span className='choice-box'>{this.props.cell.choices.join('')}</span>
-                </div>
-            );
-        }
-        return (
-            <div className={this.getClasses()}>
-                <div className='label-v'>{this.state.label_v}</div><div className='label-h'>{this.state.label_h}</div>
-            </div>
-        );
-    }
-});
-
-ReactDOM.render(<Grid grid_name={grid_name}/>, document.getElementById("content"));
