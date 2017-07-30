@@ -71,6 +71,11 @@ class BaseProcess
         return $records;
     }
 
+    protected function lastInsertId()
+    {
+        return $this->connection->lastInsertId();
+    }
+
     public static function autoExecute($parameters, $em)
     {
         $class = get_called_class();

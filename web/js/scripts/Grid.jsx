@@ -4,7 +4,15 @@ import Cell from './Cell.jsx';
 export default class Grid extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { cells: [], height: 0, width: 0, active_row: -1, active_col: -1, saved_states: [] };
+        this.state = {
+            cells: [],
+            height: 0,
+            width: 0,
+            active_row: -1,
+            active_col: -1,
+            solved: false,
+            saved_states: [],
+        };
         this.getGrid = this.getGrid.bind(this);
         this.saveState = this.saveState.bind(this);
         this.restoreSavedState = this.restoreSavedState.bind(this);
@@ -21,6 +29,7 @@ export default class Grid extends React.Component {
         this.handleChangedCell = this.handleChangedCell.bind(this);
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleKey = this.handleKey.bind(this);
+        this.checkAnswer = this.checkAnswer.bind(this);
     }
 
     componentDidMount() {
@@ -29,7 +38,7 @@ export default class Grid extends React.Component {
 
     getGrid() {
         return $.getJSON(
-            "http://kak.uro/app_dev.php/api/grid/" + this.props.grid_name
+            "http://kak.uro/app_dev.php/api/grid/" + vars.grid_name
         ).then(data => {
             var cells = this.processNewData(data.cells, data.height, data.width);
             this.setState({ cells: cells, height: data.height, width: data.width });
@@ -63,7 +72,7 @@ export default class Grid extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/save-choices",
             {
-                grid_name: this.props.grid_name,
+                grid_name: vars.grid_name,
                 saved_grid_name: 'jbf',
                 cells: cells
             },
@@ -80,7 +89,7 @@ export default class Grid extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/load-choices",
             {
-                grid_name: this.props.grid_name
+                grid_name: vars.grid_name
             },
             function(resp) {
                 if (resp.error) {
@@ -100,7 +109,7 @@ export default class Grid extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/get-choices",
             {
-                grid_name: this.props.grid_name,
+                grid_name: vars.grid_name,
                 cells: cells,
                 advanced: ~~advanced
             },
@@ -217,6 +226,7 @@ export default class Grid extends React.Component {
             cell.choices.sort();
             cell.display = cell.choices.join('');
             cells[idx] = cell;
+            this.checkAnswer(cells);
             this.setState({cells: cells});
         } else {
             var keyCode = event.keyCode;
@@ -260,12 +270,43 @@ export default class Grid extends React.Component {
         }
     }
 
+    checkAnswer(cells) {
+        for (let cell of cells) {
+            if(cell.is_data) {
+                if (cell.choices.length !== 1) {
+                    return false;
+                }
+            }
+        };
+        return $.post(
+            "http://kak.uro/app_dev.php/api/check",
+            {
+                grid_name: vars.grid_name,
+                cells: JSON.stringify(cells),
+            },
+            function(resp) {
+                if (resp.error) {
+                    alert(resp.message);
+                }
+            },
+            'json'
+        ).then(data => {
+            if (data.isSolution) {
+                this.setState({ solved: true });
+            }
+        });
+    }
+
     render() {
         var cells = this.state.cells.map(function(cell, index) {
-            return <Cell cell={cell} key={index} handleKey={this.handleKey} onClick={() => this.setActive(cell.row, cell.col)} onChange={this.handleChangedCell} />;
+            return <Cell cell={cell} solved={this.state.solved} key={index} handleKey={this.handleKey} onClick={() => this.setActive(cell.row, cell.col)} onChange={this.handleChangedCell} />;
         }, this);
+        var classes = "kakuro-grid";
+        if (this.state.solved) {
+            classes = classes + ' grid-solved';
+        }
         return (
-            <span className="kakuro-grid" tabIndex="0" onKeyDown={this.handleKeyDown}>
+            <span className={classes} tabIndex="0" onKeyDown={this.handleKeyDown}>
                {cells}
             </span>
         );

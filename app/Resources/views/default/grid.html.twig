@@ -8,7 +8,11 @@
 <body>
     <h1>Kakuro</h1>
     <div id="content"></div>
-    <script> var grid_name = "{{ grid_name }}"</script>
+    <script>
+        var vars = {
+            grid_name: "{{ grid_name }}"
+        }
+    </script>
     <script src="{{ asset('js/main.js') }}"></script>
 </body>
 </body>

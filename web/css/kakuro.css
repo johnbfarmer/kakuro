@@ -62,3 +62,13 @@ body {
   line-height: 16px;
   padding: 0px 4px;
 }
+
+.large-num {
+  color: green;
+  padding-top: 15px;
+  font-size: 30px;
+}
+
+.cell-solved {
+  background-color: yellow;
+}

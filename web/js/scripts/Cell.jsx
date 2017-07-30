@@ -48,15 +48,23 @@ export default class Cell extends React.Component {
         if (!this.state.editable) {
             classes = classes + " blnk";
         }
-        if (this.state.sum_box) {
+         if (this.state.sum_box) {
             classes = classes + " sum-box";
-        }
-        if (this.props.cell.active) {
-            classes = classes + " actv";
+        } else {
+            if (this.props.cell.choices.length === 1) {
+                classes = classes + " large-num";
+            }
+            if (this.props.solved) {
+                classes = classes + " cell-solved";
+            }
+            if (this.props.cell.active) {
+                classes = classes + " actv";
+            }
         }
         if (this.state.col === 0) {
             classes = classes + " clr";
         }
+        
         return classes;
     }
 
