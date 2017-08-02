@@ -69,7 +69,9 @@ class ApiController extends Controller
     {
         $cells = json_decode($request->request->get('cells'), true);
         $grid_name = $request->request->get('grid_name');
-        $saved_grid_name = $request->request->get('saved_grid_name');
+        $saved_grid_name = $request->request->has('saved_grid_name') && !empty($request->request->get('saved_grid_name')) 
+            ? $request->request->get('saved_grid_name') 
+            : time();
         $parameters = ['grid_name' => $grid_name, 'saved_grid_name' => $saved_grid_name, 'cells' => $cells];
         $x = SaveGrid::autoExecute($parameters, null);
         $grid = [];

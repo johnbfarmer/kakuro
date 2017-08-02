@@ -29,10 +29,10 @@ class BuildGridCommand extends Command
                 'density', 'd', InputOption::VALUE_REQUIRED, '0<x<1'
             )
             ->addOption(
-                'browser', 'b', InputOption::VALUE_NONE, '0<x<1'
+                'browser', 'b', InputOption::VALUE_NONE, 'to deprecate'
             )
             ->addOption(
-                'symmetry', 's', InputOption::VALUE_NONE, '0<x<1'
+                'symmetry', 's', InputOption::VALUE_NONE, ''
             );
     }
 

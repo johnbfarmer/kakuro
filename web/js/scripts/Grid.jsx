@@ -1,10 +1,12 @@
 import React from 'react';
 import Cell from './Cell.jsx';
+import KakuroControls from './KakuroControls.jsx';
 
 export default class Grid extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
+            name: vars.grid_name,
             cells: [],
             height: 0,
             width: 0,
@@ -38,7 +40,7 @@ export default class Grid extends React.Component {
 
     getGrid() {
         return $.getJSON(
-            "http://kak.uro/app_dev.php/api/grid/" + vars.grid_name
+            "http://kak.uro/app_dev.php/api/grid/" + this.state.name
         ).then(data => {
             var cells = this.processNewData(data.cells, data.height, data.width);
             this.setState({ cells: cells, height: data.height, width: data.width });
@@ -67,13 +69,14 @@ export default class Grid extends React.Component {
         this.setState({cells: cells, active_row: active_row, active_col: active_col});
     }
 
-    saveChoices() {
+    saveChoices(name) {
         var cells = JSON.stringify(this.state.cells);
+        name = name || null;
         return $.post(
             "http://kak.uro/app_dev.php/api/save-choices",
             {
                 grid_name: vars.grid_name,
-                saved_grid_name: 'jbf',
+                saved_grid_name: name,
                 cells: cells
             },
             function(resp) {
@@ -109,7 +112,7 @@ export default class Grid extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/get-choices",
             {
-                grid_name: vars.grid_name,
+                grid_name: this.state.name,
                 cells: cells,
                 advanced: ~~advanced
             },
@@ -281,7 +284,7 @@ export default class Grid extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/check",
             {
-                grid_name: vars.grid_name,
+                grid_name: this.state.name,
                 cells: JSON.stringify(cells),
             },
             function(resp) {
@@ -299,16 +302,32 @@ export default class Grid extends React.Component {
 
     render() {
         var cells = this.state.cells.map(function(cell, index) {
-            return <Cell cell={cell} solved={this.state.solved} key={index} handleKey={this.handleKey} onClick={() => this.setActive(cell.row, cell.col)} onChange={this.handleChangedCell} />;
+            cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
+            return <Cell 
+                    cell={cell}
+                    solved={this.state.solved}
+                    key={index}
+                    handleKey={this.handleKey}
+                    onClick={() => this.setActive(cell.row, cell.col)}
+                    onChange={this.handleChangedCell}
+                   />;
         }, this);
-        var classes = "kakuro-grid";
+        var classes = "kakuro-grid col-md-8";
         if (this.state.solved) {
             classes = classes + ' grid-solved';
         }
         return (
-            <span className={classes} tabIndex="0" onKeyDown={this.handleKeyDown}>
-               {cells}
-            </span>
+            <div>
+                <div className={classes} tabIndex="0" onKeyDown={this.handleKeyDown}>
+                   {cells}
+                </div>
+                <div className="col-md-4">
+                    <KakuroControls
+                        name={this.state.name}
+                        save={this.saveChoices}
+                    />
+                </div>
+            </div>
         );
     }
 }
