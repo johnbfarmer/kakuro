@@ -27,12 +27,12 @@ class Grid
     private $name;
     
     /**
-     * @ORM\Column(type="integer")
+     * @ORM\Column(type="integer", options={"unsigned"=true})
      */
     private $height = 0;
     
     /**
-     * @ORM\Column(type="integer")
+     * @ORM\Column(type="integer", options={"unsigned"=true})
      */
     private $width = 0;
 

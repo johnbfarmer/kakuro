@@ -24,7 +24,6 @@ class ApiController extends Controller
     {
         $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findOneBy(['name' => $name]);
         return new JsonResponse($grid->getForApi());
-        // return new JsonResponse(GridHelper::getGrid($name));
     }
 
     /**
@@ -43,10 +42,8 @@ class ApiController extends Controller
             'simple_reduction' => !$advanced_reduction,
             'reduce_only' => true
         ];
-        $x = GridReducer::autoExecute($parameters, null);
-        // $x = SolveGrid::autoExecute($parameters, null);
-        $grid = $x->getApiResponse();
-        return new JsonResponse($grid);
+        $reducer = GridReducer::autoExecute($parameters, null);
+        return new JsonResponse($reducer->getApiResponse());
     }
 
     /**
@@ -83,11 +80,8 @@ class ApiController extends Controller
      */
     public function loadSavedChoicesAction(Request $request)
     {
-        $cells = json_decode($request->request->get('cells'), true);
-        $grid_name = $request->request->get('grid_name');
-        $saved_grid_name = $request->request->get('saved_grid_name');
-        $parameters = ['grid_name' => $grid_name, 'saved_grid_name' => $saved_grid_name];
-        $grid = LoadSavedGrid::autoExecute($parameters, null);
-        return new JsonResponse($grid->getGrid());
+        $saved_grid_id = $request->request->get('saved_grid_id');
+        $savedGrid = $this->getDoctrine()->getManager()->getRepository('AppBundle:SavedGrid')->find($saved_grid_id);
+        return new JsonResponse($savedGrid->getForApi());
     }
 }

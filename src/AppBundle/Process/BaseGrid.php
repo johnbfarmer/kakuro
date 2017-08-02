@@ -47,6 +47,22 @@ class BaseGrid extends BaseProcess
         );
     }
 
+    // new paradigm, cell as class not array
+    protected function removeByRowAndCol(&$cells, $target)
+    {
+        foreach ($cells as $idx => $cell) {
+            if ($cell->getRow() === $target->getRow() && $cell->getCol() === $target->getCol()) {
+                unset($cells[$idx]);
+            }
+        }
+    }
+
+    protected function getIndexByRowAndCol($cell)
+    {
+        return $cell->getRow() * $this->width + $cell->getCol();
+    }
+
+    // old paradigm
     protected function readInputFromDb()
     {
         $name = $this->grid_name;

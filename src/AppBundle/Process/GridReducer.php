@@ -39,7 +39,8 @@ class GridReducer extends BaseGrid
     protected function execute()
     {
         parent::execute();
-        $this->cellsNew = $this->gridObj->getForProcessing();
+        $originalState = $this->gridObj->getForProcessing();
+        $this->cellsNew = $originalState;
         $this->stripsNew = $this->gridObj->getStrips();
         if (!empty($this->cells)) {
             foreach ($this->cellsNew as $cell) {
@@ -57,7 +58,9 @@ class GridReducer extends BaseGrid
         $this->grid['path'] = [];
         $this->grid['changed_strips'] = [];
         $this->log("DOING INITIAL REDUCTION", $this->debug);
-        $this->reduceGridNew([], !$this->simple_reduction);
+        if (!$this->reduceGridNew([], !$this->simple_reduction)) {
+            $this->cellsNew = $originalState;
+        }
     }
 
     protected function reduceGridNew($strip_ids_to_process = [], $use_advanced_reduction)
@@ -176,7 +179,7 @@ class GridReducer extends BaseGrid
             return false;
         }
 
-        return $this->reduceByPigeonHoleNew($cells, $sum, $used);
+        return $this->reduceByPigeonHole($cells, $sum, $used);
     }
 
     protected function reduceByComplementNew($cells, $sum, $used)
@@ -207,10 +210,13 @@ class GridReducer extends BaseGrid
         return true;
     }
 
-    protected function reduceByPigeonHoleNew($cells, $sum, $used)
+    protected function reduceByPigeonHole($cells, $sum, $used)
     {
         // each cell, my choices C; separate cells into groups Y and N based on criteria:
-        // 'do you have nothing outside of C' if count(Y) == count(C) remove C from N; fail is count(Y) > count(C)
+        // 'do you have nothing outside of C' if count(Y) == count(C) remove C from N; fail if count(Y) > count(C)
+        // example cells Q->12 R->12 S->123; relative to Q, C=12, Y=[R], N=[S]. After reduction S->3.
+        $disjointGroups = [];
+        $disjointGroupValues = [];
         foreach ($cells as $cell) {
             $c = $cell->getChoices();
             $y = [];
@@ -222,6 +228,7 @@ class GridReducer extends BaseGrid
                     $n[] = $inner;
                 }
             }
+
             if (empty($n)) {
                 continue;
             }
@@ -232,9 +239,45 @@ class GridReducer extends BaseGrid
                 return false;
             }
 
-            if (!$this->removeChoicesFromCellsNew($n, $c)) {
+            if (!$this->removeChoicesFromCells($n, $c)) {
                 return false;
             }
+
+            if (empty(array_intersect($c, $disjointGroupValues))) {
+                $disjointGroups[] = $y;
+                $disjointGroupValues = array_merge($c, $disjointGroupValues);
+            }
+        }
+
+        return $this->reduceByDisjointGroups($cells, $sum, $disjointGroups);
+    }
+
+    protected function reduceByDisjointGroups($cells, $sum, $disjointGroups)
+    {
+        if (empty($disjointGroups)) {
+            return true;
+        }
+
+        // get the sum of the groups
+        $groups_total = 0;
+        foreach ($disjointGroups as $group) {
+            $cell = current($group);
+            foreach ($cell->getChoices() as $choice) {
+                $groups_total += $choice;
+            }
+            foreach ($group as $cell) {
+                $this->removeByRowAndCol($cells, $cell);
+            }
+        }
+
+        $sum -= $groups_total;
+
+        // $used can be empty as those vals should already have been removed from $cells
+        $pv = $this->getValues($sum, count($cells), []);
+        foreach ($cells as $cell) {
+            $newChoices = array_values(array_intersect($cell->getChoices(), $pv));
+            $idx = $this->getIndexByRowAndCol($cell);
+            $this->cellsNew[$idx]->setChoices($newChoices);
         }
 
         return true;
@@ -307,7 +350,7 @@ class GridReducer extends BaseGrid
         return true;
     }
 
-    protected function removeChoicesFromCellsNew($cells, $choices)
+    protected function removeChoicesFromCells($cells, $choices)
     {
         if (!is_array($cells)) {
             $cells = [$cells];
