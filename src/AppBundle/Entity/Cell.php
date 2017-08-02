@@ -46,7 +46,12 @@ class Cell
      * @ORM\ManyToOne(targetEntity="Grid", inversedBy="cells", cascade={"persist"})
      * @ORM\JoinColumn(name="grid_id", referencedColumnName="id")
      */
-    protected $grid;
+    private $grid;
+
+    private $choices = [];
+    private $possibleValues = [];
+    private $dataCell = false;
+    private $strips = ['h' => null, 'v' => null];
 
     public function getId()
     {
@@ -113,12 +118,81 @@ class Cell
         return $this->label_v;
     }
 
+    public function setChoices($choices)
+    {
+        $this->choices = $choices;
+
+        return $this;
+    }
+
+    public function getChoices()
+    {
+        return $this->choices;
+    }
+
+    public function getStrips()
+    {
+        return $this->strips;
+    }
+
+    public function setStripH($strip)
+    {
+        $this->strips['h'] = $strip;
+
+        return $this;
+    }
+
+    public function getStripH()
+    {
+        return $this->strips['h'];
+    }
+
+    public function setStripV($strip)
+    {
+        $this->strips['v'] = $strip;
+
+        return $this;
+    }
+
+    public function getStripV()
+    {
+        return $this->strips['v'];
+    }
+
+    public function setDataCell($dataCell)
+    {
+        $this->dataCell = $dataCell;
+
+        return $this;
+    }
+
+    public function isDataCell()
+    {
+        return $this->dataCell;
+    }
+
+    public function getPossibleValues()
+    {
+        return $this->possibleValues;
+    }
+
+    public function calculatePossibleValues()
+    {
+        if ($this->isDataCell()) {
+            $pv = array_values(array_intersect($this->strips['h']->getPossibleValues(), $this->strips['v']->getPossibleValues()));
+            sort($pv);
+            $this->possibleValues = $pv;
+        }
+    }
+
     public function getForApi($width)
     {
         return [
             'display' => [(int)$this->label_v, (int)$this->label_h],
             'is_data' => false,
             'idx' => $this->row * $width + $this->col,
+            'row' => $this->row,
+            'col' => $this->col,
         ];
     }
 }

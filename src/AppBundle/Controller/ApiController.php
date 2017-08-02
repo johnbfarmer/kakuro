@@ -9,6 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 use AppBundle\Process\SolveGrid;
+use AppBundle\Process\GridReducer;
 use AppBundle\Process\SaveGrid;
 use AppBundle\Process\LoadSavedGrid;
 use AppBundle\Helper\GridHelper;
@@ -22,7 +23,6 @@ class ApiController extends Controller
     public function gridAction(Request $request, $name)
     {
         $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findOneBy(['name' => $name]);
-        GridHelper::log($grid->getName());
         return new JsonResponse($grid->getForApi());
         // return new JsonResponse(GridHelper::getGrid($name));
     }
@@ -35,8 +35,16 @@ class ApiController extends Controller
         $cells = json_decode($request->request->get('cells'), true);
         $advanced_reduction = $request->request->has('advanced') && $request->request->get('advanced');
         $name = $request->request->get('grid_name');
-        $parameters = ['grid_name' => $name, 'cells' => $cells, 'simple_reduction' => !$advanced_reduction, 'reduce_only' => true];
-        $x = SolveGrid::autoExecute($parameters, null);
+        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findOneBy(['name' => $name]);
+        $parameters = [
+            'grid' => $grid,
+            'grid_name' => $name,
+            'cells' => $cells,
+            'simple_reduction' => !$advanced_reduction,
+            'reduce_only' => true
+        ];
+        $x = GridReducer::autoExecute($parameters, null);
+        // $x = SolveGrid::autoExecute($parameters, null);
         $grid = $x->getApiResponse();
         return new JsonResponse($grid);
     }
