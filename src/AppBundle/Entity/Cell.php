@@ -52,6 +52,8 @@ class Cell
     private $possibleValues = [];
     private $dataCell = false;
     private $strips = ['h' => null, 'v' => null];
+    private $idx;
+    private $choice;
 
     public function getId()
     {
@@ -68,6 +70,18 @@ class Cell
     public function getGridId()
     {
         return $this->gridId;
+    }
+
+    public function setGrid($grid)
+    {
+        $this->grid = $grid;
+
+        return $this;
+    }
+
+    public function getGrid()
+    {
+        return $this->grid;
     }
 
     public function setRow($row)
@@ -125,7 +139,7 @@ class Cell
         return $this;
     }
 
-    public function getChoices()
+    public function getChoices($use_pv = true)
     {
         return $this->choices;
     }
@@ -135,9 +149,9 @@ class Cell
         return $this->strips;
     }
 
-    public function setStripH($strip)
+    public function setStripH($idx)
     {
-        $this->strips['h'] = $strip;
+        $this->strips['h'] = $idx;
 
         return $this;
     }
@@ -147,9 +161,9 @@ class Cell
         return $this->strips['h'];
     }
 
-    public function setStripV($strip)
+    public function setStripV($idx)
     {
-        $this->strips['v'] = $strip;
+        $this->strips['v'] = $idx;
 
         return $this;
     }
@@ -176,10 +190,60 @@ class Cell
         return $this->possibleValues;
     }
 
+    public function setChoice($choice)
+    {
+        $this->choice = $choice;
+
+        return $this;
+    }
+
+    public function getChoice()
+    {
+        return $this->choice;
+    }
+
+    public function calculateRowAndCol()
+    {
+        $width = $this->grid->getWidth();
+        if ($this->idx) {
+            $this->row = floor($idx / $width);
+            $this->col = $width % $idx;
+        }
+
+        return $this;
+    }
+
+    public function calculateIdx()
+    {
+        $this->idx = $this->row * $this->grid->getWidth() + $this->col;
+        return $this;
+    }
+
+    public function setIdx($idx)
+    {
+        $this->idx = $idx;
+        return $this;
+    }
+
+    public function getIdx()
+    {
+        return $this->idx;
+    }
+
+    public function setLocation($i, $j)
+    {
+        $this->setRow($i);
+        $this->setCol($j);
+        return $this->calculateIdx();
+    }
+
     public function calculatePossibleValues()
     {
         if ($this->isDataCell()) {
-            $pv = array_values(array_intersect($this->strips['h']->getPossibleValues(), $this->strips['v']->getPossibleValues()));
+            $gridStrips = $this->grid->getStrips();
+            $stripH = $gridStrips[$this->strips['h']];
+            $stripV = $gridStrips[$this->strips['v']];
+            $pv = array_values(array_intersect($stripH->getPossibleValues(), $stripV->getPossibleValues()));
             sort($pv);
             $this->possibleValues = $pv;
         }

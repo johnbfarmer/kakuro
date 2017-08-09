@@ -18,12 +18,25 @@ use AppBundle\Entity\Grid;
 class ApiController extends Controller
 {
     /**
-     * @Route("api/grid/{name}", name="get_grid")
+     * @Route("api/grid/{id}", name="get_grid")
      */
-    public function gridAction(Request $request, $name)
+    public function gridAction(Request $request, $id)
     {
-        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findOneBy(['name' => $name]);
+        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($id);
         return new JsonResponse($grid->getForApi());
+    }
+
+    /**
+     * @Route("api/games", name="get_games")
+     */
+    public function gamesAction(Request $request)
+    {
+        $games = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findAll();
+        $arr = [];
+        foreach ($games as $game) {
+            $arr[] = ['name' => $game->getId(), 'label' => $game->getName()];
+        }
+        return new JsonResponse(['games' => $arr]);
     }
 
     /**
@@ -33,11 +46,11 @@ class ApiController extends Controller
     {
         $cells = json_decode($request->request->get('cells'), true);
         $advanced_reduction = $request->request->has('advanced') && $request->request->get('advanced');
-        $name = $request->request->get('grid_name');
-        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findOneBy(['name' => $name]);
+        $grid_id = $request->request->get('grid_id');
+        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($grid_id);
         $parameters = [
             'grid' => $grid,
-            'grid_name' => $name,
+            'grid_name' => $grid->getName(),
             'cells' => $cells,
             'simple_reduction' => !$advanced_reduction,
             'reduce_only' => true
@@ -65,11 +78,11 @@ class ApiController extends Controller
     public function saveChoicesAction(Request $request)
     {
         $cells = json_decode($request->request->get('cells'), true);
-        $grid_name = $request->request->get('grid_name');
+        $id = $request->request->get('grid_id');
         $saved_grid_name = $request->request->has('saved_grid_name') && !empty($request->request->get('saved_grid_name')) 
             ? $request->request->get('saved_grid_name') 
-            : time();
-        $parameters = ['grid_name' => $grid_name, 'saved_grid_name' => $saved_grid_name, 'cells' => $cells];
+            : 'kakuro_' . time();
+        $parameters = ['id' => $id, 'saved_grid_name' => $saved_grid_name, 'cells' => $cells];
         $x = SaveGrid::autoExecute($parameters, null);
         $grid = [];
         return new JsonResponse($grid);

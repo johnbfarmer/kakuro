@@ -92,6 +92,9 @@ class SavedGrid
             $idx = $savedChoice->getRow() * ($this->grid->getWidth() + 1) + $savedChoice->getCol();
             $grid['cells'][$idx]['choices'] = explode(',', $savedChoice->getChoices());
         }
+
+        $grid['name'] = $this->name;
+
         return $grid;
     }
 }

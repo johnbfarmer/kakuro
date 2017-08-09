@@ -7,8 +7,8 @@ class SaveGrid extends BaseGrid
     public function __construct($parameters = [], $em = [])
     {
         parent::__construct($parameters, $em);
-        if (!empty($this->parameters['grid_name'])) {
-            $this->grid_name = $this->parameters['grid_name'];
+        if (!empty($this->parameters['id'])) {
+            $this->grid_id = $this->parameters['id'];
         }
         if (!empty($this->parameters['saved_grid_name'])) {
             $this->saved_grid_name = $this->parameters['saved_grid_name'];
@@ -26,14 +26,7 @@ class SaveGrid extends BaseGrid
         $saved_grid = $this->fetch($sql);
 
         if (empty($saved_grid)) {
-            $sql = '
-        SELECT id FROM grids
-        WHERE name = "' . $this->grid_name . '"';
-            $grid = $this->fetch($sql);
-            if (empty($grid)) {
-                throw new \Exception('Bad grid id in save grid');
-            }
-            $grid_id = $grid['id'];
+            $grid_id = $this->grid_id;
             $sql = '
         INSERT INTO saved_grids
         (grid_id, name)

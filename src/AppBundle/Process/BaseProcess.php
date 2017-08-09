@@ -21,7 +21,7 @@ class BaseProcess
     public function __construct($parameters = [], $em = [])
     {
         $this->parameters = $parameters;
-        $this->em = $em;
+        $this->em = $em ?: GridHelper::getEm();
         $this->connection = GridHelper::getConnection();
     }
 
@@ -76,7 +76,7 @@ class BaseProcess
         return $this->connection->lastInsertId();
     }
 
-    public static function autoExecute($parameters, $em)
+    public static function autoExecute($parameters, $em = null)
     {
         $class = get_called_class();
         $me = new $class($parameters, $em);

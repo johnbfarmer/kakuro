@@ -6,12 +6,14 @@ class GridHelper
 {
     public static 
         $logger,
+        $em,
         $connection;
 
-    public function __construct($logger, $connection)
+    public function __construct($logger, $doctrine)
     {
         self::$logger = $logger;
-        self::$connection = $connection;
+        self::$em = $doctrine->getManager();
+        self::$connection = self::$em->getConnection();
     }
 
     public static function isBlank($i, $j, $grid)
@@ -201,6 +203,11 @@ class GridHelper
     public static function getConnection()
     {
         return self::$connection;
+    }
+
+    public static function getEm()
+    {
+        return self::$em;
     }
 
     public function onKernelRequest($event)

@@ -43,7 +43,7 @@ class Grid
     private $cells;
 
     private $strips = [];
-    private $number_set = [1,2,3,4,5,6,7,8,9];
+    private $number_set = [1,2,3,4,5,6,7,8,9]; // TBI take as parameter
     private $pvFinder;
 
     public function __construct()
@@ -93,22 +93,46 @@ class Grid
         return $this->width;
     }
 
+    public function getCells()
+    {
+        return $this->cells;
+    }
+
     public function getStrips()
     {
         return $this->strips;
     }
 
+    public function addCell($cell)
+    {
+        $this->cells[] = $cell;
+        $cell->setGrid($this);
+        return $this;
+    }
+
+    public function removeAllCells()
+    {
+        $this->cells = new ArrayCollection();
+        return $this;
+    }
+
+    public function addStrip($strip, $idx)
+    {
+        $this->strips[$idx] = $strip;
+        return $this;
+    }
+
     protected function setStripsForCell($cell)
     {
         if ($cell->isDataCell()) {
-            foreach ($this->strips as $strip) {
+            foreach ($this->strips as $idx => $strip) {
                 if ($cell->getRow() >= $strip->getStartRow() && $cell->getRow() <= $strip->getStopRow()) {
                     if ($cell->getCol() >= $strip->getStartCol() && $cell->getCol() <= $strip->getStopCol()) {
                         if ($strip->getDir() === 'h') {
-                            $cell->setStripH($strip);
+                            $cell->setStripH($idx);
                         }
                         if ($strip->getDir() === 'v') {
-                            $cell->setStripV($strip);
+                            $cell->setStripV($idx);
                         }
                     }
                 }
@@ -126,8 +150,8 @@ class Grid
             'is_data' => true,
             'choices' => [],
         ];
-        $height = $this->height + 1;
-        $width = $this->width + 1;
+        $height = $this->height;
+        $width = $this->width;
         $cells = array_fill(0, $width * $height, $default_cell);
         foreach ($this->cells as $cell) {
             $a = $cell->getForApi($width);
@@ -144,13 +168,13 @@ class Grid
         ];
     }
 
-    protected function calculateStrips()
+    public function calculateStrips()
     {
         $id = 0;
         $previous_idx = null;
         foreach ($this->cells as $cell) {
             if (!is_null($previous_idx)) {
-                $stop = $cell->getRow() === $this->strips[$previous_idx]->getStartRow() ? $cell->getCol() - 1 : $this->width;
+                $stop = $cell->getRow() === $this->strips[$previous_idx]->getStartRow() ? $cell->getCol() - 1 : $this->width - 1;
                 $this->strips[$previous_idx]->setStopCol($stop);
                 $this->strips[$previous_idx]->calculateLen();
                 $previous_idx = null;
@@ -171,7 +195,7 @@ class Grid
         }
 
         if (!is_null($previous_idx)) {
-            $this->strips[$previous_idx]->setStopCol($this->width);
+            $this->strips[$previous_idx]->setStopCol($this->width - 1);
             $this->strips[$previous_idx]->calculateLen();
             $previous_idx = null;
         }
@@ -189,7 +213,7 @@ class Grid
 
         foreach ($cells as $cell) {
             if (!is_null($previous_idx)) {
-                $stop = $cell->getCol() === $this->strips[$previous_idx]->getStartCol() ? $cell->getRow() - 1 : $this->height;
+                $stop = $cell->getCol() === $this->strips[$previous_idx]->getStartCol() ? $cell->getRow() - 1 : $this->height - 1;
                 $this->strips[$previous_idx]->setStopRow($stop);
                 $this->strips[$previous_idx]->calculateLen();
                 $previous_idx = null;
@@ -210,17 +234,15 @@ class Grid
         }
 
         if (!is_null($previous_idx)) {
-            $this->strips[$previous_idx]->setStopRow($this->height);
+            $this->strips[$previous_idx]->setStopRow($this->height - 1);
             $this->strips[$previous_idx]->calculateLen();
             $previous_idx = null;
         }
 
         foreach($this->strips as $strip) {
+            GridHelper::log($strip->dump());
             $strip->setPossibleValues($this->pvFinder->findValues($strip->getTotal(), $strip->getLen(), []));
         }
-
-        $x = $this->strips;
-        $y = 1;
     }
 
     public function getForProcessing()
@@ -230,8 +252,8 @@ class Grid
         }
         $this->calculateStrips();
         $default_cell = null;
-        $height = $this->height + 1;
-        $width = $this->width + 1;
+        $height = $this->height;
+        $width = $this->width;
         $cells = array_fill(0, $width * $height, $default_cell);
         foreach ($this->cells as $cell) {
             $idx = $cell->getRow() * $width + $cell->getCol();
@@ -246,6 +268,7 @@ class Grid
                 $cell->setCol($col);
                 $cell->setRow($row);
                 $cell->setDataCell($col && $row);
+                $cell->setGrid($this);
             }
 
             $cells[$idx] = $cell;
@@ -259,5 +282,10 @@ class Grid
         }
 
         return $this->cells;
+    }
+
+    public function getPossibleValues($target, $size, $used = [])
+    {
+        return $this->pvFinder->findValues($target, $size, $used);
     }
 }

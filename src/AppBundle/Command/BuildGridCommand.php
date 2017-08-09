@@ -9,7 +9,8 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 
 // use Entity\TestEntity;
-use AppBundle\Process\BuildGrid;
+// use AppBundle\Process\BuildGrid;
+use AppBundle\Process\BuildKakuro;
 
 class BuildGridCommand extends Command
 {
@@ -49,7 +50,8 @@ class BuildGridCommand extends Command
 
         $parameters['height'] = $size_array[0];
         $parameters['width'] = $size_array[1];
-        BuildGrid::autoExecute($parameters, null);
+        // BuildGrid::autoExecute($parameters, null);
+        BuildKakuro::autoExecute($parameters, null);
     }
 }
 

@@ -5,12 +5,14 @@ export default class KakuroControls extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            name: ''
+            savedGameName: '',
+            grids: [],
         };
 
         this.loadVals(props);
 
-        this.updateName = this.updateName.bind(this);
+        this.updateSavedGameName = this.updateSavedGameName.bind(this);
+        this.changeGrid = this.changeGrid.bind(this);
         this.save = this.save.bind(this);
     }
 
@@ -21,27 +23,52 @@ export default class KakuroControls extends React.Component {
     }
 
     loadVals(props) {
-        this.state.name = props.name;
+        this.state.savedGameName = props.savedGameName;
+        this.state.grids = this.processDropdownOptions(props.grids);
     }
 
-    updateName(e) {
+    updateSavedGameName(e) {
         var val = e.target.value;
-        this.setState({name: val});
+        this.setState({savedGameName: val});
     }
 
     save() {
-        this.props.save(this.state.name);
+        this.props.save(this.state.savedGameName);
+    }
+
+    processDropdownOptions(data) {
+        var arr = [];
+        for (var i = 0; i < data.length; i++) {
+            var option = data[i];
+            var label = 'label' in option ? option.label : option.name;
+            var val = option.name;
+            arr.push(<option key={i} value={val}>{label}</option>);
+          }
+
+        return arr;
+    }
+
+    changeGrid(e) {
+        this.props.getGrid(e.target.value);
     }
 
     render() {
         return (
             <div>
-                <input value={this.state.name} onChange={this.updateName} />
-                <ButtonGroup>
-                    <Button onClick={this.save} title="save">
-                        <Glyphicon glyph="floppy-disk" />
-                    </Button>
-                </ButtonGroup>
+                <div className="row">
+                    <input value={this.state.savedGameName} onChange={this.updateSavedGameName} />
+                    <ButtonGroup>
+                        <Button onClick={this.save} title="save">
+                            <Glyphicon glyph="floppy-disk" />
+                        </Button>
+                    </ButtonGroup>
+                </div>
+                <div className="row">
+                    <select onChange={this.changeGrid}>
+                        {this.state.grids}
+                    </select>
+                </div>
+
             </div>
         );
     }

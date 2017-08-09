@@ -21,7 +21,7 @@ services:
 
     grid_helper:
         class: AppBundle\Helper\GridHelper
-        arguments: [ '@logger', "@db_connection" ]
+        arguments: [ '@logger', "@doctrine" ]
         tags:
             - {name: kernel.event_listener, event: kernel.request, method: onKernelRequest}
             - {name: kernel.event_listener, event: console.command, method: onConsoleCommand}

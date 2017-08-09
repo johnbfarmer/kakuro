@@ -3,6 +3,29 @@ import React from 'react';
 export default class Cell extends React.Component {
     constructor(props) {
         super(props);
+        this.state = {};
+        this.loadVals(props);
+
+        this.loadVals = this.loadVals.bind(this);
+        this.getClasses = this.getClasses.bind(this);
+        this.setActive = this.setActive.bind(this);
+    }
+
+    componentDidUpdate(props) {
+        var cell = props.cell;
+        this.state.active = cell.active;
+        this.state.choices = cell.choices;
+        this.state.remove = [];
+        if (this.state.editable) {
+            this.state.display = cell.choices.join('');
+        }
+    }
+
+    componentWillUpdate(props) {
+        this.loadVals(props);
+    }
+
+    loadVals(props) {
         var cell = props.cell;
         var editable = cell.is_data;
         var display = cell.choices.join('');
@@ -16,31 +39,17 @@ export default class Cell extends React.Component {
                 sum_box = true;
             }
         }
-        this.state = { 
-            display: display,
-            label_v: label_v,
-            label_h: label_h,
-            sum_box: sum_box,
-            choices: cell.choices,
-            editable: editable, 
-            active: cell.active, 
-            row: cell.row,
-            col: cell.col,
-            remove: []
-        };
 
-        this.getClasses = this.getClasses.bind(this);
-        this.setActive = this.setActive.bind(this);
-    }
-
-    componentDidUpdate() {
-        var cell = this.props.cell;
-        this.state.active = cell.active;
+        this.state.display = display;
+        this.state.label_v = label_v;
+        this.state.label_h = label_h;
+        this.state.sum_box = sum_box;
         this.state.choices = cell.choices;
+        this.state.editable = editable;
+        this.state.active = cell.active;
+        this.state.row = cell.row;
+        this.state.col = cell.col;
         this.state.remove = [];
-        if (this.state.editable) {
-            this.state.display = cell.choices.join('');
-        }
     }
 
     getClasses() {

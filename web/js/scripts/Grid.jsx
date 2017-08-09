@@ -7,6 +7,7 @@ export default class Grid extends React.Component {
         super(props);
         this.state = {
             name: vars.grid_name,
+            savedGameName: '',
             cells: [],
             height: 0,
             width: 0,
@@ -14,12 +15,15 @@ export default class Grid extends React.Component {
             active_col: -1,
             solved: false,
             saved_states: [],
+            grids: [{name: 0, label:""}, {name: 4, label:"shit"}, {name: 3, label:"more shit"}],
+            gridId: 1,
         };
+        this.getGames = this.getGames.bind(this);
         this.getGrid = this.getGrid.bind(this);
         this.saveState = this.saveState.bind(this);
         this.restoreSavedState = this.restoreSavedState.bind(this);
         this.saveChoices = this.saveChoices.bind(this);
-        this.loadSavedChoices = this.loadSavedChoices.bind(this);
+        this.loadSavedGame = this.loadSavedGame.bind(this);
         this.simpleReduce = this.simpleReduce.bind(this);
         this.advancedReduce = this.advancedReduce.bind(this);
         this.clearChoices = this.clearChoices.bind(this);
@@ -35,15 +39,24 @@ export default class Grid extends React.Component {
     }
 
     componentDidMount() {
-        this.getGrid();
+        this.getGames();
+        this.getGrid(1);
     }
 
-    getGrid() {
+    getGames() {
         return $.getJSON(
-            "http://kak.uro/app_dev.php/api/grid/" + this.state.name
+            "http://kak.uro/app_dev.php/api/games"
+        ).then(data => {
+            this.setState({grids: data.games});
+        });
+    }
+
+    getGrid(id) {
+        return $.getJSON(
+            "http://kak.uro/app_dev.php/api/grid/" + id
         ).then(data => {
             var cells = this.processNewData(data.cells, data.height, data.width);
-            this.setState({ cells: cells, height: data.height, width: data.width });
+            this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id});
             this.saveState();
         });
     }
@@ -75,7 +88,7 @@ export default class Grid extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/save-choices",
             {
-                grid_name: vars.grid_name,
+                grid_id: this.state.gridId,
                 saved_grid_name: name,
                 cells: cells
             },
@@ -87,12 +100,13 @@ export default class Grid extends React.Component {
             'json'
         );
     }
-    loadSavedChoices() {
+
+    loadSavedGame() {
         var cells = JSON.stringify(this.state.cells);
         return $.post(
             "http://kak.uro/app_dev.php/api/load-choices",
             {
-                grid_name: vars.grid_name
+                saved_grid_id: 6
             },
             function(resp) {
                 if (resp.error) {
@@ -102,7 +116,7 @@ export default class Grid extends React.Component {
             'json'
         ).then(data => {
             cells = this.processNewData(data.cells, data.height, data.width);
-            this.setState({ cells: cells, height: data.height, width: data.width });
+            this.setState({ cells: cells, height: data.height, width: data.width, savedGameName: data.name });
             this.saveState();
         });
     }
@@ -112,7 +126,7 @@ export default class Grid extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/get-choices",
             {
-                grid_name: this.state.name,
+                grid_id: this.state.gridId,
                 cells: cells,
                 advanced: ~~advanced
             },
@@ -269,7 +283,7 @@ export default class Grid extends React.Component {
             this.saveChoices();
         }
         if (keyCode === 76) { // l
-            this.loadSavedChoices();
+            this.loadSavedGame();
         }
     }
 
@@ -323,8 +337,11 @@ export default class Grid extends React.Component {
                 </div>
                 <div className="col-md-4">
                     <KakuroControls
-                        name={this.state.name}
+                        savedGameName={this.state.savedGameName}
+                        grid_name={this.state.name}
                         save={this.saveChoices}
+                        grids={this.state.grids}
+                        getGrid={this.getGrid}
                     />
                 </div>
             </div>

@@ -31,7 +31,7 @@ class GridReducer extends BaseGrid
             $this->gridObj = $this->parameters['grid'];
         }
 
-        $this->width = $this->gridObj->getWidth() + 1;
+        $this->width = $this->gridObj->getWidth();
         $this->simple_reduction = !empty($this->parameters['simple_reduction']);
         $this->reduce_only = !empty($this->parameters['reduce_only']);
     }
@@ -80,7 +80,6 @@ class GridReducer extends BaseGrid
                 if (!$this->reduceStripNew($strip, $use_advanced_reduction)) {
                     $this->log("problem reducing strip $idx");
                     $this->problem_strips[$idx] = $strip;
-                    $this->log($this->problem_strips);
                     return false;
                 }
             }
@@ -299,8 +298,8 @@ class GridReducer extends BaseGrid
     protected function addCellsStripsToChanged($cell)
     {
         $ids = [];
-        $ids[] = $cell->getStripH()->getId();
-        $ids[] = $cell->getStripV()->getId();
+        $ids[] = $cell->getStripH();
+        $ids[] = $cell->getStripV();
         foreach ($ids as $id) {
             if (!in_array($id, $this->changed_strips)) {
                 $this->changed_strips[] = $id;
