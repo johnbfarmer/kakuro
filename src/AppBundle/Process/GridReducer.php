@@ -2,18 +2,16 @@
 
 namespace AppBundle\Process;
 
+use Doctrine\Common\Collections\ArrayCollection;
+
 use AppBundle\Helper\GridHelper;
 
-class GridReducer extends BaseGrid
+class GridReducer extends BaseKakuro
 {
     protected 
-        $changed = false,
-        $changed_strips = [],
-        $problem_strips = [],
-        $solutions_desired = 2,
-        $saved_grids = [],
-        $simple_reduction,
-        $reduce_only,
+        $changedStrips,
+        $problemStrips = [],
+        $simpleReduction,
         $gridObj,
         $cellsNew,
         $stripsNew;
@@ -21,9 +19,6 @@ class GridReducer extends BaseGrid
     public function __construct($parameters = [], $em = [])
     {
         parent::__construct($parameters, $em);
-        if (!empty($this->parameters['grid_name'])) {
-            $this->grid_name = $this->parameters['grid_name'];
-        }
         if (!empty($this->parameters['cells'])) {
             $this->cells = $this->parameters['cells'];
         }
@@ -32,8 +27,8 @@ class GridReducer extends BaseGrid
         }
 
         $this->width = $this->gridObj->getWidth();
-        $this->simple_reduction = !empty($this->parameters['simple_reduction']);
-        $this->reduce_only = !empty($this->parameters['reduce_only']);
+        $this->simpleReduction = !empty($this->parameters['simpleReduction']);
+        $this->changedStrips = new ArrayCollection();
     }
 
     protected function execute()
@@ -54,16 +49,12 @@ class GridReducer extends BaseGrid
             }
         }
 
-        $this->done = false;
-        $this->grid['path'] = [];
-        $this->grid['changed_strips'] = [];
-        $this->log("DOING INITIAL REDUCTION", $this->debug);
-        if (!$this->reduceGridNew([], !$this->simple_reduction)) {
+        if (!$this->reduceGrid([], !$this->simpleReduction)) {
             $this->cellsNew = $originalState;
         }
     }
 
-    protected function reduceGridNew($strip_ids_to_process = [], $use_advanced_reduction)
+    protected function reduceGrid($strip_ids_to_process = [], $use_advanced_reduction)
     {
         if (empty($strip_ids_to_process)) {
             $strips = $this->stripsNew;
@@ -74,22 +65,22 @@ class GridReducer extends BaseGrid
             }
         }
 
-        while (!empty($strips) && !$this->done) {
-            $this->changed_strips = [];
+        while (!empty($strips)) {
+            $this->changedStrips = [];
             foreach ($strips as $idx => $strip) {
-                if (!$this->reduceStripNew($strip, $use_advanced_reduction)) {
+                if (!$this->reduceStrip($strip, $use_advanced_reduction)) {
                     $this->log("problem reducing strip $idx");
-                    $this->problem_strips[$idx] = $strip;
+                    $this->problemStrips[$idx] = $strip;
                     return false;
                 }
             }
 
-            if (empty($this->changed_strips)) {
+            if (empty($this->changedStrips)) {
                 break;
             }
 
             $strips = [];
-            foreach($this->changed_strips as $idx) {
+            foreach($this->changedStrips as $idx) {
                 $strips[$idx] = $this->stripsNew[$idx];
             }
         }
@@ -97,7 +88,7 @@ class GridReducer extends BaseGrid
         return $this->cellsNew;
     }
 
-    protected function reduceStripNew($strip, $use_advanced_reduction)
+    protected function reduceStrip($strip, $use_advanced_reduction)
     {
         $sum = $strip->getTotal();
         $len = $strip->getLen();
@@ -111,7 +102,7 @@ class GridReducer extends BaseGrid
             $col = $strip->getStartCol();
         }
 
-        $undecided_cells = [];
+        $undecided = [];
         $decided_cells = [];
         for ($k = $start; $k < $start + $len; $k++) {
             $i = $dir === 'v' ? $k : $row; 
@@ -124,30 +115,39 @@ class GridReducer extends BaseGrid
                 $used_numbers[] = $num;
                 $decided_cells[] = $cell;
             } else {
-                $undecided_cells[] = $cell;
+                $undecided[] = $cell;
             }
         }
 
-        if (empty($undecided_cells)) { // nothing to do
+        // heading here but 2 of the vars get reused below
+        // $cells = $this->getCellsForStrip($strip);
+        // $calcs = $this->getPossibleValuesForStrip($strip, $cells);
+        // $choices = $calcs['values'];
+        // $undecided = $calcs['undecided'];
+        // $decided_cells = $calcs['decided'];
+        // $used_numbers = $calcs['usedNumbers'];
+
+        if (empty($undecided)) { // nothing to do
             return true;
         }
 
         $size = $len - count($used_numbers);
+        // $size = count($undecided);
         $choices = $this->getValues($sum, $size, $used_numbers);
         $still_undecided_cells = [];
 
-        foreach ($undecided_cells as $idx => $cell) {
+        foreach ($undecided as $idx => $cell) {
             $pv = $cell->getChoices();
             $new_pv = array_values(array_intersect($pv, $choices));
-            if (count($undecided_cells) === 2) {
-                $other_guy = $undecided_cells;
+            if (count($undecided) === 2) {
+                $other_guy = $undecided;
                 unset($other_guy[$idx]);
                 $other = current($other_guy); // ok ok better way needed
                 $sum = $strip->getTotal();
                 foreach ($decided_cells as $dc) {
                     $sum -= current($dc->getChoices());
                 }
-                $new_pv = $this->reduceDupletNew($sum, $cell, $other);
+                $new_pv = $this->reduceDuplet($sum, $cell, $other);
             }
             if (empty($new_pv)) {
                 return false;
@@ -164,15 +164,66 @@ class GridReducer extends BaseGrid
                 $used_numbers[] = $num;
                 $size--;
                 $choices = $this->getValues($sum, $size, $used_numbers);
+                // $calcs = $this->getPossibleValuesForStrip();
             } else {
                 $still_undecided_cells[] = $cell;
             }
         }
 
-        return $use_advanced_reduction ? $this->advancedStripReductionNew($still_undecided_cells, $sum, $used_numbers) : true;
+        return $use_advanced_reduction ? $this->advancedStripReduction($still_undecided_cells, $sum, $used_numbers) : true;
     }
 
-    protected function advancedStripReductionNew($cells, $sum, $used)
+    protected function getCellsForStrip($strip)
+    {
+        $dir = $strip->getDir();
+        $len = $strip->getLen();
+        $cells = [];
+        if ($dir === 'h') {
+            $start = $strip->getStartCol();
+            $row = $strip->getStartRow();
+        } else {
+            $start = $strip->getStartRow();
+            $col = $strip->getStartCol();
+        }
+
+        for ($k = $start; $k < $start + $len; $k++) {
+            $i = $dir === 'v' ? $k : $row; 
+            $j = $dir === 'h' ? $k : $col;
+            $idx = $i * $this->width + $j;
+            $cells[] = $this->cellsNew[$idx];
+        }
+
+        return $cells;
+    }
+
+    protected function getPossibleValuesForStrip($strip, $cells)
+    {
+        $sum = $strip->getTotal();
+        $len = $strip->getLen();
+        $usedNumbers = [];
+        $decided = [];
+        $undecided = [];
+        foreach ($cells as $cell) {
+            if (count($cell->getChoices()) === 1) {
+                $num = current($cell->getChoices());
+                $sum -= $num;
+                $len--;
+                $usedNumbers[] = $num;
+                $decided[] = $cell;
+            } else {
+                $undecided[] = $cell;
+            }
+        }
+
+        return [
+            'values' => $this->gridObj->getPossibleValues($sum, $len, $usedNumbers),
+            'decided' => $decided,
+            'undecided' => $undecided,
+            'usedNumbers' => $usedNumbers,
+        ];
+    }
+
+    protected function advancedStripReduction($cells, $sum, $used)
     {
         if (!$this->reduceByComplementNew($cells, $sum, $used)) {
             return false;
@@ -282,7 +333,7 @@ class GridReducer extends BaseGrid
         return true;
     }
 
-    protected function reduceDupletNew($sum, $cell, $other)
+    protected function reduceDuplet($sum, $cell, $other)
     {
         $choices = $cell->getChoices();
         $pv = [];
@@ -301,8 +352,8 @@ class GridReducer extends BaseGrid
         $ids[] = $cell->getStripH();
         $ids[] = $cell->getStripV();
         foreach ($ids as $id) {
-            if (!in_array($id, $this->changed_strips)) {
-                $this->changed_strips[] = $id;
+            if (!in_array($id, $this->changedStrips)) {
+                $this->changedStrips[] = $id;
             }
         }
     }
@@ -400,7 +451,7 @@ class GridReducer extends BaseGrid
         }
 
         $grid = ['cells' => $cells, 'error' => false];
-        if (!empty($this->problem_strips)) {
+        if (!empty($this->problemStrips)) {
             $grid['error'] = true;
             $grid['message'] = 'problem reducing';
         }

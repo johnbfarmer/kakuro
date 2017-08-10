@@ -62,382 +62,44 @@ class BaseKakuro extends BaseProcess
         return $cell->getRow() * $this->width + $cell->getCol();
     }
 
+    protected function displayChoices($padding = 10)
+    {
+        $str = "\n";
+        foreach ($this->cellsNew as $idx => $cell) {
+            if (!$cell->isDataCell()) {
+                $c = '.';
+            } else {
+                $c = implode('', $cell->getChoices());
+            }
+            if ($cell->getCol() < 1) {
+                $str .= "\n";
+            }
+            $str .= str_pad($c, $padding, ' ');
+        }
+        $str .= "\n";
+        $this->log($str, true);
+    }
+
     // old paradigm
-    protected function readInputFromDb()
-    {
-        $name = $this->grid_name;
-        $sql = '
-        select * from grids G
-        inner join cells C ON C.grid_id = G.id
-        where G.name = "' . $name . '"
-        ORDER BY row, col';
-        $cells = $this->fetchAll($sql, true);
-        $this->height = $cells[0]['height'];
-        $this->width = $cells[0]['width'];
-        for ($k = 0; $k < $this->height; $k++) {
-            $this->hsums[$k] = array_fill(0, $this->width, 0);
-        }
-        for ($k = 0; $k < $this->width; $k++) {
-            $this->vsums[$k] = array_fill(0, $this->height, 0);
-        }
-        foreach($cells as $cell) {
-            $row = $cell['row'];
-            $col = $cell['col'];
-            $anchor[$row][$col] = [(int)$cell['label_h'], (int)$cell['label_v']];
-        }
-        foreach($cells as $cell) {
-            $row = $cell['row'];
-            $col = $cell['col'];
-            $hsum = $anchor[$row][$col][0];
-            $vsum = $anchor[$row][$col][1];
-            if ($vsum) {
-                $r = $row + 1;
-                $c = $col;
-                while ($r <= $this->height && empty($anchor[$r][$c])) {
-                    $this->vsums[$r-1][$c-1] = $vsum;
-                    $r++;
-                }
-            }
-            if ($hsum) {
-                $r = $row;
-                $c = $col + 1;
-                while ($c <= $this->width && empty($anchor[$r][$c])) {
-                    $this->hsums[$r-1][$c-1] = $hsum;
-                    $c++;
-                }
-            }
-
-        }
-        $this->log('vsums');
-        $this->log($this->vsums);
-        $this->log('hsums');
-        $this->log($this->hsums);
-    }
-
-    protected function openGridInBrowser()
-    {
-        if (empty($this->sums)) {
-            $this->getSums();
-        }
-
-        if ($this->open_browser) {
-            // $link = "http://localhost/kakuro/index.php?g=" . urlencode(json_encode($this->grid['cells'])) . "&s=" . urlencode(json_encode($this->sums)) . "&show=0";
-            $f = $this->grid_name;
-            // $link = "http://localhost/kakuro/web/kakuro.php?f=$f";
-            $link = "http://localhost/kakuro/index.php?f=$f";
-            `open "$link"`;
-        }
-    }
-
-    // protected function findMyStrips($idx, $include_empty = false)
-    // {
-    //     if (empty($this->undecidedCells[$idx]) || $this->isBlankCell($idx)) {
-    //         return []; // aint got no strips
-    //     }
-
-    //     $criteria = ['nonblank'];
-
-    //     if ($include_empty) {
-    //         $criteria[] = 'empty';
-    //     }
-
-    //     $i_start = $i;
-    //     while (true) {
-    //         $x = $i_start - 1;
-    //         if ($x >= 0 && $this->meetsCriteria($x, $j, $criteria)) {
-    //             $i_start--;
-    //         } else {
-    //             break;
-    //         }
-    //     }
-
-    //     $i_stop = $i;
-    //     while (true) {
-    //         $x = $i_stop + 1;
-    //         if ($x < $this->width && $this->meetsCriteria($x, $j, $criteria)) {
-    //             $i_stop++;
-    //         } else {
-    //             break;
-    //         }
-    //     }
-
-    //     $j_start = $j;
-    //     while (true) {
-    //         $x = $j_start - 1;
-    //         if ($x >= 0 && $this->meetsCriteria($i, $x, $criteria)) {
-    //             $j_start--;
-    //         } else {
-    //             break;
-    //         }
-    //     }
-
-    //     $j_stop = $j;
-    //     while (true) {
-    //         $x = $j_stop + 1;
-    //         if ($x < $this->width && $this->meetsCriteria($i, $x, $criteria)) {
-    //         $j_stop++;
-    //         } else {
-    //             break;
-    //         }
-    //     }
-
-    //     $h = []; $v = [];
-    //     for ($k = $i_start; $k <= $i_stop; $k++) {
-    //         $v[$k] = !empty($cells[$k][$j]['value']) ? $cells[$k][$j]['value'] : 0;
-    //     }
-    //     for ($k = $j_start; $k <= $j_stop; $k++) {
-    //         $h[$k] = !empty($cells[$i][$k]['value']) ? $cells[$i][$k]['value'] : 0;
-    //     }
-
-    //     return ['h' => $h, 'v'=>$v];
-    // }
-
-    protected function processFileRow($row, $line)
-    {
-        $this->hsums[$line] = array_fill(0, $this->width, 0);
-        $this->vsums[$line] = array_fill(0, $this->width, 0);
-
-        foreach ($row as $j => $cell) {
-            if ($j > $this->width) {
-                continue;
-            }
-            $vals = $this->parseMultipleSumInput($cell);
-            if ($j == 0) {
-                $previous_value = empty($cell) ? 0 : (int)$vals['h'];
-                continue;
-            }
-            if (empty($cell)) {
-                $this->hsums[$line][$j - 1] = $previous_value;
-                $this->vsums[$line][$j - 1] = $this->vsums[$line - 1][$j-1] ?: 
-                    (!empty($this->previous_row_sum[$line - 1][$j-1]) ? $this->previous_row_sum[$line - 1][$j-1] : 0);
-                continue;
-            }
-
-            if ($vals['h']) {
-                $this->hsums[$line][$j - 1] = 0;
-                $previous_value = $vals['h'];
-            } else {
-                $this->hsums[$line][$j - 1] = 0;
-            }
-            if ($vals['v']) {
-                $this->vsums[$line][$j - 1] = 0;
-                $this->previous_row_sum[$line][$j - 1] = $vals['v'];
-            } else {
-                $this->vsums[$line][$j - 1] = 0;
-            }
-        }
-    }
-
-    protected function processFirstRow($row)
-    {
-        $this->vsums[-1] = array_fill(0, $this->width, 0);
-        foreach ($row as $j => $cell) {
-            if ($j === 0) {
-                continue;
-            }
-            $this->vsums[-1][$j-1] = empty($cell) ? 0 : (int)$cell;
-        }
-        return true;
-    }
-
-    protected function parseMultipleSumInput($cell)
-    {
-        $vals = explode('\\', $cell);
-        $v = !empty($vals[0]) ? (int)$vals[0] : 0;
-        $h = !empty($vals[1]) ? (int)$vals[1] : 0;
-        return ['v' => $v, 'h' => $h];
-    }
-
-    protected function validate()
-    {
-        $hs = $this->hsums;
-        if (count($this->hsums) != count($this->vsums)) {
-            $x = 'h: ' . count($this->hsums) . ' v: ' . count($this->vsums);
-            throw new \Exception('bad input -- ' . $x);
-        }
-
-        $previous_array_size = 0;
-
-        foreach ($this->hsums as $i => $row) {
-            $array_size = count($row);
-            if (empty($previous_array_size)) {
-                $previous_array_size = $array_size;
-            }
-            if ($array_size != $previous_array_size) {
-                throw new \Exception("bad input -- row $i has $array_size vs row before has $previous_array_size");
-            }
-            foreach ($row as $j => $cell) {
-                if (empty($cell) && !empty($this->vsums[$i][$j])) {
-                    $this->log($this->hsums);
-                    $this->log($this->vsums);
-                    throw new \Exception("bad input at $i $j. ". $this->hsums[$i][$j].' vs '. $this->vsums[$i][$j]);
-                }
-            }
-        }
-
-        $previous_array_size = 0;
-        foreach ($this->vsums as $i => $row) {
-            $array_size = count($row);
-            if (empty($previous_array_size)) {
-                $previous_array_size = $array_size;
-            }
-            if ($array_size != $previous_array_size) {
-                throw new \Exception('bad input');
-            }
-            foreach ($row as $j => $cell) {
-                if (empty($cell) && !empty($this->hsums[$i][$j])) {
-                    throw new \Exception("bad input at $i $j. ". $this->hsums[$i][$j].' vs. '. $this->vsums[$i][$j]);
-                }
-            }
-        }
-    }
-
-    protected function score($grid)
-    {
-        if (empty($grid['cells'])) {
-            return 100;
-        }
-        $ct = 0;
-        foreach ($grid['cells'] as $i => $row) {
-            foreach ($row as $j => $cell) {
-                if (!$this->isBlank($i,$j)) {
-                    $ct += count($cell['choices']) - 1;
-                }
-            }
-        }
-
-        // this will be 0 if all cells have only 1 pv; 100 if whole ns in each cell
-        return 100 * $ct / ($this->nonempty_cell_count * (count($this->number_set) - 1));
-    }
 
     protected function isSolution($grid)
     {
-        $this->log('checking solution');
-
-        foreach ($this->strips as $strip) {
-            foreach ($strip as $cell) {
-                if (!$this->checkStrip($strip, $grid)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
+        
     }
 
     protected function addSolution($grid)
     {
-        if (!$this->solutionExists($grid)) {
-            $key = $this->collapse($grid);
-            $this->solutions[$key] = $grid;
-            $this->log('add solution ' . $key);
-            $this->log('path ' . implode('__', $grid['path']));
-        }
-
-        if (!empty($this->solutions_desired) && count($this->solutions) >= $this->solutions_desired) {
-            $this->done = true;
-            $this->log('thats it!');
-        }
+        
     }
 
     protected function solutionExists($grid)
     {
-        $key = $this->collapse($grid);
-        if (in_array($key, array_keys($this->solutions))) {
-            return true;
-        }
-    }
-
-    protected function collapse($grid)
-    {
-        $str = '';
-        foreach ($grid['cells'] as $i => $row) {
-            foreach ($row as $j => $cell) {
-                if ($this->isBlank($i, $j)) {
-                    $str .= '.';
-                } else {
-                    $str .= current($cell['choices']);
-                }
-            }
-        }
-
-        return $str;
-    }
-
-    protected function possibleValues($i, $j) {
-        $hidx = $this->grid['cells'][$i][$j]['strip_indices']['h'];
-        $vidx = $this->grid['cells'][$i][$j]['strip_indices']['v'];
-        $hstrip = $this->strips[$hidx];
-        $vstrip = $this->strips[$vidx];
-        $hsum = $hstrip['total'];
-        $vsum = $vstrip['total'];
-// $this->log("pv $i $j $hsum $vsum");
-        $hsize = $hstrip['len'];
-        $vsize = $vstrip['len'];
-
-        $ha = $this->getValues($hsum, $hsize);
-        $va = $this->getValues($vsum, $vsize);
-        $a = array_values(array_intersect($ha, $va));
-// $this->log($ha);
-// $this->log($va);
-// $this->log($a);
-// $this->log('---');
-        sort($a);
-        return $a;
-    }
-
-    protected function displaySolutions()
-    {
-        if (empty($this->solutions)) {
-            return 'no solutions found in ' . (microtime(true) - $this->start_time) . "s\n\n";
-        } else {
-            $str = count($this->solutions) . ' solution(s) found in ' . (microtime(true) - $this->start_time) . "s\n\n";
-            foreach ($this->solutions as $solution) {
-                if ($this->debug) {
-                    $str .= "Guess sequence:\n" . $this->displayGuessSequence($solution) . "\n";
-                }
-                $str .= $this->displayOptions($solution, 3) . "\n";
-            }
-        }
-
-        return $str;
+        
     }
 
     public function getValues($target, $size, $used = [])
     {
         return $this->table_builder->findValues($target, $size, $used);
-    }
-
-    protected function removeChoices($grid, $cell, $choices_to_remove)
-    {
-        if (!is_array($choices_to_remove)) {
-            $choices_to_remove = [$choices_to_remove];
-        }
-// $this->log("remove " . json_encode($choices_to_remove) . " from " . $cell['i'].' '.$cell['j']);
-// $this->log("curr choices " . json_encode($cell['choices']));
-        $new_choices = array_values(array_diff($cell['choices'], $choices_to_remove));
-// $this->log("new choices " . json_encode($new_choices));
-
-        if (count($cell['choices']) <= count($new_choices)) {
-            return $grid;
-        }
-        $cell['choices'] = $new_choices;
-        return $this->updateChoices($grid, $cell, $new_choices);
-    }
-
-    protected function updateChoices($grid, $cell, $choices)
-    {
-        if (empty($grid)) {
-            return false;
-        }
-        $cell['choices'] = $choices;
-        $grid['cells'][$cell['i']][$cell['j']] = $cell;
-        foreach ($cell['strip_indices'] as $idx) {
-            if (!in_array($idx, $grid['changed_strips'])) {
-                $grid['changed_strips'][] = $idx;
-            }
-        }
-        return $grid;
     }
 
     protected function isBlank($i, $j)

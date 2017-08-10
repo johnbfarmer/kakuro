@@ -50,10 +50,8 @@ class ApiController extends Controller
         $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($grid_id);
         $parameters = [
             'grid' => $grid,
-            'grid_name' => $grid->getName(),
             'cells' => $cells,
-            'simple_reduction' => !$advanced_reduction,
-            'reduce_only' => true
+            'simpleReduction' => !$advanced_reduction,
         ];
         $reducer = GridReducer::autoExecute($parameters, null);
         return new JsonResponse($reducer->getApiResponse());

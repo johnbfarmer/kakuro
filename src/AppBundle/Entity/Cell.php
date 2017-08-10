@@ -2,6 +2,8 @@
 
 namespace AppBundle\Entity;
 
+use Doctrine\Common\Collections\ArrayCollection;
+
 use Doctrine\ORM\Mapping as ORM;
 
 /**
@@ -48,12 +50,12 @@ class Cell
      */
     private $grid;
 
-    private $choices = [];
+    private $choices = []; // for UI
     private $possibleValues = [];
     private $dataCell = false;
     private $strips = ['h' => null, 'v' => null];
     private $idx;
-    private $choice;
+    private $choice; // for builder
 
     public function getId()
     {
@@ -200,6 +202,15 @@ class Cell
     public function getChoice()
     {
         return $this->choice;
+    }
+
+    public function getStripObjects()
+    {
+        $gridStrips = $this->grid->getStrips();
+        $strips = new ArrayCollection();
+        $strips->add($gridStrips[$this->strips['h']]);
+        $strips->add($gridStrips[$this->strips['v']]);
+        return $strips;
     }
 
     public function calculateRowAndCol()

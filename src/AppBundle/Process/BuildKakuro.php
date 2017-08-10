@@ -397,7 +397,7 @@ $this->log("reset grid to {$i}_{$j}", true);
             'testVal' => $val,
             'grid' => $this->gridObj,
         ];
-        return UniquenessTester::autoExecute($parameters, null)->getResult();
+        return UniquenessTester::autoExecute($parameters, null)->getResult()['hasSolution'];
     }
 
     protected function computeChoices()
