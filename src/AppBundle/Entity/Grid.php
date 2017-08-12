@@ -42,6 +42,12 @@ class Grid
      */
     private $cells;
 
+    /**
+     * @ORM\OneToMany(targetEntity="Solution", mappedBy="grid", orphanRemoval=true, cascade={"persist"})
+     * @ORM\OrderBy({"row" = "ASC", "col" = "ASC"})
+     */
+    private $solutions;
+
     private $strips = [];
     private $number_set = [1,2,3,4,5,6,7,8,9]; // TBI take as parameter
     private $pvFinder;
@@ -49,6 +55,7 @@ class Grid
     public function __construct()
     {
         $this->cells = new ArrayCollection();
+        $this->solutions = new ArrayCollection();
         $this->pvFinder = new BuildTables(['number_set' => $this->number_set], null);
     }
 
@@ -98,6 +105,11 @@ class Grid
         return $this->cells;
     }
 
+    public function getSolutions()
+    {
+        return $this->solutions;
+    }
+
     public function getStrips()
     {
         return $this->strips;
@@ -119,6 +131,13 @@ class Grid
     public function addStrip($strip, $idx)
     {
         $this->strips[$idx] = $strip;
+        return $this;
+    }
+
+    public function addSolution($solution)
+    {
+        $this->solutions[] = $solution;
+        $solution->setGrid($this);
         return $this;
     }
 

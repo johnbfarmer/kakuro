@@ -64,12 +64,18 @@ class BaseKakuro extends BaseProcess
 
     protected function displayChoices($padding = 10)
     {
-        $str = "\n";
+        $str = "\n" . $this->displayChoicesHeader();
+
         foreach ($this->cellsNew as $idx => $cell) {
             if (!$cell->isDataCell()) {
                 $c = '.';
             } else {
-                $c = implode('', $cell->getChoices());
+                $ch = $cell->getChoices();
+                if (count($ch) < $padding) {
+                    $c = implode('', $ch);
+                } else {
+                    $c = 'X';
+                }
             }
             if ($cell->getCol() < 1) {
                 $str .= "\n";
@@ -78,6 +84,11 @@ class BaseKakuro extends BaseProcess
         }
         $str .= "\n";
         $this->log($str, true);
+    }
+
+    protected function displayChoicesHeader()
+    {
+        return '';
     }
 
     // old paradigm
@@ -211,11 +222,10 @@ class BaseKakuro extends BaseProcess
             }
 
             $arr = $r;
-            return null;
+            return;
         }
 
-        $arr = array_diff($arr, [$x]);
-        return null;
+        $arr = array_values(array_diff($arr, [$x]));
     }
 
     // this takes an array as its second arg and unsets each value in it, whereas unsetValue would unset a nested array

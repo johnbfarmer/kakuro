@@ -6,6 +6,7 @@ use AppBundle\Helper\GridHelper;
 use AppBundle\Entity\Grid;
 use AppBundle\Entity\Cell;
 use AppBundle\Entity\Strip;
+use AppBundle\Entity\Solution;
 
 class BuildKakuro extends BaseKakuro
 {
@@ -23,8 +24,8 @@ class BuildKakuro extends BaseKakuro
         $sums = [],
         $rank = 0,
         $idx = 0,
-        $last_choice = [],
-        $saved_grids = [],
+        $lastChoice = [],
+        $forbiddenValues = [],
         $minimum_strip_size = 2,
         $island = [];
 
@@ -48,8 +49,13 @@ class BuildKakuro extends BaseKakuro
 
     public function createKakuro()
     {
+        $grid = $this->em->getRepository('AppBundle:Grid')->findOneByName('aaatest');
+        if ($grid) {
+            $this->em->remove($grid);
+            $this->em->flush();
+        }
         $this->gridObj = new Grid();
-        $this->gridObj->setName('test');
+        $this->gridObj->setName('aaatest');
         $this->gridObj->setWidth($this->width);
         $this->gridObj->setHeight($this->height);
         $this->em->persist($this->gridObj);
@@ -57,8 +63,8 @@ class BuildKakuro extends BaseKakuro
         $this->buildFrame();
         $this->initializeForSettingVals();
         $this->addNumbers();
-        $this->calculateStrips();
-        $this->testUnique();
+        // $this->calculateStrips();
+        // $this->testUnique();
         $this->save();
     }
 
@@ -181,28 +187,25 @@ class BuildKakuro extends BaseKakuro
 
     protected function changeLastUnforcedNumber()
     {
-        list($i, $j) = $this->getPreviousCellWithChoices();
-        $cell = $this->grid['cells'][$i][$j];
-
-        if ($this->isBlank($i, $j) || count($cell['choices']) < 2) {
-            return;
+$this->log($this->lastChoice, true);
+        $idx = $this->getPreviousCellWithChoices();
+$this->log("last unforced = $idx", true);
+        if (empty($this->forbiddenValues[$idx])) {
+            $this->forbiddenValues[$idx] = [];
         }
-
-        $choices = $cell['choices'];
-        $val = $cell['value'];
-        $this->unsetValue($choices, $val);
-        $choices = array_values($choices);
-        // $choices = array_values($this->unsetValue($choices, $val));
-        $saved_grid = $this->saved_grids[$i . '_' . $j];
-        $saved_grid['cells'][$i][$j]['choices'] = $choices;
-        $this->grid = $saved_grid;
-$this->log("reset grid to {$i}_{$j}", true);
-        $this->selectValue($i, $j, $choices);
+        $val = $this->cellValues[$idx];
+$this->log("$idx $val is forbidden", true);
+        $this->forbiddenValues[$idx][] = $val;
+        for ($i = $idx + 1; $i < count($this->cellsNew); $i++) {
+            $this->forbiddenValues[$i] = [];
+            $this->cellValues[$i] = null;
+        }
+        $this->addNumbers($idx);
     }
 
     protected function getPreviousCellWithChoices()
     {
-        return array_pop($this->last_choice);
+        return array_pop($this->lastChoice);
     }
 
     protected function initializeForSettingVals()
@@ -215,80 +218,27 @@ $this->log("reset grid to {$i}_{$j}", true);
         }
     }
 
-    protected function addNumbers()
+    protected function addNumbers($idx = 0)
     {
         while (true) {
-            $idx = $this->pickCellToProcess();
-            if (is_null($idx)) {
+            $this->addNumber($idx);
+            if (empty($this->cellsNew[++$idx])) {
                 break;
             }
-            $this->addNumber($idx);
-        }
-    }
-
-    protected function pickCellToProcess()
-    {
-        // prioritize choices then small strip size
-        $next_idx = $this->idx++;
-        return isset($this->cellsNew[$next_idx]) ? $next_idx : null;
-        $position = [null, null];
-        $fewest_options = $smallest_strip_size = count($this->number_set) + 1;
-        $candidates = [];
-        $best_candidate = null;
-
-        for ($i = 0; $i < $this->width; $i++) {
-            for ($j = 0; $j < $this->height; $j++) {
-                $cell = $this->grid['cells'][$i][$j];
-                if ($this->isBlank($cell)) {
-                    continue;
-                }
-                // already processed
-                if (!empty($cell['value'])) {
-                    continue;
-                }
-                $num_options = count($cell['choices']);
-                if ($num_options == $fewest_options) {
-                    $candidates[] = $cell;
-                }
-                if ($num_options < $fewest_options) {
-                    $candidates = [$cell]; // clear previous
-                    $fewest_options = $num_options;
-                }
-                if (empty($candidates)) {
-                    return $position;
-                }
-
-                if (count($candidates) == 1) {
-                    $best_candidate = $candidates[0];
-                } else {
-                    foreach ($candidates as $candidate) {
-                        $c_smallest_strip_size = min(count($candidate['strips']['h']), count($candidate['strips']['v']));
-                        if ($c_smallest_strip_size < $smallest_strip_size) {
-                            $smallest_strip_size = $c_smallest_strip_size;
-                            $best_candidate = $candidate;
-                        }
-                    }
-                }
-            }
         }
 
-        if ($best_candidate && !empty($best_candidate['position'])) {
-            $position = $best_candidate['position'];
-        }
-
-        return $position;
+        $this->calculateStrips();
+        $this->testUnique();
     }
 
     protected function addNumber($idx)
     {
-        // $this->selectValue($idx, [2]);
-        // return;
         $cell = $this->cellsNew[$idx];
         if (!$this->isBlank($idx)) {
             $strips = $this->findMyStrips($idx);
-            // $cell['strips'] = $strips;
             $available = $this->number_set;
-            $taken = [];
+            $taken = !empty($this->forbiddenValues[$idx]) ? $this->forbiddenValues[$idx] : [];
+$this->log($taken, true);
             foreach ($strips as $strip) {
                 foreach ($strip as $stripCell) {
                     $tmp_idx = $stripCell->getIdx();
@@ -298,6 +248,7 @@ $this->log("reset grid to {$i}_{$j}", true);
                     }
                 }
             }
+$this->log($this->cellValues, true);
 
             $available = array_values(array_diff($available, $taken));
             // another thing to do:
@@ -318,13 +269,13 @@ $this->log("reset grid to {$i}_{$j}", true);
             // parallel v-strips are 1 5 3 and 2 3 5
             // h-strip consider X8 and X3. No 8 in h-strip. X3, find my 3. pairs with 1, so can't have 1
             // v-strip consider X5 and X3. No 5 and the 3 goes with the 1.
-            
 
 
             // $available = $this->filterNumsThatCauseNonUnique($strips, $available);
 
 
             if (empty($available)) {
+$this->log("nothing available", true);
                 $this->changeLastUnforcedNumber();
             } else {
                 $this->selectValue($idx, $available);
@@ -359,45 +310,62 @@ $this->log("reset grid to {$i}_{$j}", true);
     protected function selectValue($idx, $choices)
     {
         if (count($choices) > 1) {
-            $this->last_choice[] = $idx;
-            $this->saved_grids[$idx] = $this->grid;
+            $this->lastChoice[] = $idx;
         }
 
         if (count($choices) == 1) {
-            $this->unsetValue($this->last_choice, $idx);
+            $this->unsetValue($this->lastChoice, $idx);
         }
+
+// deterministic for debugging:
+// $index = 0;
 
         $index = rand(1, count($choices)) - 1;
         $choices = array_values($choices); // JIC assoc array
         $val = $choices[$index];
         $this->cellValues[$idx] = $val;
         $this->cellsNew[$idx]->setChoice($val);
+$this->log("set $idx to $val", true);
     }
 
     protected function testUnique()
     {
-        // last choice or best choice....
-        $idx = max(array_keys($this->cellValues));
-        $cell = $this->cellsNew[$idx];
-        $choice = $cell->getChoice();
-        $cell->calculatePossibleValues();
-        $pv = $cell->getPossibleValues();
-        $this->unsetValue($pv, $choice);
-        foreach ($pv as $val) {
-            if (!$this->testCell($idx, $val)) {
-                // act
+        // while (true) {
+            // last choice or best choice....
+$this->display(3);
+// $ctr = 0;
+// if ($ctr++ > 2000) {
+//     return false;
+// }
+            $idx = max(array_keys($this->cellValues));
+            $cell = $this->cellsNew[$idx];
+            $choice = $cell->getChoice();
+            $cell->calculatePossibleValues();
+            $pv = $cell->getPossibleValues();
+            $this->unsetValue($pv, $choice);
+            $success = true;
+            foreach ($pv as $val) {
+                if ($this->hasSolution($idx, $val)) {
+                    $success = false;
+                    break;
+                }
             }
-        }
+            if ($success) {
+                return true;
+            }
+        // }
+        $this->changeLastUnforcedNumber();
     }
 
-    protected function testCell($idx, $val)
+    protected function hasSolution($idx, $val)
     {
         $parameters = [
             'testIdx' => $idx,
             'testVal' => $val,
             'grid' => $this->gridObj,
         ];
-        return UniquenessTester::autoExecute($parameters, null)->getResult()['hasSolution'];
+        $testResult = UniquenessTester::autoExecute($parameters, null)->getResult();
+        return $testResult['hasSolution'];
     }
 
     protected function computeChoices()
@@ -501,48 +469,23 @@ $this->log("reset grid to {$i}_{$j}", true);
         return $strip;
     }
 
-    public function draw($open_broswer = true)
+    public function display($padding = 10)
     {
-        foreach ($this->grid['cells'] as $i => $row) {
-            foreach ($row as $j => $cell) {
-                $blank = $this->isBlank($cell);
-                $unknown = $this->isUnknown($cell);
-                $ph = !empty($cell['value']) ? $cell['value'] : '*';
-                $val = $unknown
-                    ? '?'
-                    : (!$blank ? $ph : '.');
-                print $val;
+        $str = "\ntest solution\n" . $this->displayChoicesHeader();
+
+        foreach ($this->cellsNew as $idx => $cell) {
+            if ($this->isBlank($idx)) {
+                $c = '.';
+            } else {
+                $c = $cell->getChoice();
             }
-            print "\n";
-        }
-
-        if ($open_broswer) {
-            $this->openGridInBrowser();
-        }
-
-        $hsums = [];
-        $vsums = [];
-
-        // this is useful
-        $this->write_file($this->sums);
-    }
-
-    protected function write_file($c)
-    {
-        $fp = fopen('tmp/easy3.kak', 'w+'); // TBI
-        fwrite($fp, $this->height . "\n");
-        fwrite($fp, $this->width . "\n");
-        for ($i = 0; $i <= $this->height; $i++) {
-            for ($j = 0; $j <= $this->width; $j++) {
-                $val = !empty($c[$i][$j]) ? $c[$i][$j] : '';
-                if ($j < $this->width) {
-                    $val .= "\t";
-                }
-                fwrite($fp, $val);
+            if ($cell->getCol() < 1) {
+                $str .= "\n";
             }
-            fwrite($fp, "\n");
+            $str .= str_pad($c, $padding, ' ');
         }
-        fclose($fp);
+        $str .= "\n";
+        $this->log($str, true);
     }
 
     public function mustBeBlank($idx)
@@ -881,7 +824,7 @@ $this->log('remove island ' . json_encode($island), true);
         if (!$this->isBlank($idx, $include_unknown)) {
             $arr[] = $cell;
         }
-$x = $cell->getCol();
+
         if ($cell->getCol() < $this->width - 1) {
             return $this->isBlank($idx + 1, $include_unknown) ? $arr : $this->stripToTheRight($idx + 1, $include_unknown, $arr);
         }
@@ -895,7 +838,7 @@ $x = $cell->getCol();
         if (!$this->isBlank($idx, $include_unknown)) {
             $arr[] = $cell;
         }
-$x = $cell->getRow();
+
         if ($cell->getRow() < $this->height - 1) {
             return $this->isBlank($idx + $this->width, $include_unknown) ? $arr : $this->stripBelow($idx + $this->width, $include_unknown, $arr);
         }
@@ -916,10 +859,18 @@ $x = $cell->getRow();
     protected function save()
     {
         // only anchors get written to the db
+$this->log('unique solution found', true);
+$this->display(3);
         $cells = [];
         foreach ($this->gridObj->getCells() as $idx => $cell) {
             if ($this->isBlank($idx)) {
                 $cells[] = $cell;
+            } else {
+                $solution = new Solution();
+                $solution->setRow($cell->getRow());
+                $solution->setCol($cell->getCol());
+                $solution->setChoice($cell->getChoice());
+                $this->gridObj->addSolution($solution);
             }
         }
         $this->gridObj->removeAllCells();
