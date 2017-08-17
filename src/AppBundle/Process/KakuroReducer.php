@@ -249,25 +249,29 @@ $this->log($cell->speak());
             }
         }
 
-        return $this->reduceByDisjointGroups($cells, $sum, $disjointGroups);
+        return $this->reduceByDisjointGroups($cells, $sum, $disjointGroups, $used);
     }
 
-    protected function reduceByDisjointGroups($cells, $sum, $disjointGroups)
+    protected function reduceByDisjointGroups($cells, $sum, $disjointGroups, $used)
     {
         if (empty($disjointGroups)) {
             return true;
         }
 
-        // get the sum of the groups
         $groups_total = 0;
         foreach ($disjointGroups as $group) {
             $cell = current($group);
             foreach ($cell->getChoices() as $choice) {
                 $groups_total += $choice;
+                $used[] = $choice;
             }
             foreach ($group as $cell) {
                 $this->removeByRowAndCol($cells, $cell);
             }
+        }
+
+        if (empty($cells)) {
+            return true;
         }
 
         $sum -= $groups_total;
@@ -280,7 +284,7 @@ $this->log($cell->speak());
             $this->cells[$idx]->setChoices($newChoices);
         }
 
-        return true;
+        return $this->advancedStripReduction($cells, $sum, $used);
     }
 
     protected function reduceDuplet($sum, $cell, $other)
