@@ -10,7 +10,7 @@ class KakuroReducer extends BaseKakuro
 {
     protected 
         $changedStrips,
-        $problemStrips = [],
+        $failedStrip = [],
         $simpleReduction,
         $gridObj,
         $cells,
@@ -76,6 +76,7 @@ class KakuroReducer extends BaseKakuro
                         }
                         $newChoices = array_values(array_intersect($pv, $choices));
                         if (empty($newChoices)) {
+                            $this->failedStrip = $strip->getId();
                             return false;
                         }
                         if ($changed || count($newChoices) < count($choices)) {
@@ -88,6 +89,7 @@ class KakuroReducer extends BaseKakuro
 
                 if ($use_advanced_reduction) {
                     if (!$this->adv($strip, $cells)) {
+                        $this->failedStrip = $strip->getId();
                         return false;
                     }
                 }
@@ -150,7 +152,6 @@ class KakuroReducer extends BaseKakuro
         $decided = [];
         $undecided = [];
         foreach ($cells as $cell) {
-$this->log($cell->speak());
             if (count($cell->getChoices()) === 1) {
                 $num = current($cell->getChoices());
                 $sum -= $num;
@@ -403,9 +404,10 @@ $this->log($cell->speak());
         }
 
         $grid = ['cells' => $cells, 'error' => false];
-        if (!empty($this->problemStrips)) {
+        if (!empty($this->failedStrip)) {
             $grid['error'] = true;
             $grid['message'] = 'problem reducing';
+            $grid['failedStripId'] = $this->failedStrip;
         }
         return $grid;
     }
