@@ -40,7 +40,7 @@ export default class Grid extends React.Component {
 
     componentDidMount() {
         this.getGames();
-        this.getGrid(1);
+        // this.getGrid(1);
     }
 
     getGames() {
@@ -48,6 +48,7 @@ export default class Grid extends React.Component {
             "http://kak.uro/app_dev.php/api/games"
         ).then(data => {
             this.setState({grids: data.games});
+            this.getGrid(data.games[0]['name']);
         });
     }
 
