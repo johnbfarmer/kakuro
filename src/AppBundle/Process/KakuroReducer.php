@@ -43,13 +43,10 @@ class KakuroReducer extends BaseKakuro
             foreach ($this->cells as $cell) {
                 if ($cell->isDataCell()) {
                     $pv = $cell->getPossibleValues();
-// $this->log($pv);
-// $this->log($cell->speak());
                     $idx = $cell->getRow() * $this->width + $cell->getCol();
-                    $choices = $cell->getChoices();
+                    $choices = $this->uiChoices[$idx]['choices'];
                     $choices = !empty($choices) ? array_values(array_intersect($choices, $pv)) : $pv;
                     $this->cells[$idx]->setChoices($choices);
-$this->log($cell->speak());
                 }
             }
         }
