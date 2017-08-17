@@ -9,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
 use AppBundle\Process\SolveGrid;
-use AppBundle\Process\GridReducer;
+use AppBundle\Process\KakuroReducer;
 use AppBundle\Process\SaveGrid;
 use AppBundle\Process\LoadSavedGrid;
 use AppBundle\Helper\GridHelper;
@@ -50,10 +50,11 @@ class ApiController extends Controller
         $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($grid_id);
         $parameters = [
             'grid' => $grid,
-            'cells' => $cells,
+            'cells' => $grid->getForProcessing(),
+            'uiChoices' => $cells,
             'simpleReduction' => !$advanced_reduction,
         ];
-        $reducer = GridReducer::autoExecute($parameters, null);
+        $reducer = KakuroReducer::autoExecute($parameters, null);
         return new JsonResponse($reducer->getApiResponse());
     }
 

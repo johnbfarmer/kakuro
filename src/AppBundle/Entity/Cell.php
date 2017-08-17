@@ -270,4 +270,9 @@ class Cell
             'col' => $this->col,
         ];
     }
+
+    public function speak()
+    {
+        return $this->row.','.$this->col.','.json_encode($this->choices);
+    }
 }

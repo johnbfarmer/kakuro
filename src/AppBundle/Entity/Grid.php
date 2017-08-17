@@ -48,13 +48,14 @@ class Grid
      */
     private $solutions;
 
-    private $strips = [];
+    private $strips;
     private $number_set = [1,2,3,4,5,6,7,8,9]; // TBI take as parameter
     private $pvFinder;
 
     public function __construct()
     {
         $this->cells = new ArrayCollection();
+        $this->strips = new ArrayCollection();
         $this->solutions = new ArrayCollection();
         $this->pvFinder = new BuildTables(['number_set' => $this->number_set], null);
     }
@@ -130,7 +131,7 @@ class Grid
 
     public function addStrip($strip, $idx)
     {
-        $this->strips[$idx] = $strip;
+        $this->strips->set($idx, $strip);
         return $this;
     }
 
@@ -208,7 +209,7 @@ class Grid
                 $strip->setStartRow($cell->getRow());
                 $strip->setStopRow($cell->getRow());
                 $strip->setStartCol($cell->getCol()+1);
-                $this->strips[$idx] = $strip;
+                $this->strips->set($idx, $strip);
                 $previous_idx = $idx;
             }
         }
@@ -247,7 +248,7 @@ class Grid
                 $strip->setStartCol($cell->getCol());
                 $strip->setStopCol($cell->getCol());
                 $strip->setStartRow($cell->getRow()+1);
-                $this->strips[$idx] = $strip;
+                $this->strips->set($idx, $strip);
                 $previous_idx = $idx;
             }
         }
@@ -269,6 +270,7 @@ class Grid
         if (!$this->pvFinder) {
             $this->pvFinder = new BuildTables(['number_set' => $this->number_set], null);
         }
+        $this->strips = new ArrayCollection();
         $this->calculateStrips();
         $default_cell = null;
         $height = $this->height;
@@ -306,5 +308,10 @@ class Grid
     public function getPossibleValues($target, $size, $used = [])
     {
         return $this->pvFinder->findValues($target, $size, $used);
+    }
+
+    public function dumpTable()
+    {
+        return $this->pvFinder->dumpTable();
     }
 }

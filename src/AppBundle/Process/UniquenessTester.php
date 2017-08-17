@@ -4,11 +4,13 @@ namespace AppBundle\Process;
 
 use AppBundle\Helper\GridHelper;
 
-class UniquenessTester extends GridReducer
+class UniquenessTester extends KakuroReducer
 {
     protected 
         $testIdx,
-        $testVal;
+        $testVal,
+        $originalVal,
+        $choiceCount = 0;
 
     public function __construct($parameters = [], $em = [])
     {
@@ -19,10 +21,12 @@ class UniquenessTester extends GridReducer
 
     protected function execute()
     {
-        $this->cellsNew = $this->gridObj->getCells();
+        $this->cells = $this->gridObj->getCells();
+        $this->originalVal = $this->cells[$this->testIdx]->getChoice();
         $this->stripsNew = $this->gridObj->getStrips();
         $this->result = [
             'hasSolution' => false,
+            'notReducible' => false,
             'solution' => null,
         ];
 $this->log($this->displayChoicesHeader(), true);
@@ -31,14 +35,15 @@ $this->log($this->displayChoicesHeader(), true);
 
     protected function tryCell($idx, $val)
     {
-        foreach ($this->cellsNew as $cell) {
+        foreach ($this->cells as $cell) {
             $cell->setChoices([]);
         }
-        $cell = $this->cellsNew[$idx];
+        $cell = $this->cells[$idx];
         $cell->setChoices([$this->testVal]);
+        $this->UiChoices[$idx] = $this->testVal;
         $strips = $cell->getStripObjects();
-        if ($this->calculateChoices($strips)) {
-            $this->result['hasSolution'] = true;
+        if ($this->reduce($strips, true)) {
+            $this->result['hasSolution'] = $this->isSolved();
             return;
         }
     }
@@ -47,17 +52,19 @@ $this->log($this->displayChoicesHeader(), true);
     {
         while (!$strips->isEmpty()) {
 $ctr = 0;
-if ($ctr++ > 200) {
+if ($ctr++ > 2000) {
     return false;
 }
             $this->changedStrips->clear();
             foreach ($strips as $strip) {
+$this->log('strip '.$strip->dump(), true);
                 $cells = $this->getCellsForStrip($strip);
                 $pv = $this->getPossibleValuesForStrip($strip, $cells)['values'];
                 foreach ($cells as $cell) {
                     if ($cell->getIdx() != $this->testIdx) {
                         $choices = $cell->getChoices();
-                        if (count($choices) === 1) {
+                        $choiceCount = count($choices);
+                        if ($choiceCount === 1) {
                             continue;
                         }
                         $changed = false;
@@ -66,15 +73,16 @@ if ($ctr++ > 200) {
                             $changed = true;
                         }
                         $newChoices = array_values(array_intersect($pv, $choices));
+                        $newChoiceCount = count($newChoices);
                         if (empty($newChoices)) {
-$this->log($cell->getIdx() . ' ' . $strip->getTotal() . ' not possible', true);
+// $this->log($cell->getIdx() . ' ' . $strip->getTotal() . ' not possible', true);
                             return false;
                         }
-                        if ($changed || count($newChoices) < count($choices)) {
-// $this->log('set choices ' . $cell->getIdx() . ' ' . json_encode($newChoices), true);
+                        if ($changed || $newChoiceCount < $newChoiceCount) {
                             $cell->setChoices($newChoices);
+$this->log('set choices '.$cell->speak().' '.json_encode($newChoices), true);
                             $this->addCellsStripsToChanged($cell);
-                            $this->cellsNew[$cell->getIdx()] = $cell; // not needed?
+                            $this->cells[$cell->getIdx()] = $cell; // not needed?
                         }
                     }
                 }
@@ -134,7 +142,8 @@ $this->displayChoices(3);
             foreach ($cells as $cell) {
                 if (count($cell->getChoices()) !== 1) {
 $this->log('can\'t tell! '.$cell->getIdx().' has too many choices: '.json_encode($cell->getChoices()), true);
-                    return true; // too hard man
+                    $this->result['notReducible'] = true;
+                    return false; // too hard man
                 }
                 $cellSum += current($cell->getChoices());
             }
@@ -149,7 +158,7 @@ $this->log('shore is!', true);
 
     protected function displayChoicesHeader()
     {
-        $x = $this->cellsNew[$this->testIdx]->getChoice();
+        $x = $this->cells[$this->testIdx]->getChoice();
         return "{$this->testIdx} try {$this->testVal} (was $x)\n\n";
     }
 

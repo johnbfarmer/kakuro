@@ -129,4 +129,21 @@ class BuildTables extends BaseProcess
     {
         return $this->temp;
     }
+
+    public function dumpTable()
+    {
+        // $k = [];
+        // foreach ($this->known as $target => $a) {
+        //     foreach ($a as $size => $b) {
+        //         foreach (array_keys($b) as $key) {
+        //             $k[] = $key;
+        //         }
+        //     }
+        // }
+        // $sql = 'insert ignore number_sets (number_set) values ("'. implode('","', $k) . '")';
+        // $this->log($k);
+        // $this->log($sql);
+        // $this->log($this->known);
+        // $this->exec($sql);
+    }
 }

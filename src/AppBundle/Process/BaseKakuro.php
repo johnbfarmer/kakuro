@@ -66,7 +66,7 @@ class BaseKakuro extends BaseProcess
     {
         $str = "\n" . $this->displayChoicesHeader();
 
-        foreach ($this->cellsNew as $idx => $cell) {
+        foreach ($this->cells as $idx => $cell) {
             if (!$cell->isDataCell()) {
                 $c = '.';
             } else {
@@ -89,6 +89,29 @@ class BaseKakuro extends BaseProcess
     protected function displayChoicesHeader()
     {
         return '';
+    }
+
+    protected function getCellsForStrip($strip)
+    {
+        $dir = $strip->getDir();
+        $len = $strip->getLen();
+        $cells = [];
+        if ($dir === 'h') {
+            $start = $strip->getStartCol();
+            $row = $strip->getStartRow();
+        } else {
+            $start = $strip->getStartRow();
+            $col = $strip->getStartCol();
+        }
+
+        for ($k = $start; $k < $start + $len; $k++) {
+            $i = $dir === 'v' ? $k : $row; 
+            $j = $dir === 'h' ? $k : $col;
+            $idx = $i * $this->width + $j;
+            $cells[] = $this->cells[$idx];
+        }
+
+        return $cells;
     }
 
     // old paradigm
