@@ -33,6 +33,12 @@ class BuildGridCommand extends Command
                 'browser', 'b', InputOption::VALUE_NONE, 'to deprecate'
             )
             ->addOption(
+                'max-times-thru', 'u', InputOption::VALUE_REQUIRED, 'max tries before resetting numbers'
+            )
+            ->addOption(
+                'max-restarts', 'r', InputOption::VALUE_REQUIRED, 'max reset numbers'
+            )
+            ->addOption(
                 'symmetry', 's', InputOption::VALUE_NONE, ''
             );
     }

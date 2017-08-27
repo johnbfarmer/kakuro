@@ -54,7 +54,7 @@ $this->log($this->displayChoicesHeader(), true);
     protected function displayChoicesHeader()
     {
         $x = $this->cells[$this->targetIdx]->getChoice();
-        return "choice counter {$this->targetIdx} try {$this->targetValue} (was $x)\n\n";
+        return "choice counter {$this->targetIdx} try {$this->targetValue} (was $x)";
     }
 
     public function getResult()

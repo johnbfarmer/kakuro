@@ -80,7 +80,7 @@ $this->log('strip '.$strip->dump(), true);
                         }
                         if ($changed || $newChoiceCount < $newChoiceCount) {
                             $cell->setChoices($newChoices);
-$this->log('set choices '.$cell->speak().' '.json_encode($newChoices), true);
+$this->log('set choices '.$cell->dump().' '.json_encode($newChoices), true);
                             $this->addCellsStripsToChanged($cell);
                             $this->cells[$cell->getIdx()] = $cell; // not needed?
                         }

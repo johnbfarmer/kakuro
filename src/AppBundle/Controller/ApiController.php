@@ -31,7 +31,7 @@ class ApiController extends Controller
      */
     public function gamesAction(Request $request)
     {
-        $games = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findAll();
+        $games = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findBy([], ['name' => 'asc']);
         $arr = [];
         foreach ($games as $game) {
             $arr[] = ['name' => $game->getId(), 'label' => $game->getName()];

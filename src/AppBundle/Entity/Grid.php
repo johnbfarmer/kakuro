@@ -9,7 +9,7 @@ use AppBundle\Helper\GridHelper;
 use AppBundle\Process\BuildTables; // move to helper?
 
 /**
- * @ORM\Entity
+ * @ORM\Entity(repositoryClass="AppBundle\Repository\GridRepository")
  * @ORM\Table(name="grids")
  */
 class Grid

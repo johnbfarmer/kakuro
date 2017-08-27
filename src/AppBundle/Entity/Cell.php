@@ -271,8 +271,8 @@ class Cell
         ];
     }
 
-    public function speak()
+    public function dump()
     {
-        return $this->row.','.$this->col.','.json_encode($this->choices);
+        return '(' . $this->row.','.$this->col.'), '.json_encode($this->choices);
     }
 }

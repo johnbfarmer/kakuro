@@ -159,16 +159,16 @@ class BaseKakuro extends BaseProcess
         return !isset($cell['blank']);
     }
 
-    protected function isEmpty($i, $j)
+    protected function isEmpty($idx)
     {
-        return $this->isEmptyCell($this->grid['cells'][$i][$j]);
+        return empty($this->cellTypes[$idx]);
     }
 
     protected function countBlanks()
     {
         $count = 0;
         foreach ($this->cellTypes as $idx => $cellType) {
-            if ($this->isBlank($idx, true)) {
+            if ($idx > $this->width && $idx % $this->width && $this->isBlank($idx, true)) {
                 $count++;
             }
         }
@@ -195,10 +195,10 @@ class BaseKakuro extends BaseProcess
             $meets_criteria = $this->isBlank($idx, true);
         }
         if (!$meets_criteria && in_array('nonblank', $criteria)) {
-            $meets_criteria = $this->isNonBlankCell($idx);
+            $meets_criteria = $this->isNonBlank($idx);
         }
         if (!$meets_criteria && in_array('empty', $criteria)) {
-            $meets_criteria = $this->isEmptyCell($idx);
+            $meets_criteria = $this->isEmpty($idx);
         }
 
         return $meets_criteria;
@@ -211,18 +211,18 @@ class BaseKakuro extends BaseProcess
             $arr[] = $idx;
         }
 
-        $i = $idx % $this->width;
-        $j = floor($idx / $this->width);
+        $j = $idx % $this->width;
+        $i = floor($idx / $this->width);
 
-        for ($h=max($i-1,0); $h<=min($this->width-1, $i+1); $h++) {
-            for ($k=max($j-1,0); $k<=min($this->height-1, $j+1); $k++) {
+        for ($h=max($i-1,1); $h<=min($this->width-1, $i+1); $h++) {
+            for ($k=max($j-1,1); $k<=min($this->height-1, $j+1); $k++) {
                 if (!$include_diagonals && ($h != $i) && ($k != $j)) {
                     continue;
                 }
 
                 $tmp_idx = $h * $this->width + $k;
-                if ($this->meetsCriteria($tmp_idx, $criteria)) {
-                    if (!in_array($tmp_idx, $arr)) {
+                if (!in_array($tmp_idx, $arr)) {
+                    if ($this->meetsCriteria($tmp_idx, $criteria)) {
                         $arr[] = $tmp_idx;
                         $arr = $this->buildWeb($tmp_idx, $criteria, $arr, $include_diagonals);
                     }
@@ -299,6 +299,20 @@ class BaseKakuro extends BaseProcess
         }
         $array_to_sort = $ret;
     }
+
+    public static function shuffle(&$arr)
+    {
+        $a = [];
+        $ct = count($arr);
+        while ($ct > 0) {
+            $arr = array_values($arr);
+            $r = rand(0, $ct-- - 1);
+            $a[] = $arr[$r];
+            unset($arr[$r]);
+        }
+
+        $arr = $a;
+    } 
 
     protected function clearLog()
     {
