@@ -164,6 +164,12 @@ class BaseKakuro extends BaseProcess
         return empty($this->cellTypes[$idx]);
     }
 
+    protected function isNonDataCell($idx, $strict = false)
+    {
+        $cell = $this->cells[$idx];
+        return !$cell->isDataCell();
+    }
+
     protected function countBlanks()
     {
         $count = 0;
@@ -312,7 +318,28 @@ class BaseKakuro extends BaseProcess
         }
 
         $arr = $a;
-    } 
+    }
+
+    public function display($padding = 10, $frameOnly = false)
+    {
+        $str = "\ncurrently\n" . $this->displayChoicesHeader();
+
+        foreach ($this->cells as $idx => $cell) {
+            if ($this->isBlank($idx, true)) {
+                $c = '.';
+            } elseif ($this->isEmpty($idx)) {
+                $c = '?';
+            } else {
+                $c = $frameOnly ? 'D' : $cell->getChoice();
+            }
+            if ($cell->getCol() < 1) {
+                $str .= "\n";
+            }
+            $str .= str_pad($c, $padding, ' ');
+        }
+        $str .= "\n";
+        $this->log($str, true);
+    }
 
     protected function clearLog()
     {

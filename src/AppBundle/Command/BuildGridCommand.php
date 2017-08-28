@@ -24,7 +24,10 @@ class BuildGridCommand extends Command
             ->setDescription('x')
             ->setHelp('y')
             ->addArgument(
-                'size', InputArgument::REQUIRED, 'heightxwidth'
+                'size', InputArgument::OPTIONAL, 'heightxwidth'
+            )
+            ->addOption(
+                'frame-id', 'f', InputOption::VALUE_REQUIRED, ''
             )
             ->addOption(
                 'density', 'd', InputOption::VALUE_REQUIRED, '0<x<1'
@@ -39,6 +42,9 @@ class BuildGridCommand extends Command
                 'max-restarts', 'r', InputOption::VALUE_REQUIRED, 'max reset numbers'
             )
             ->addOption(
+                'max-strip-length', 'x', InputOption::VALUE_REQUIRED, ''
+            )
+            ->addOption(
                 'symmetry', 's', InputOption::VALUE_NONE, ''
             );
     }
@@ -47,16 +53,18 @@ class BuildGridCommand extends Command
     {
         $output->writeln('CREATING KAKURO');
         $parameters = array_merge($input->getArguments(), $input->getOptions());
-        $size = $parameters['size'];
-        $size_array = explode('x', $size);
-        if (count($size_array) !== 2) {
-            throw new \Exception('Size argument "' . $size . '" must be heightxwidth, like 12x12');
-            
+        if (empty($parameters['frame-id'])) {
+            $size = $parameters['size'];
+            $size_array = explode('x', $size);
+            if (count($size_array) !== 2) {
+                throw new \Exception('Size argument "' . $size . '" must be heightxwidth, like 12x12');
+                
+            }
+
+            $parameters['height'] = $size_array[0];
+            $parameters['width'] = $size_array[1];
         }
 
-        $parameters['height'] = $size_array[0];
-        $parameters['width'] = $size_array[1];
-        // BuildGrid::autoExecute($parameters, null);
         BuildKakuro::autoExecute($parameters, null);
     }
 }

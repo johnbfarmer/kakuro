@@ -11,6 +11,7 @@ class KakuroReducer extends BaseKakuro
     protected 
         $changedStrips,
         $failedStrip = [],
+        $failReason,
         $simpleReduction,
         $gridObj,
         $cells,
@@ -61,6 +62,10 @@ class KakuroReducer extends BaseKakuro
         while (!$strips->isEmpty()) {
             $this->changedStrips->clear();
             foreach ($strips as $strip) {
+                if (empty($strip)) {
+                    continue;
+                }
+
                 $cells = $this->getCellsForStrip($strip);
                 $pv = $this->getPossibleValuesForStrip($strip, $cells)['values'];
                 foreach ($cells as $cell) {
@@ -77,6 +82,7 @@ class KakuroReducer extends BaseKakuro
                         $newChoices = array_values(array_intersect($pv, $choices));
                         if (empty($newChoices)) {
                             $this->failedStrip = $strip->getId();
+                            $this->failReason = "No choices for cell " . $cell->dump() . ", strip " . $strip->dump();
                             return false;
                         }
                         if ($changed || count($newChoices) < count($choices)) {
@@ -90,6 +96,7 @@ class KakuroReducer extends BaseKakuro
                 if ($use_advanced_reduction) {
                     if (!$this->adv($strip, $cells)) {
                         $this->failedStrip = $strip->getId();
+                        $this->failReason .= ", strip " . $strip->dump();
                         return false;
                     }
                 }
@@ -139,6 +146,9 @@ class KakuroReducer extends BaseKakuro
             $j = $dir === 'h' ? $k : $col;
             $idx = $i * $this->width + $j;
             $cells[] = $this->cells[$idx];
+if (!$this->cells[$idx]) {
+    throw new \Exception('ouch');
+}
         }
 
         return $cells;
@@ -163,8 +173,13 @@ class KakuroReducer extends BaseKakuro
             }
         }
 
+$pv = $this->gridObj->getPossibleValues($sum, $len, $usedNumbers);
+if (empty($pv) && !empty($undecided)) {
+    $x = 'dbug';
+}
+
         return [
-            'values' => $this->gridObj->getPossibleValues($sum, $len, $usedNumbers),
+            'values' => $pv,
             'decided' => $decided,
             'undecided' => $undecided,
             'usedNumbers' => $usedNumbers,
@@ -195,6 +210,7 @@ class KakuroReducer extends BaseKakuro
                 if (!$this->isPossibleNew($complement, $sum - $v, array_merge($used, [$v]))) {
                     unset($choices[$idx]);
                     if (empty($choices)) {
+                        $this->failReason = "No choices reducing by complement cell ".$cell->dump();
                         return false;
                     }
                     $cell->setChoices($choices);
@@ -234,10 +250,12 @@ class KakuroReducer extends BaseKakuro
                 continue;
             }
             if (count($y) > count($c)) {
+                $this->failReason = "Y>C cell ".$cell->dump();
                 return false;
             }
 
             if (!$this->removeChoicesFromCells($n, $c)) {
+                $this->failReason = "Unable to remove choices from cell ".$cell->dump();
                 return false;
             }
 
@@ -258,12 +276,14 @@ class KakuroReducer extends BaseKakuro
 
         $groups_total = 0;
         foreach ($disjointGroups as $group) {
-            $cell = current($group);
-            foreach ($cell->getChoices() as $choice) {
-                $groups_total += $choice;
-                $used[] = $choice;
-            }
             foreach ($group as $cell) {
+                foreach ($cell->getChoices() as $choice) {
+                    if (!in_array($choice, $used)) {
+                        $groups_total += $choice;
+                        $used[] = $choice;
+                    }
+                }
+
                 $this->removeByRowAndCol($cells, $cell);
             }
         }
@@ -277,12 +297,20 @@ class KakuroReducer extends BaseKakuro
         // $used can be empty as those vals should already have been removed from $cells
         $pv = $this->gridObj->getPossibleValues($sum, count($cells), []);
         foreach ($cells as $cell) {
-            $newChoices = array_values(array_intersect($cell->getChoices(), $pv));
-            $idx = $this->getIndexByRowAndCol($cell);
-            $this->cells[$idx]->setChoices($newChoices);
+            $choices = $cell->getChoices();
+            $newChoices = array_values(array_intersect($choices, $pv));
+            if (empty($newChoices)) {
+                $this->failReason = "choices empty reducing by disjoint groups cell ".$cell->dump();
+                return false;
+            }
+            if (count($newChoices) < count($choices)) {
+                $idx = $this->getIndexByRowAndCol($cell);
+                $this->cells[$idx]->setChoices($newChoices);
+                $this->addCellsStripsToChanged($cell);
+            }
         }
 
-        return $this->advancedStripReduction($cells, $sum, $used);
+        return true;
     }
 
     protected function reduceDuplet($sum, $cell, $other)
@@ -408,6 +436,7 @@ class KakuroReducer extends BaseKakuro
             $grid['error'] = true;
             $grid['message'] = 'problem reducing';
             $grid['failedStripId'] = $this->failedStrip;
+            $grid['failReason'] = $this->failReason;
         }
         return $grid;
     }
