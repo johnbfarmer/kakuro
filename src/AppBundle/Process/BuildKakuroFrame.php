@@ -20,16 +20,19 @@ class BuildKakuroFrame extends BaseKakuro
         $isForcedCellType = [],
         $cellChoices = [],
         $density_constant,
-        $density_randomness = 0.3,
+        $density_randomness = 0.1,
+        $highDensity = false,
+        $lowDensity = false,
         $symmetry = false,
         $finished = false,
         $grid,
         $idx = 0,
         $frameId = 0,
-        $minimum_strip_size = 2,
+        $minimumStripSize = 2,
         $dataCellCount = 0,
         $startIdx = 0,
-        $island = [];
+        $island = [],
+        $preferToRemoveIsland = false;
 
     public function __construct($parameters = [], $em = [])
     {
@@ -59,6 +62,9 @@ class BuildKakuroFrame extends BaseKakuro
             $this->getFrame();
         } else {
             $this->buildFrame();
+            while (!$this->testDensity()) {
+                $this->adjustForDensity();
+            }
             // $this->saveFrame();
             $this->initializeForSettingVals();
         }
@@ -133,14 +139,17 @@ $this->display(3, true);
     {
         $blanks = $this->countBlanks();
         $nonblanks = $this->countNonBlanks();
-        $desired_fullness = 1 - $this->density_constant;
+        $desired_fullness = $this->density_constant;
         if (!$blanks && !$nonblanks) {
             $this->randomlyDecideBlankOrNot($idx);
         } else {
-            $fullness = $blanks / ($blanks + $nonblanks);
-            if ($fullness <  $desired_fullness - $this->density_randomness) {
+            $fullness = $nonblanks / ($blanks + $nonblanks);
+$this->log('f: '.$fullness .', '. $desired_fullness .', '. $this->density_randomness, true);
+            if (($this->island && $this->preferToRemoveIsland)
+                || (!$this->island && $fullness > $desired_fullness + $this->density_randomness)) {
+$this->log('prefer: '.$this->preferToRemoveIsland, true);
                 $this->setBlank($idx, true);
-            } elseif ($fullness >  $desired_fullness + $this->density_randomness) {
+            } elseif ($fullness <  $desired_fullness - $this->density_randomness) {
                 $this->setNonBlank($idx);
             } else {
                 $this->randomlyDecideBlankOrNot($idx);
@@ -151,8 +160,8 @@ $this->display(3, true);
     protected function randomlyDecideBlankOrNot($idx)
     {
         $rand = rand(1,100) / 100;
-        $desired_fullness = 1 - $this->density_constant;
-        if ($rand < $desired_fullness) {
+        $desired_fullness = $this->density_constant;
+        if ($rand > $desired_fullness) {
             $this->setBlank($idx, true);
         } else {
             $this->setNonBlank($idx);
@@ -192,6 +201,65 @@ $this->log('set '.$idx.' blank', true);
         }
     }
 
+    protected function getDensity() {
+        $blanks = $this->countBlanks();
+        $nonblanks = $this->countNonBlanks();
+        return $nonblanks / ($blanks + $nonblanks);
+    }
+
+    protected function testDensity() {
+        $density = $this->getDensity();
+        $density_randomness = $this->density_randomness / 2;
+        $min_fullness = $this->density_constant - $density_randomness;
+        $max_fullness = $this->density_constant + $density_randomness;
+        $this->highDensity = $density > $max_fullness;
+        $this->lowDensity = $density < $min_fullness;
+        return !$this->highDensity && !$this->lowDensity;
+    }
+
+    protected function adjustForDensity() {
+        // throw new \Exception("Density Failure");
+        if ($this->highDensity) {
+            $this->adjustForHighDensity();
+        } else {
+            $this->adjustForLowDensity();
+        }
+    }
+
+    protected function adjustForHighDensity() {
+        // shuffle and got thru, each cell if nonblank, check if can be blank
+        // modifications -- check min strip modified perhaps -- get strips, pluck this out
+        // now have 4 (poss empty) strips. if empty, non violation. check min length elsewise
+        // todo: rewrite mustNotBeBlank to account for non LRTB order
+$this->log('adjustForHighDensity', true);
+        $idxs = array_keys($this->cells);
+        $this->shuffle($idxs);
+        foreach ($idxs as $idx) {
+            if ($this->isNonBlank($idx)) {
+                if ($this->mustNotBeBlank($idx)) {
+                    continue;
+                }
+                $this->setBlank($idx);
+                break;
+            }
+        }
+    }
+
+    protected function adjustForLowDensity() {
+$this->log('adjustForLowDensity', true);
+        $idxs = array_keys($this->cells);
+        $this->shuffle($idxs);
+        foreach ($idxs as $idx) {
+            if ($this->isBlank($idx)) {
+                if ($this->mustBeBlank($idx)) {
+                    continue;
+                }
+                $this->setNonBlank($idx);
+                break;
+            }
+        }
+    }
+
     protected function initializeForSettingVals()
     {
         foreach ($this->cells as $idx => $cell) {
@@ -214,8 +282,7 @@ $this->log('set '.$idx.' blank', true);
         if ($this->violatesMinimumStripSize($idx)) {
             return true;
         }
-        $this->setUnknown($idx);
-
+        
         if ($this->causesOversizeStrip($idx)) {
             return true;
         }
@@ -225,80 +292,102 @@ $this->log('set '.$idx.' blank', true);
 
     public function mustNotBeBlank($idx)
     {
-        // find my nbrs -- every non-blank must have a non-blank above or below as well as to the right or left
-        // we do not support strips of size 1
-
         // topmost && leftmost are all blank
         if ($idx <= $this->width || $idx % $this->width === 0) {
             return false;
         }
 
+        $col = $idx % $this->width;
+        $row = floor($idx / $this->width);
         $this->setBlank($idx);
-        $nbrs = $this->getNeighboringCoordinates($idx);
-        foreach ($nbrs as $nbr) {
-            if ($this->isNonBlank($nbr)) {
-                if ($this->violatesMinimumStripSize($nbr)) {
-$this->log('vmss', true);
+
+        // if this being blank will cause the entire row/col to be blank, it must not be blank
+        if ($this->hasAllBlankRow($idx) && $col >= $this->width - $this->minimumStripSize) {
+            return true;
+        }
+
+        if ($this->hasAllBlankCol($idx) && $row >= $this->height - $this->minimumStripSize) {
+            return true;
+        }
+
+        $this->setNonBlank($idx); // to get strips
+
+        $strips = $this->findMyStrips($idx);
+        $substrips = [];
+        foreach ($strips as $strip) {
+            $substrip = [];
+            foreach ($strip as $cell) {
+                if ($cell->getIdx() == $idx) {
+                    $substrips[] = $substrip;
+                    $substrip = [];
+                } else {
+                    $substrip[] = $cell;
+                }
+            }
+            $substrips[] = $substrip;
+        }
+
+        foreach ($substrips as $substrip) {
+            $len = count($substrip);
+            if ($len && $len < $this->minimumStripSize) {
+                // any unknowns makes this ok
+                foreach ($substrip as $cell) {
+$this->log($cell->dump(),true);
+                    if ($this->isUnknown($cell->getIdx())) {
+                        continue 2;
+                    }
+                }
+$this->log('fail '.$idx. ' '.$len,true);
+$this->display(3, true);
+                return true;
+            } 
+        }
+
+        $this->setBlank($idx);
+
+        if ($row >= 2 && $col >= 2) {
+            $this->island = $this->createsIsland($idx);
+            $this->preferToRemoveIsland = false;
+            if (!empty($this->island)) {
+                if (!$this->okToRemoveIsland($this->island)) {
                     return true;
                 }
             }
         }
-        
-        $this->setUnknown($idx);
-        $col = $idx % $this->width;
-        $row = floor($idx / $this->width);
-
-        if ($col > 2) {
-            // does my left nbr have a blank left nbr?
-            if (!$this->isBlank($idx - 1) && $this->isBlank($idx - 2)) {
-$this->log('left nbr have a blank left nbr', true);
-                return true;
-            }
-        }
-
-        if ($col == 2) {
-            // is my left nbr non-blank?
-            if (!$this->isBlank($idx - 1)) {
-$this->log('left nbr non-blank', true);
-                return true;
-            }
-        }
-
-        if ($row > 2) {
-            // does my top nbr have a blank top nbr?
-            if (!$this->isBlank($idx - $this->width) && $this->isBlank($idx - 2 * $this->width)) {
-$this->log('top nbr have a blank top nbr', true);
-                return true;
-            }
-        }
-
-        if ($row == 2) {
-            // is my top nbr non-blank?
-            if (!$this->isBlank($idx - $this->width)) {
-$this->log('top nbr non-blank', true);
-                return true;
-            }
-        }
-
-        $this->island = $this->createsIsland($idx);
-if (!empty($this->island)) {
-    $x = 'debug';
-}
-        // more: an island might be ok, particularly if unpopulated now or can be... TBI
-        // if a path traverses, 2 islands are formed
-        if (!empty($this->island) && !$this->okToRemoveIsland($this->island)) {
-$this->log('island', true);
-            return true;
-        }
 
         return false;
+    }
+
+    protected function hasAllBlankRow($idx) {
+        $firstInRow = $idx - floor($idx / $this->width);
+        $i = $firstInRow;
+        while (++$i <= $firstInRow + $this->width) {
+            if (!$this->isBlank($i)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    protected function hasAllBlankCol($idx) {
+        $idx -= $this->width;
+        $i = $idx % $this->width;
+        while ($i < $this->width * $this->height) {
+            if (!$this->isBlank($i)) {
+                return false;
+            }
+            $i += $this->width;
+        }
+
+        return true;
     }
 
     protected function violatesMinimumStripSize($idx)
     {
         $strips = $this->findMyStrips($idx, true);
         foreach ($strips as $strip) {
-            if (count($strip) < $this->minimum_strip_size) {
+            if (count($strip) < $this->minimumStripSize) {
                 return true;
             }
         }
@@ -389,6 +478,7 @@ $this->log('island', true);
         if (!isset($dataIdx)) {
             return [];
         }
+
         $web = $this->buildWeb($dataIdx, ['nonblank', 'empty'], [], false);
         $nonBlankCount = $this->countNonBlanks();
         $nonBlankCountWeb = 0;
@@ -397,6 +487,9 @@ $this->log('island', true);
                 $nonBlankCountWeb++;
             }
         }
+
+        // $this->setUnknown($idx);
+
 $this->log($idx.' island?', true);
 $this->log($dataIdx.' start data', true);
 sort($web);
@@ -404,14 +497,21 @@ $this->log($web, true);
 $this->display(3, true);
         if ($nonBlankCountWeb < $nonBlankCount) {
 $this->log($idx.' DOES create island', true);
-            $island = [];
+            $island1 = [];
+            $island2 = [];
             foreach ($this->cellTypes as $i => $type) {
-                if ($type === 'dataCell' && !in_array($i, $web)) {
-                    $island[] = $i;
+                if ($type === 'dataCell') {
+                    if (in_array($i, $web)) {
+                        $island1[] = $i;
+                    } else {
+                        $island2[] = $i;
+                    }
                 }
             }
-$this->log(json_encode($island).' island', true);
-            return $island;
+$this->log(json_encode($island1).' island 1', true);
+$this->log(json_encode($island2).' island 2', true);
+
+            return count($island1) >= count($island2) ? $island2 : $island1;
         }
 
         $this->setUnknown($idx);
@@ -419,73 +519,25 @@ $this->log(json_encode($island).' island', true);
         return [];
     }
 
-    protected function getIsland($path)
-    {
-        // path consists of blanks; of the 2 halves, if the smaller is unpopulated, return it
-        // TBI -- depopulate it if density is out of balance
-        $blanks = $this->countBlanks();
-        $left_half = [];
-        $right_half = [];
-        foreach (array_keys($this->cellTypes) as $idx) {
-            // find one piece of an island
-            if (in_array($idx, $path)) {
-                continue;
-            }
-            $left_half = $this->buildWeb($idx, ['nonblank', 'empty'], [], false);
-            break;
-        }
-
-        $lhc = count($left_half);
-        $unacctd = ($this->height * $this->width - $lhc - $blanks);
-
-        if (!$unacctd) {
-            return [];
-        }
-
-        if ($unacctd > $lhc) {
-            return $left_half;
-        }
-
-        foreach (array_keys($this->cellTypes) as $idx) {
-            // walk till you find sth not on the path or the left half
-            if ($this->isBlank($idx)) {
-                continue;
-            }
-            if (in_array($idx, $path)) {
-                continue;
-            }
-            if (in_array($idx, $left_half)) {
-                continue;
-            }
-
-            $right_half = $this->buildWeb($idx, ['nonblank', 'empty'], [], false);
-            break;
-        }
-
-        if (empty($right_half)) {
-            return [];
-        }
-        if (count($right_half) > count($left_half)) {
-            return $left_half;
-        }
-
-        return $right_half;
-    }
-
     protected function okToRemoveIsland($island)
     {
+        // more to do -- cannot create empty row/col
         $blanks = $this->countBlanks();
         $nonblanks = $this->countNonBlanks();
-        $desired_fullness = 1 - $this->density_constant;
-        $island_size = count($island);
-        $fullness = ($blanks + $island_size) / ($blanks + $island_size + $nonblanks);
-        if ($fullness <  $desired_fullness - $this->density_randomness) {
+        $percentDone = ($blanks + $nonblanks) / ($this->width - 1) * ($this->height - 1);
+        $desired_fullness = $this->density_constant;
+        $densityRandomness = $this->density_randomness / $percentDone;
+        $islandSize = count($island);
+        // current cell is set to blank. remove island means status quo; not removing island means set to data cell
+        $fullnessWithoutIsland = ($nonblanks - $islandSize) / ($blanks + $nonblanks);
+        $fullnessWithIsland = ($nonblanks + 1) / ($blanks + $nonblanks);
+        if ($fullnessWithoutIsland < $desired_fullness - $densityRandomness) {
             return false;
-        } elseif ($fullness >  $desired_fullness + $this->density_randomness) {
-            return true;
-        }
+        } 
 
-        return rand(1,2) < 2;
+        $this->preferToRemoveIsland = abs($desired_fullness - $fullnessWithIsland) > abs($desired_fullness - $fullnessWithoutIsland);
+
+        return true;
     }
 
     protected function removeIsland($island)
@@ -498,9 +550,7 @@ $this->log('remove island ' . json_encode($island), true);
 
     protected function causesOversizeStrip($idx)
     {
-        $this->setNonBlank($idx);
         $strips = $this->findMyStrips($idx, false);
-        $this->setUnknown($idx);
         foreach ($strips as $strip) {
             if (count($strip) > $this->maxStripLength) {
                 return true;
@@ -518,10 +568,10 @@ $this->log('remove island ' . json_encode($island), true);
         }
     }
 
-    protected function setBlank($idx, $remove_island = false)
+    protected function setBlank($idx, $removeIsland = false)
     {
         $this->cellTypes[$idx] = 'blankCell';
-        if ($remove_island && !empty($this->island)) {
+        if ($removeIsland && !empty($this->island)) {
             $this->removeIsland($this->island);
         }
 $this->log("$idx now blank", true);
@@ -554,9 +604,9 @@ $this->log("$idx now data", true);
         throw new \Exception("failure at $i, $j: " . $msg);
     }
 
-    protected function isUnknown($val)
+    protected function isUnknown($idx)
     {
-        return empty($val);
+        return empty($this->cellTypes[$idx]);
     }
 
     protected function stripToTheRight($idx, $include_unknown = false, $arr = [])

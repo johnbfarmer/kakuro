@@ -210,7 +210,7 @@ class BaseKakuro extends BaseProcess
         return $meets_criteria;
     }
 
-    // $criteria is an array with choices 'blank', 'nonblank', 'empty'; get connected cells to $i $j with val
+    // $criteria is an array with choices from 'blank', 'nonblank', 'empty'; get connected cells to $idx that match criteria
     protected function buildWeb($idx, $criteria, $arr = [], $include_diagonals = true)
     {
         if (!in_array($idx, $arr)) {

@@ -54,11 +54,11 @@ class BuildKakuroSolution extends BaseKakuro
         if (!empty($this->parameters['cells'])) {
             $this->cells = $this->parameters['cells'];
         }
-        if (!empty($this->parameters['maxTimesThru'])) {
-            $this->maxTimesThru = $this->parameters['maxTimesThru'];
+        if (!empty($this->parameters['max-times-thru'])) {
+            $this->maxTimesThru = $this->parameters['max-times-thru'];
         }
-        if (!empty($this->parameters['maxRestarts'])) {
-            $this->maxRestarts = $this->parameters['maxRestarts'];
+        if (!empty($this->parameters['max-restarts'])) {
+            $this->maxRestarts = $this->parameters['max-restarts'];
         }
         $this->grid = [
             'cells' => []
@@ -928,7 +928,7 @@ $this->display(3);
         foreach ($this->cells as $cell) {
             $cell->setChoice(null);
         }
-        if ($this->restarts++ > 5) {
+        if ($this->restarts++ > $this->maxRestarts) {
             $this->log('quittin', true);
             $this->finished = true;
         }

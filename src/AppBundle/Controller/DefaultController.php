@@ -21,12 +21,10 @@ class DefaultController extends Controller
     }
 
     /**
-     * @Route("/grid/{grid_name}", name="grid")
+     * @Route("/grid", name="grid")
      */
-    public function gridAction(Request $request, $grid_name)
+    public function gridAction(Request $request)
     {
-        return $this->render('default/grid.html.twig', [
-            'grid_name' => $grid_name,
-        ]);
+        return $this->render('default/grid.html.twig', []);
     }
 }
