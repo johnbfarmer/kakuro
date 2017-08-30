@@ -422,7 +422,9 @@ if (empty($pv) && !empty($undecided)) {
             $cells = [];
             foreach ($this->uiChoices as $idx => $cell) {
                 if ($this->cells[$idx]->isDataCell()) {
-                    $cell['choices'] = array_values($this->cells[$idx]->getChoices());
+                    $choices = array_values($this->cells[$idx]->getChoices());
+                    sort($choices);
+                    $cell['choices'] = $choices;
                     $cell['display'] = implode('', $cell['choices']);
                 }
                 $cells[] = $cell;
