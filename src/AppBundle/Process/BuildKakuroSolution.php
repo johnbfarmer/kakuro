@@ -235,7 +235,11 @@ $this->log($taken, true);
     protected function filterNumsThatCauseNonUnique($cell, $available)
     {
         $available = $this->filterNumsThatCauseSwap($cell, $available);
-        // $available = $this->filterNumsThatCauseSwap2($cell, $available);
+        try {
+            $available = $this->filterNumsThatCauseSwap2($cell, $available);
+        } catch (\Exception $e) {
+            throw $e;
+        }
         $available = $this->filterNumsThatCauseSwap3($cell, $available);
         return $available;
     }
@@ -303,6 +307,53 @@ $this->log('type 2 '.$idx.' cannot have ' .$candidateValue, true);
         // 4 8 3 7 6 5 1
         // 5 6 8 9 1 2 3
         // TBI
+
+        // for now, let's do parallel contiguous only:
+        $idx = $cell->getIdx();
+        $strips = $this->findMyStrips($idx, false);
+        if (empty($strips)) {
+            return $available;
+        }
+
+        $neighbors = $this->getNeighboringCoordinates($idx);
+        foreach ($neighbors as $pos => $nbr) {
+            $strips[$pos] = $nbr ? $this->findMyStrips($nbr) : ['h' => [], 'v' => []];
+        }
+
+        foreach ($available as $candidateValue) {
+            $this->selectValue($idx, [$candidateValue]);
+            $s = $this->findMyStrips($idx, false);
+            $strips['h'] = $s['h'];
+            $strips['v'] = $s['v'];
+            $x = [];
+            $x['top'] = $this->interesectByValue([$strips['h'], $strips['top']['h']]);
+            $x['bottom'] = $this->interesectByValue([$strips['h'], $strips['bottom']['h']]);
+            $x['left'] = $this->interesectByValue([$strips['v'], $strips['left']['v']]);
+            $x['right'] = $this->interesectByValue([$strips['v'], $strips['right']['v']]);
+
+            foreach ($x as $pos => $y) {
+                if (count($y) > 2) { // case count 2 is already handled
+                    $z = 'dbg';
+                    $a1 = [];
+                    $a2 = [];
+                    foreach ($y as $pair) {
+                        if (in_array($pos, ['top', 'bottom'])) {
+                            $a1[] = $pair[0]->getCol();
+                            $a2[] = $pair[1]->getCol();
+                        } else {
+                            $a1[] = $pair[0]->getRow();
+                            $a2[] = $pair[1]->getRow();
+                        }
+                    }
+
+                    if (empty(array_diff($a1, $a2))) {
+                        $this->log("filter2 not possible $idx $candidateValue" , true);
+                        $this->unsetValue($available, $candidateValue);
+                    }
+                }
+            }
+        }
+
         return $available;
     }
 
@@ -381,15 +432,20 @@ $this->log('type 3 '.$idx.' cannot have ' .$choice, true);
         return $cells;
     }
 
-    protected function interesectByValue($strips)
+    protected function interesectByValue($strips) // takes 2 strips
     {
         $cells = [];
-        foreach ($strips['h'] as $cell) {
+        $strips = array_values($strips);
+        if (empty($strips[0]) || empty($strips[1])) {
+            return [];
+        }
+
+        foreach ($strips[0] as $cell) {
             $choice = $cell->getChoice();
             if (!$choice) {
                 continue;
             }
-            foreach ($strips['v'] as $vCell) {
+            foreach ($strips[1] as $vCell) {
                 if ($vCell->getChoice() === $choice) {
                     $cells[] = [$cell, $vCell];
                     continue 2;
@@ -664,7 +720,9 @@ $this->log($idx.' has ' . $choiceCount . ' choices', true);
             foreach($strips as $strip) {
                 if (!$this->isSimpleStrip($strip)) {
                     foreach ($strip as $c) {
-                        $idxs[] = $c->getIdx();
+                        if (!in_array($c->getIdx(), $idxs)) {
+                            $idxs[] = $c->getIdx();
+                        }
                     }
                 }
             }
@@ -674,6 +732,7 @@ $this->log($idx.' has ' . $choiceCount . ' choices', true);
 
             foreach ($idxs as $idx) {
                 $this->cellChoices[$idx] = null;
+                $this->cells[$idx]->setChoice(null);
                 $this->unsetValue($this->setOrder, $idx);
             }
             $this->idxsWithNoChoice = $idxs;

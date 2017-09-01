@@ -194,6 +194,31 @@ class BaseKakuro extends BaseProcess
         return $count;
     }
 
+    protected function getNeighboringCoordinates($idx)
+    {
+        $indexes = [
+            'top' => null,
+            'bottom' => null,
+            'left' => null,
+            'right' => null,
+        ];
+
+        if ($idx >= $this->width) {
+            $indexes['top'] = $idx - $this->width;
+        }
+        if ($idx < ($this->height - 1) * $this->width) {
+            $indexes['bottom'] = $idx + $this->width;;
+        }
+        if ($idx % $this->width) {
+            $indexes['left'] = $idx - 1;
+        }
+        if ($idx % $this->width < $this->width - 1) {
+            $indexes['right'] = $idx + 1;
+        }
+
+        return $indexes;
+    }
+
     protected function meetsCriteria($idx, $criteria)
     {
         $meets_criteria = false;

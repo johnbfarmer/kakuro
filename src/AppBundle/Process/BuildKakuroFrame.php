@@ -17,8 +17,9 @@ class BuildKakuroFrame extends BaseKakuro
         $height,
         $cells = [],
         $cellTypes = [],
-        $isForcedCellType = [],
+        $forcedCellType = [],
         $cellChoices = [],
+        $setOrder = [],
         $density_constant,
         $density_randomness = 0.1,
         $highDensity = false,
@@ -88,7 +89,10 @@ class BuildKakuroFrame extends BaseKakuro
         while (!$this->finished) {
             $start_idx = $this->startIdx;
             foreach ($this->cells as $idx => $cell) {
-                if ($idx < $start_idx) {
+                // if ($idx < $start_idx) {
+                //     continue;
+                // }
+                if (!empty($this->cellTypes[$idx])) {
                     continue;
                 }
 
@@ -96,34 +100,33 @@ class BuildKakuroFrame extends BaseKakuro
                 $j = $cell->getCol();
                 $this->island = [];
 
-                if ($this->symmetry && $this->height - $j <= $i) {
-                    continue;
-                }
+                // if ($this->symmetry && $this->height - $j <= $i) {
+$this->log("Mirror of $idx is ". $this->getMirrorIdx($idx), true);
+                    // continue;
+                // }
 
-                if (!empty($this->cellTypes[$idx])) {
-                    continue;
-                }
 
-                $must = $this->mustBeBlank($idx);
-                $must_not = $this->mustNotBeBlank($idx);
-    $this->log("$idx must:$must must_not:$must_not", true);
-                if ($must && !$must_not) {
-                    $this->setBlank($idx, true);
+                $must_be_blank = $this->mustBeBlank($idx);
+                $must_be_data = $this->mustBeData($idx);
+    $this->log("$idx must be blank:$must_be_blank must be data:$must_be_data", true);
+                if ($must_be_blank && !$must_be_data) {
+                    $this->setBlank($idx, true, true);
                     $this->setForced($idx, true);
                 }
 
-                if (!$must && $must_not) {
-                    $this->setNonBlank($idx);
+                if (!$must_be_blank && $must_be_data) {
+                    $this->setNonBlank($idx, true);
                     $this->setForced($idx, true);
                 }
 
-                if (!$must && !$must_not) {
+                if (!$must_be_blank && !$must_be_data) {
                     $this->decideBlankOrNot($idx);
                     $this->setForced($idx, false);
                 }
 
-                if ($must && $must_not) {
-                    $this->log("$idx, must & must not be blank", true);
+                if ($must_be_blank && $must_be_data) {
+                    $this->log("$idx, must be blank & must be data", true);
+                    $this->setUnknown($idx);
                     $this->changeLastUnforced($idx);
                     continue 2;
                 }
@@ -148,9 +151,9 @@ $this->log('f: '.$fullness .', '. $desired_fullness .', '. $this->density_random
             if (($this->island && $this->preferToRemoveIsland)
                 || (!$this->island && $fullness > $desired_fullness + $this->density_randomness)) {
 $this->log('prefer: '.$this->preferToRemoveIsland, true);
-                $this->setBlank($idx, true);
+                $this->setBlank($idx, true, true);
             } elseif ($fullness <  $desired_fullness - $this->density_randomness) {
-                $this->setNonBlank($idx);
+                $this->setNonBlank($idx, true);
             } else {
                 $this->randomlyDecideBlankOrNot($idx);
             }
@@ -162,39 +165,38 @@ $this->log('prefer: '.$this->preferToRemoveIsland, true);
         $rand = rand(1,100) / 100;
         $desired_fullness = $this->density_constant;
         if ($rand > $desired_fullness) {
-            $this->setBlank($idx, true);
+            $this->setBlank($idx, true, true);
         } else {
-            $this->setNonBlank($idx);
+            $this->setNonBlank($idx, true);
         }
     }
 
     protected function changeLastUnforced($idx)
     {
-        // walk back to last unforced cell; change; unset forced cells after that; rewalk from there
+        // walk back to last unforced cell; change; unset forced cells set after that; rewalk from there
 $this->display(3, true);
         while (true) {
-            $idx--;
+            $idx = $this->setOrder[count($this->setOrder) - 1];
             if ($this->isForced($idx)) {
                 $this->setUnknown($idx);
                 continue;
             }
 
             if ($this->isBlank($idx)) {
-                $this->setNonBlank($idx);
-$this->log('set '.$idx.' data', true);
+                $this->setNonBlank($idx, true);
             } else {
                 // careful here -- may create island
-                $this->setBlank($idx);
-$this->log('set '.$idx.' blank', true);
+                $this->setBlank($idx, true);
             }
 
             $this->setForced($idx, true);
-            foreach (array_keys($this->cells) as $i) {
-                if ($i > $idx) {
-                    unset($this->cellTypes[$i]);
-                    unset($this->isForcedCellType[$i]);
-                }
-            }
+            // $this->setIdx = array_flip($this->setOrder)[$idx];
+            // foreach (array_keys($this->cells) as $i) {
+            //     if ($i > $idx) { // FIX
+            //         $this->setUnknown($idx);
+            //         $this->setForced($idx, false);
+            //     }
+            // }
 
             $this->startIdx = $idx + 1;
             break;
@@ -230,16 +232,16 @@ $this->log('set '.$idx.' blank', true);
         // shuffle and got thru, each cell if nonblank, check if can be blank
         // modifications -- check min strip modified perhaps -- get strips, pluck this out
         // now have 4 (poss empty) strips. if empty, non violation. check min length elsewise
-        // todo: rewrite mustNotBeBlank to account for non LRTB order
+        // todo: rewrite mustBeData to account for non LRTB order
 $this->log('adjustForHighDensity', true);
         $idxs = array_keys($this->cells);
         $this->shuffle($idxs);
         foreach ($idxs as $idx) {
             if ($this->isNonBlank($idx)) {
-                if ($this->mustNotBeBlank($idx)) {
+                if ($this->mustBeData($idx)) {
                     continue;
                 }
-                $this->setBlank($idx);
+                $this->setBlank($idx, true);
                 break;
             }
         }
@@ -287,10 +289,14 @@ $this->log('adjustForLowDensity', true);
             return true;
         }
 
+        if ($this->createsIsland($idx, false)) {
+            return true;
+        }
+
         return false;
     }
 
-    public function mustNotBeBlank($idx)
+    public function mustBeData($idx)
     {
         // topmost && leftmost are all blank
         if ($idx <= $this->width || $idx % $this->width === 0) {
@@ -312,6 +318,7 @@ $this->log('adjustForLowDensity', true);
 
         $this->setNonBlank($idx); // to get strips
 
+        // check min strip size violation
         $strips = $this->findMyStrips($idx);
         $substrips = [];
         foreach ($strips as $strip) {
@@ -345,15 +352,16 @@ $this->display(3, true);
 
         $this->setBlank($idx);
 
-        if ($row >= 2 && $col >= 2) {
-            $this->island = $this->createsIsland($idx);
+        // edge row/col island check should not be needed -- but must process all forced decisions 1st
+        // if ($row > 1 && $col > 1 && $row < $this->height - 1 && $col < $this->width - 1) {
+            $this->island = $this->createsIsland($idx, true);
             $this->preferToRemoveIsland = false;
             if (!empty($this->island)) {
                 if (!$this->okToRemoveIsland($this->island)) {
                     return true;
                 }
             }
-        }
+        // }
 
         return false;
     }
@@ -440,39 +448,28 @@ $this->display(3, true);
         return !empty($this->cellTypes[$idx]) && $this->cellTypes[$idx] !== 'blankCell';
     }
 
-    protected function getNeighboringCoordinates($idx)
-    {
-        $indexes = [];
-        if ($idx >= $this->width) {
-            $indexes[] = $idx - $this->width;
-        }
-        if ($idx < ($this->height - 1) * $this->width) {
-            $indexes[] = $idx + $this->width;;
-        }
-        if ($idx % $this->width) {
-            $indexes[] = $idx - 1;
-        }
-        if ($idx % $this->width < $this->width - 1) {
-            $indexes[] = $idx + 1;
-        }
-
-        return $indexes;
-    }
-
-    protected function createsIsland($idx)
+    protected function createsIsland($idx, $blank)
     {
         // by making this blank, is there a wall that isolates cells?
         // such a wall reaches from one side to another stepping to blank nbrs v|h|d
         // so if i can walk from here to 2 diff edges, island
         // temporarily set blank, walk, then set back to unknown:
-        $this->setBlank($idx);
+        if ($blank) {
+            $this->setBlank($idx);
+        } else {
+            $this->setBlank($idx);
+        }
 
         // find some data cell
-        foreach ($this->cellTypes as $i => $type) {
-            if ($type === 'dataCell') {
-                $dataIdx = $i;
-                break;
+        if ($blank) {
+            foreach ($this->cellTypes as $i => $type) {
+                if ($type === 'dataCell') {
+                    $dataIdx = $i;
+                    break;
+                }
             }
+        } else {
+            $dataIdx = $idx;
         }
 
         if (!isset($dataIdx)) {
@@ -544,7 +541,7 @@ $this->log(json_encode($island2).' island 2', true);
     {
 $this->log('remove island ' . json_encode($island), true);
         foreach ($island as $idx) {
-            $this->setBlank($idx);
+            $this->setBlank($idx, true);
         }
     }
 
@@ -560,42 +557,68 @@ $this->log('remove island ' . json_encode($island), true);
         return false;
     }
 
-    protected function setBuildValue($i, $j, $val)
+    protected function getMirrorIdx($idx)
     {
-        $this->grid['cells'][$i][$j] = $val;
+        $row = floor($idx / $this->width);
+        $col = $idx % $this->width;
+        return $col * $this->width + $row;
+    }
+
+    protected function setBuildValue($idx, $val, $nonTemp)
+    {
+        $this->cellTypes[$idx] = $val;
+        if ($nonTemp && !in_array($idx, $this->setOrder)) {
+            $this->setOrder[] = $idx;
+        }
+$this->log("$idx now $val", true);
         if ($this->symmetry) {
-            $this->grid['cells'][$this->height - $j - 1][$this->width - $i - 1] = $val;
+            $mirrorIdx = $this->getMirrorIdx($idx);
+            $this->cellTypes[$mirrorIdx] = $val;
+            if ($nonTemp && !in_array($mirrorIdx, $this->setOrder)) {
+                $this->setOrder[] = $mirrorIdx;
+            }
+$this->log("$mirrorIdx now $val", true);
         }
     }
 
-    protected function setBlank($idx, $removeIsland = false)
+    protected function setBlank($idx, $nonTemp = false, $removeIsland = false)
     {
-        $this->cellTypes[$idx] = 'blankCell';
+        $this->setBuildValue($idx, 'blankCell', $nonTemp);
         if ($removeIsland && !empty($this->island)) {
             $this->removeIsland($this->island);
         }
-$this->log("$idx now blank", true);
     }
 
-    protected function setNonBlank($idx)
+    protected function setNonBlank($idx, $nonTemp = false)
     {
-        $this->cellTypes[$idx] = 'dataCell';
-$this->log("$idx now data", true);
+        $this->setBuildValue($idx, 'dataCell', $nonTemp);
     }
 
     protected function setUnknown($idx)
     {
         unset($this->cellTypes[$idx]);
+        $this->unsetValue($this->setOrder, $idx);
+$this->log("$idx now unknown", true);
+        if ($this->symmetry) {
+            $mirrorIdx = $this->getMirrorIdx($idx);
+            unset($this->cellTypes[$mirrorIdx]);
+            $this->unsetValue($this->setOrder, $mirrorIdx);
+$this->log("$mirrorIdx now unknown", true);
+        }
     }
 
     protected function setForced($idx, $forced)
     {
-        $this->isForcedCellType[$idx] = $forced;
+        $this->forcedCellType[$idx] = $forced;
+        if ($this->symmetry) {
+            $mirrorIdx = $this->getMirrorIdx($idx);
+            $this->forcedCellType[$mirrorIdx] = $forced;
+        }
     }
 
     protected function isForced($idx)
     {
-        return !empty($this->isForcedCellType[$idx]);
+        return !empty($this->forcedCellType[$idx]);
     }
 
     protected function fail($i, $j, $msg)
