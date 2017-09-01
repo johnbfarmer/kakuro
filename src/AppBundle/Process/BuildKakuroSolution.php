@@ -130,6 +130,8 @@ $this->log('add nbrs '.json_encode($this->idxsWithNoChoice), true);
                 }
             }
 
+            $idxs = $this->sortUnsetCellsByAvailable($idxs);
+
             foreach ($idxs as $idx) {
                 // fill in the blanks
                 if (!$this->addNumber($idx)) {
@@ -218,7 +220,7 @@ $this->log("nothing available", true);
         $strips = $this->findMyStrips($idx);
         $available = $this->number_set;
         $taken = !empty($this->forbiddenValues[$idx]) ? $this->forbiddenValues[$idx] : [];
-$this->log($taken, true);
+
         foreach ($strips as $strip) {
             foreach ($strip as $stripCell) {
                 $tmp_idx = $stripCell->getIdx();
@@ -593,6 +595,33 @@ $this->log($idx.' '.json_encode($choices). ' '.$selectionType, true);
         }
 
         return [];
+    }
+
+    protected function available($idx)
+    {
+        if (!empty($this->cellChoices[$idx]) || $this->isNonDataCell($idx)) {
+            return [];
+        }
+        $taken = $this->getTaken($idx);
+        $available = array_values(array_diff($this->number_set, $taken));
+        $available = $this->filterNumsThatCauseNonUnique($this->cells[$idx], $available);
+        return $available;
+    }
+
+    protected function sortUnsetCellsByAvailable($idxs)
+    {
+        foreach ($idxs as $idx) {
+            $available = $this->available($idx);
+            if (empty($available)) { // taken or blank or no sé qué
+                continue;
+            }
+            // $this->available[$idx] = $available;
+            $availableCount[$idx] = count($available);
+        }
+
+        asort($availableCount);
+
+        return array_keys($availableCount);
     }
 
     protected function makeEasilyReducibleByStrips($idx)
