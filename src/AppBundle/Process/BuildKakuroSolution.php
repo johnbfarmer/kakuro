@@ -25,6 +25,7 @@ class BuildKakuroSolution extends BaseKakuro
         $sums = [],
         $rank = 0,
         $idx = 0,
+        $idxToChange = 0,
         $timesThru = 0,
         $maxTimesThru = 5,
         $restarts = 0,
@@ -118,9 +119,10 @@ $this->log('fv '.json_encode($this->forbiddenValues), true);
 
     protected function addNumbers()
     {
-$this->log('add nbrs '.json_encode($this->idxsWithNoChoice), true);
+$this->log('add nbrs ', true);
         while (!$this->finished) {
             $idxs = $this->idxsWithNoChoice;
+$this->log('top of add nbrs loop'.json_encode($this->idxsWithNoChoice), true);
             if (empty($idxs)) {
                 $idxs = array_keys($this->cells);
                 $this->shuffle($idxs);
@@ -130,7 +132,11 @@ $this->log('add nbrs '.json_encode($this->idxsWithNoChoice), true);
                 }
             }
 
-            $idxs = $this->sortUnsetCellsByAvailable($idxs);
+            try {
+                $idxs = $this->sortUnsetCellsByAvailable($idxs);
+            } catch (\Exception $e) {
+                $this->removeStrips($this->idxToChange);
+            }
 
             foreach ($idxs as $idx) {
                 // fill in the blanks
@@ -139,10 +145,26 @@ $this->log('add nbrs '.json_encode($this->idxsWithNoChoice), true);
                 }
             }
 
+            // make sure every choice is filled in (should not be necessary... but we are hitting it)
+            $this->idxsWithNoChoice = [];
+            foreach ($this->cells as $idx => $cell) {
+                if (!$this->isNonDataCell($idx)) {
+                    $choice = $cell->getChoice();
+                    if (empty($choice)) {
+                        $this->idxsWithNoChoice[] = $idx;
+                    }
+                }
+            }
+
+            if (!empty($this->idxsWithNoChoice)) {
+                continue;
+            }
+
             $this->calculateStrips();
             if (!$this->makeEasilyReducible()) {
                 continue;
             }
+
             if ($this->solvable) {
                 if ($this->testUnique()) {
                     return true;
@@ -208,8 +230,10 @@ $this->display(3);
         $available = $this->filterNumsThatCauseNonUnique($cell, $available);
 
         if (empty($available)) {
-$this->log("nothing available", true);
-            return $this->changeLastUnforcedNumber();
+$this->log("nothing available at $idx ".$cell->dump(), true);
+            // return $this->changeLastUnforcedNumber();
+            $this->removeStrips($idx);
+            return false;
         } else {
             return $this->selectValue($idx, $available);
         }
@@ -605,17 +629,23 @@ $this->log($idx.' '.json_encode($choices). ' '.$selectionType, true);
         $taken = $this->getTaken($idx);
         $available = array_values(array_diff($this->number_set, $taken));
         $available = $this->filterNumsThatCauseNonUnique($this->cells[$idx], $available);
+// if empty here we have to act! otherwise confused with blanks & takens
+        if (empty($available)) {
+            $this->idxToChange = $idx;
+            throw new \Exception("nothing available for $idx");
+        }
         return $available;
     }
 
     protected function sortUnsetCellsByAvailable($idxs)
     {
+        $availableCount = [];
         foreach ($idxs as $idx) {
             $available = $this->available($idx);
             if (empty($available)) { // taken or blank or no sé qué
                 continue;
             }
-            // $this->available[$idx] = $available;
+
             $availableCount[$idx] = count($available);
         }
 
@@ -624,100 +654,12 @@ $this->log($idx.' '.json_encode($choices). ' '.$selectionType, true);
         return array_keys($availableCount);
     }
 
-    protected function makeEasilyReducibleByStrips($idx)
-    {
-        // find strips this size that have few choices
-        $strips = $this->findMyStrips($idx);
-        // favor shorter
-        $strip = count($strips['h']) < count($strips['v']) ? $strips['h'] : $strips['v'];
-        $stripLen = count($strip);
-        $simpleStrips = $this->getSimpleStrips($stripLen);
-        foreach ($simpleStrips as $choices) {
-            // can we get the choices into these cells?
-            $ch = [];
-            foreach ($strip as $cell) {
-                $i = $cell->getIdx();
-                $this->cellChoices[$i] = 0;
-                $ch[$i] = [];
-            }
-            foreach ($strip as $cell) {
-                $i = $cell->getIdx();
-                $taken = $this->getTaken($i);
-                // 1st see which choices work for which cells
-                foreach ($choices as $choice) {
-                    if (!in_array($choice, $taken)) {
-                        $available = array_values(array_diff($this->number_set, $taken));
-                        $available = $this->filterNumsThatCauseNonUnique($cell, $available);
-                        if (in_array($choice, $available)) {
-                            $ch[$i][] = $choice;
-                        }
-                    }
-                }
-            }
-
-            // now go thru the choices. if any are empty, next simpleStrip. sort by count.
-            // all choices must be accounted for 
-            $sorter = [1 => []];
-            $counter = [];
-            foreach ($ch as $i => $c) {
-                if (empty($c)) {
-                    continue 2;
-                }
-                $ct = count($c);
-                if (empty($sorter[$ct])) {
-                    $sorter[$ct] = [];
-                }
-                $sorter[$ct][] = $i;
-                foreach ($c as $choice) {
-                    if (!isset($counter[$choice])) {
-                        $counter[$choice] = [];
-                    }
-                    $counter[$choice][] = $i;
-                }
-            }
-            if (count($counter) < $stripLen) {
-                continue; // one or more choices have no home
-            }
-            foreach ($counter as $choice => $idxs) {
-                if (count($idxs) === 1) {
-                    $i = current($idxs);
-                    if (!in_array($i, $sorter[1])) {
-                        $sorter[1][] = $i;
-                    }
-                }
-            }
-            $used = [];
-            foreach ($sorter as $idxs) {
-                foreach ($idxs as $i) {
-                    if (!empty($this->cellChoices[$i])) {
-                        continue;
-                    }
-                    $c = array_values(array_diff($ch[$i], $used));
-                    if (empty($c)) {
-                        continue 3; // no choices
-                    }
-                    foreach ($c as $choice) {
-                        if (!in_array($choice, $used)) {
-                            $used[] = $choice;
-                            $this->selectValue($i, [$choice]); // REFINE. may need to consider all permutations
-                            break;
-                        }
-                    }
-                }
-            }
-
-            return; // if you got here, you did it
-        }
-    }
-
     protected function makeEasilyReducible()
     {
-        // need a more powerful function that KakuroReducer::reduce since larger grids do not reduce all the way with currect techniques. perhaps a 3rd arg that probes (guesses)
-// $this->solvable = true;return;
-if ($this->timesThru++ > $this->maxTimesThru) {
-    $this->resetNumbers();
-    return false;
-}
+        if ($this->timesThru++ > $this->maxTimesThru) {
+            $this->resetNumbers();
+            return false;
+        }
 $this->log('test easily reduc', true);
 $this->display(3);
         $parameters = [
@@ -742,35 +684,39 @@ $this->log($idx.' has ' . $choiceCount . ' choices', true);
         }
 
         if ($mostChoices > 1) {
-            $idx = $idxToChange;
-            $strips = $this->findMyStrips($idx);
-            $highestChoiceRatio = 0;
-            $idxs = [$idx];
-            foreach($strips as $strip) {
-                if (!$this->isSimpleStrip($strip)) {
-                    foreach ($strip as $c) {
-                        if (!in_array($c->getIdx(), $idxs)) {
-                            $idxs[] = $c->getIdx();
-                        }
-                    }
-                }
-            }
-            // wipe out choice history
-            $this->lastChoice = [];
-            $this->forbiddenValues = [$idx => [$this->cellChoices[$idx]]];
-
-            foreach ($idxs as $idx) {
-                $this->cellChoices[$idx] = null;
-                $this->cells[$idx]->setChoice(null);
-                $this->unsetValue($this->setOrder, $idx);
-            }
-            $this->idxsWithNoChoice = $idxs;
+            $this->removeStrips($idxToChange);
             return false;
         } else {
 $this->log('yes easily reduc', true);
             $this->solvable = true;
             return true;
         }
+    }
+
+    protected function removeStrips($idx)
+    {
+        $strips = $this->findMyStrips($idx);
+        $idxs = [$idx];
+        foreach($strips as $strip) {
+            if (!$this->isSimpleStrip($strip)) { // TBI, but what if both strips are simple? then you remove nothing...
+                foreach ($strip as $cell) {
+                    if (!in_array($cell->getIdx(), $idxs)) {
+                        $idxs[] = $cell->getIdx();
+                    }
+                }
+            }
+        }
+
+        // wipe out choice history
+        $this->lastChoice = [];
+        $this->forbiddenValues = [$idx => [$this->cellChoices[$idx]]];
+
+        foreach ($idxs as $idx) {
+            $this->cellChoices[$idx] = null;
+            $this->cells[$idx]->setChoice(null);
+            $this->unsetValue($this->setOrder, $idx);
+        }
+        $this->idxsWithNoChoice = $idxs;
     }
 
     protected function isSimpleStrip($strip)
@@ -780,7 +726,8 @@ $this->log('yes easily reduc', true);
 
     protected function testUnique()
     {
-$this->display(3);
+        return true; // this is no longer needed here. if we get this far, adv reduction can solve the puzzle and 
+        // uniqueness is assured
         if (empty($this->cellChoices)) {
             $this->log('empty choices', true);
             return false;
@@ -999,10 +946,10 @@ $this->display(3);
                 return [[1,2,3,4,5,6,7,8],[1,2,3,4,5,6,7,9],[1,2,3,4,5,6,8,9],[1,2,3,4,5,9,7,8],
                     [1,2,3,4,9,6,7,8],[1,2,3,9,5,6,7,8],[1,2,9,4,5,6,7,8],[1,9,3,4,5,6,7,8],[9,2,3,4,5,6,7,8]];
             case 9:
-                return [1,2,3,4,5,6,7,8,9];
+                return [[1,2,3,4,5,6,7,8,9]];
         }
 
-        return [];
+        return [[1],[2],[3],[4],[5],[6],[7],[8],[9]];
     }
 
     protected function resetNumbers() {

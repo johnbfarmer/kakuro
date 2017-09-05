@@ -35,6 +35,11 @@ class Grid
      * @ORM\Column(type="integer", options={"unsigned"=true})
      */
     private $width = 0;
+    
+    /**
+     * @ORM\Column(type="integer", options={"unsigned"=true})
+     */
+    private $difficulty = 5;
 
     /**
      * @ORM\OneToMany(targetEntity="Cell", mappedBy="grid", orphanRemoval=true, cascade={"persist"})
@@ -99,6 +104,17 @@ class Grid
     public function getWidth()
     {
         return $this->width;
+    }
+
+    public function setDifficulty($difficulty)
+    {
+        $this->difficulty = $difficulty;
+        return $this;
+    }
+
+    public function getDifficulty()
+    {
+        return $this->difficulty;
     }
 
     public function getCells()

@@ -190,14 +190,6 @@ $this->display(3, true);
             }
 
             $this->setForced($idx, true);
-            // $this->setIdx = array_flip($this->setOrder)[$idx];
-            // foreach (array_keys($this->cells) as $i) {
-            //     if ($i > $idx) { // FIX
-            //         $this->setUnknown($idx);
-            //         $this->setForced($idx, false);
-            //     }
-            // }
-
             $this->startIdx = $idx + 1;
             break;
         }
@@ -211,6 +203,7 @@ $this->display(3, true);
 
     protected function testDensity() {
         $density = $this->getDensity();
+$this->log('testing density -- '.$density, true);
         $density_randomness = $this->density_randomness / 2;
         $min_fullness = $this->density_constant - $density_randomness;
         $max_fullness = $this->density_constant + $density_randomness;
@@ -239,10 +232,11 @@ $this->log('adjustForHighDensity', true);
         foreach ($idxs as $idx) {
             if ($this->isNonBlank($idx)) {
                 if ($this->mustBeData($idx)) {
+                    $this->setNonBlank($idx); // may have changed during testing
                     continue;
                 }
-                $this->setBlank($idx, true);
-                break;
+                $this->setBlank($idx, true, true); // 3rd arg, make sure to remove island
+                return;
             }
         }
     }
@@ -254,10 +248,11 @@ $this->log('adjustForLowDensity', true);
         foreach ($idxs as $idx) {
             if ($this->isBlank($idx)) {
                 if ($this->mustBeBlank($idx)) {
+                    $this->setBlank($idx); // may have changed during testing
                     continue;
                 }
-                $this->setNonBlank($idx);
-                break;
+                $this->setNonBlank($idx, true);
+                return;
             }
         }
     }
@@ -344,7 +339,7 @@ $this->log($cell->dump(),true);
                         continue 2;
                     }
                 }
-$this->log('fail '.$idx. ' '.$len,true);
+$this->log('fail to meet striplencriteria '.$idx. ' '.$len,true);
 $this->display(3, true);
                 return true;
             } 
@@ -476,7 +471,8 @@ $this->display(3, true);
             return [];
         }
 
-        $web = $this->buildWeb($dataIdx, ['nonblank', 'empty'], [], false);
+        // $web = $this->buildWeb($dataIdx, ['nonblank', 'empty'], [], false);
+        $web = $this->findContiguousGroup($dataIdx, ['nonblank', 'empty']);
         $nonBlankCount = $this->countNonBlanks();
         $nonBlankCountWeb = 0;
         foreach ($web as $cellIdx) {
@@ -530,9 +526,10 @@ $this->log(json_encode($island2).' island 2', true);
         $fullnessWithIsland = ($nonblanks + 1) / ($blanks + $nonblanks);
         if ($fullnessWithoutIsland < $desired_fullness - $densityRandomness) {
             return false;
-        } 
-
+        }
+$this->log("ok to remove island", true);
         $this->preferToRemoveIsland = abs($desired_fullness - $fullnessWithIsland) > abs($desired_fullness - $fullnessWithoutIsland);
+$this->log("prefer to remove island? ".$this->preferToRemoveIsland, true);
 
         return true;
     }

@@ -271,8 +271,13 @@ class Cell
         ];
     }
 
-    public function dump()
+    public function dump($coords_only = true)
     {
-        return '(' . $this->row.','.$this->col.'), '.json_encode($this->choices);
+        $str = '(' . $this->row.','.$this->col.')';
+        if (!$coords_only) {
+            $str .= ', '.json_encode($this->choices);
+        }
+
+        return $str;
     }
 }

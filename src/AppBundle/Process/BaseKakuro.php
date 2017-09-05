@@ -30,6 +30,7 @@ class BaseKakuro extends BaseProcess
         $grid_name,
         $open_browser,
         $debug,
+        $result,
         $options_by_target_and_size = [];
 
     public function __construct($parameters = [], $em = [])
@@ -136,9 +137,9 @@ class BaseKakuro extends BaseProcess
         return $this->table_builder->findValues($target, $size, $used);
     }
 
-    protected function isBlank($i, $j)
+    protected function isBlank($idx, $strict = false)
     {
-        return GridHelper::isBlank($i, $j, $this->grid['cells']);
+        return $this->isNonDataCell($idx);
     }
 
     protected function isBlankCell($cell, $strict = false)
@@ -194,7 +195,7 @@ class BaseKakuro extends BaseProcess
         return $count;
     }
 
-    protected function getNeighboringCoordinates($idx)
+    protected function getNeighboringCoordinates($idx, $include_diagonals = false)
     {
         $indexes = [
             'top' => null,
@@ -235,33 +236,37 @@ class BaseKakuro extends BaseProcess
         return $meets_criteria;
     }
 
-    // $criteria is an array with choices from 'blank', 'nonblank', 'empty'; get connected cells to $idx that match criteria
-    protected function buildWeb($idx, $criteria, $arr = [], $include_diagonals = true)
+    protected function findContiguousGroup($edge_idxs, $criteria, $contiguous_group = [], $include_diagonals = false)
     {
-        if (!in_array($idx, $arr)) {
-            $arr[] = $idx;
+        if (!is_array($edge_idxs)) {
+            $edge_idxs = [$edge_idxs];
         }
 
-        $j = $idx % $this->width;
-        $i = floor($idx / $this->width);
+        // 1st time thru avoid having to pre-populate contiguous_group externally:
+        if (empty($contiguous_group) && count($edge_idxs) === 1) {
+            if ($this->meetsCriteria($edge_idxs[0], $criteria)) {
+                $contiguous_group[] = $edge_idxs[0];
+            }
+        }
 
-        for ($h=max($i-1,1); $h<=min($this->width-1, $i+1); $h++) {
-            for ($k=max($j-1,1); $k<=min($this->height-1, $j+1); $k++) {
-                if (!$include_diagonals && ($h != $i) && ($k != $j)) {
-                    continue;
-                }
-
-                $tmp_idx = $h * $this->width + $k;
-                if (!in_array($tmp_idx, $arr)) {
-                    if ($this->meetsCriteria($tmp_idx, $criteria)) {
-                        $arr[] = $tmp_idx;
-                        $arr = $this->buildWeb($tmp_idx, $criteria, $arr, $include_diagonals);
+        $new_adds = [];
+        foreach ($edge_idxs as $idx) {
+            $contiguous_idxs = $this->getNeighboringCoordinates($idx, $include_diagonals);
+            foreach ($contiguous_idxs as $i) {
+                if ($i && !in_array($i, $contiguous_group)) {
+                    if ($this->meetsCriteria($i, $criteria)) {
+                        $contiguous_group[] = $i;
+                        $new_adds[] = $i;
                     }
                 }
             }
         }
 
-        return $arr;
+        if (empty($new_adds)) {
+            return $contiguous_group;
+        }
+
+        return $this->findContiguousGroup($new_adds, $criteria, $contiguous_group, $include_diagonals);
     }
 
     public static function unsetValue(&$arr, $x)
@@ -308,26 +313,24 @@ class BaseKakuro extends BaseProcess
         $ret = [];
         reset($array_to_sort);
 
-        if ($sort_direction == 'desc')
-        {
+        if ($sort_direction == 'desc') {
             $array_to_sort = array_reverse($array_to_sort);
         }
-        foreach ($array_to_sort as $ii => $va) 
-        {
+
+        foreach ($array_to_sort as $ii => $va) {
             $sorter[$ii] = $va[$sort_key];
         }
-        if ($sort_direction == 'desc')
-        {
+
+        if ($sort_direction == 'desc') {
             arsort($sorter);
-        }
-        else
-        {
+        } else {
             asort($sorter);
         }
-        foreach ($sorter as $ii => $va) 
-        {
+
+        foreach ($sorter as $ii => $va) {
             $ret[$ii] = $array_to_sort[$ii];
         }
+
         $array_to_sort = $ret;
     }
 
@@ -375,6 +378,6 @@ class BaseKakuro extends BaseProcess
 
     public function getResult()
     {
-        return $this->solutions;
+        return $this->result;
     }
 }
