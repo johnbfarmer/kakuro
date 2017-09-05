@@ -146,9 +146,6 @@ class KakuroReducer extends BaseKakuro
             $j = $dir === 'h' ? $k : $col;
             $idx = $i * $this->width + $j;
             $cells[] = $this->cells[$idx];
-if (!$this->cells[$idx]) {
-    throw new \Exception('ouch');
-}
         }
 
         return $cells;
@@ -173,10 +170,7 @@ if (!$this->cells[$idx]) {
             }
         }
 
-$pv = $this->gridObj->getPossibleValues($sum, $len, $usedNumbers);
-if (empty($pv) && !empty($undecided)) {
-    $x = 'dbug';
-}
+        $pv = $this->gridObj->getPossibleValues($sum, $len, $usedNumbers);
 
         return [
             'values' => $pv,
@@ -416,6 +410,26 @@ if (empty($pv) && !empty($undecided)) {
         return true;
     }
 
+    public function display($padding = 10, $frameOnly = false)
+    {
+        $str = "" . $this->displayChoicesHeader();
+        foreach ($this->cells as $idx => $cell) {
+            if ($idx === "") {$this->log($cell->dump(), true);continue;}
+            if ($this->isBlank($idx, true)) {
+                $c = '.';
+            } else {
+                $c = implode('', $cell->getChoices());
+                // $c = $cell->getRow() . $cell->getCol();
+            }
+            if ($cell->getCol() < 1) {
+                $str .= "\n";
+            }
+            $str .= str_pad($c, $padding, ' ');
+        }
+        $str .= "\n";
+        $this->log($str, true);
+    }
+
     public function getApiResponse()
     {
         if (!$this->fails) {
@@ -441,5 +455,10 @@ if (empty($pv) && !empty($undecided)) {
             $grid['failReason'] = $this->failReason;
         }
         return $grid;
+    }
+
+    public function getHint()
+    {
+        return ['hint' => 'you look nice'];
     }
 }

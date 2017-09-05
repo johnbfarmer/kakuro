@@ -26,6 +26,7 @@ export default class Grid extends React.Component {
         this.loadSavedGame = this.loadSavedGame.bind(this);
         this.simpleReduce = this.simpleReduce.bind(this);
         this.advancedReduce = this.advancedReduce.bind(this);
+        this.giveHint = this.giveHint.bind(this);
         this.clearChoices = this.clearChoices.bind(this);
         this.clearAllChoices = this.clearAllChoices.bind(this);
         this.reduce = this.reduce.bind(this);
@@ -150,6 +151,23 @@ export default class Grid extends React.Component {
         this.reduce(true);
     }
 
+    giveHint() {
+        var cells = JSON.stringify(this.state.cells);
+        return $.post(
+            "http://kak.uro/app_dev.php/api/get-hint",
+            {
+                grid_id: this.state.gridId,
+                cells: cells,
+            },
+            function(resp) {
+                if (resp.hint) {
+                    alert(resp.hint);
+                }
+            },
+            'json'
+        );
+    }
+
     clearChoices() {
         var cells = this.state.cells;
         var idx = this.state.active_row * this.state.width + this.state.active_col;
@@ -270,6 +288,9 @@ export default class Grid extends React.Component {
         }
         if (keyCode === 65) { // a
             this.advancedReduce();
+        }
+        if (keyCode === 72) { // h -- hint
+            this.giveHint();
         }
         if (keyCode === 88) { // x
             this.clearChoices();

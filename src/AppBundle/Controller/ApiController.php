@@ -72,6 +72,24 @@ class ApiController extends Controller
     }
 
     /**
+     * @Route("api/get-hint", name="grid_get_hint")
+     */
+    public function getHintAction(Request $request)
+    {
+        $cells = json_decode($request->request->get('cells'), true);
+        $grid_id = $request->request->get('grid_id');
+        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($grid_id);
+        $parameters = [
+            'grid' => $grid,
+            'cells' => $grid->getForProcessing(),
+            'uiChoices' => $cells,
+            'hint' => true,
+        ];
+        $reducer = KakuroReducer::autoExecute($parameters, null);
+        return new JsonResponse($reducer->getHint());
+    }
+
+    /**
      * @Route("api/save-choices", name="grid_save_choices")
      */
     public function saveChoicesAction(Request $request)
