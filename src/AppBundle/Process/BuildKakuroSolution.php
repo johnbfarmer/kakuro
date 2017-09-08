@@ -61,9 +61,9 @@ class BuildKakuroSolution extends BaseKakuro
         if (!empty($this->parameters['max-restarts'])) {
             $this->maxRestarts = $this->parameters['max-restarts'];
         }
-        $this->grid = [
-            'cells' => []
-        ];
+        // $this->grid = [
+        //     'cells' => []
+        // ];
     }
 
     public function execute()
@@ -120,8 +120,13 @@ $this->log('fv '.json_encode($this->forbiddenValues), true);
     protected function addNumbers()
     {
 $this->log('add nbrs ', true);
+$ctr = 0;
         while (!$this->finished) {
             $idxs = $this->idxsWithNoChoice;
+            if ($ctr++ > 5 && $this->timesThru++ > $this->maxTimesThru) {
+                $this->resetNumbers();
+                $ctr = 0;
+            }
 $this->log('top of add nbrs loop'.json_encode($this->idxsWithNoChoice), true);
             if (empty($idxs)) {
                 $idxs = array_keys($this->cells);
@@ -130,6 +135,7 @@ $this->log('top of add nbrs loop'.json_encode($this->idxsWithNoChoice), true);
                     // add simple strips where possible
                     $this->addStrip($idx);
                 }
+$this->log('done adding strips', true);
             }
 
             try {
@@ -137,14 +143,24 @@ $this->log('top of add nbrs loop'.json_encode($this->idxsWithNoChoice), true);
             } catch (\Exception $e) {
                 $this->removeStrips($this->idxToChange);
             }
-
+$this->log('adding strips part 2', true);
+            $forcedStripsToAdd = $this->timesThru - 1;
+            foreach ($idxs as $idx) {
+                if ($forcedStripsToAdd <= 0) {
+                    break;
+                }
+                if ($this->addStrip($idx, true)) {
+                    $forcedStripsToAdd--;
+                }
+            }
+$this->display(3);
             foreach ($idxs as $idx) {
                 // fill in the blanks
                 if (!$this->addNumber($idx)) {
                     continue 2;
                 }
+$this->display(3);
             }
-
             // make sure every choice is filled in (should not be necessary... but we are hitting it)
             $this->idxsWithNoChoice = [];
             foreach ($this->cells as $idx => $cell) {
@@ -166,52 +182,100 @@ $this->log('top of add nbrs loop'.json_encode($this->idxsWithNoChoice), true);
             }
 
             if ($this->solvable) {
-                if ($this->testUnique()) {
-                    return true;
-                }
+                $this->classify();
+                return true;
             }
         }
 
         return false;
     }
 
-    protected function addStrip($idx)
+    protected function addStrip($idx, $stepTwo = false)
     {
         if (!$this->isNonDataCell($idx)) {
             $strips = $this->findMyStrips($idx);
-            $strip = count($strips['h']) < count($strips['v']) ? $strips['h'] : $strips['v'];
-            foreach ($strip as $cell) {
-                if (!empty($this->cellChoices[$cell->getIdx()])) {
-                    return; // for now
+            $stripStatus = [];
+            foreach ($strips as $i => $s) {
+                $status = ['allEmpty' => true, 'allTaken' => true];
+                foreach ($s as $cell) {
+                    if (!empty($this->cellChoices[$cell->getIdx()])) {
+                        $status['allEmpty'] = false;
+                    } else {
+                        $status['allTaken'] = false;
+                    }
+                }
+
+                $stripStatus[$i] = $status;
+            }
+
+            // get the strip to process
+            // both empty, shorter; one empty, use it; both nonempty + !steptwo go away; else use shorter*; never allTaken
+            if ($stripStatus['h']['allEmpty'] === $stripStatus['v']['allEmpty']) {
+                $stripIdx = count($strips['h']) < count($strips['v']) ? (
+                        !$stripStatus['h']['allTaken'] ? 'h' : (
+                            !$stripStatus['v']['allTaken'] ? 'v' : null)
+                    ) : null;
+
+                // return if all taken or both nonempy and not step 2:
+                if (empty($stripIdx) || !$stripStatus['h']['allEmpty'] && !$stepTwo) {
+                    return false;
+                }
+            } else {
+                if ($stripStatus['h']['allEmpty']) {
+                    $stripIdx = 'h';
+                } else {
+                    $stripIdx = 'v';
                 }
             }
 
-            $ss = $this->getSimpleStrips(count($strip));
-            $this->shuffle($ss);
-            foreach ($ss as $s) {
-                $this->shuffle($s);
-                foreach ($strip as $i => $cell) {
-                    $taken = $this->getTaken($cell->getIdx());
-                    $available = array_values(array_diff($this->number_set, $taken));
-                    $available = $this->filterNumsThatCauseNonUnique($cell, $available);
-                    $choice = $s[$i];
-                    if (!in_array($choice, $available)) {
-                        $this->clearSelection($strip);
-                        continue 2;
-                    }
-                    // temporarily set for filterNumsThatCauseNonUnique
-                    $this->selectValue($cell->getIdx(), [$choice]);
-                }
-                // what still here?
-$this->log('add ss '.json_encode($s), true);
-                // foreach ($strip as $i => $cell) { // no need
-                //     $choice = $s[$i];
-                //     $this->selectValue($cell->getIdx(), [$choice]);
-                // }
+            $strip = $strips[$stripIdx];
 
-                return;
+            if ($this->fillStrip($strip)) {
+$this->log('strip added '. $idx, true);
+                return true;
+            }
+
+            $otherStripIdx = $stripIdx === 'h' ? 'v' : 'h';
+            if (!$stripStatus[$otherStripIdx]['allTaken'] && ($stepTwo || $stripStatus[$otherStripIdx]['allEmpty'])) {
+                if ($this->fillStrip($strip)) {
+$this->log('strip added '. $idx, true);
+                    return true;
+                }
             }
         }
+$this->log('no strip added '. $idx, true);
+
+        return false;
+    }
+
+    protected function fillStrip($strip)
+    {
+        $ct = count($strip);
+        if ($ct > 5) {
+            return false; // no point in adding large strips here
+        }
+        $ss = $this->getSimpleStrips($ct);
+        $this->shuffle($ss);
+        foreach ($ss as $s) {
+            $stripAdded = false;
+            $this->shuffle($s);
+            foreach ($strip as $i => $cell) {
+                $taken = $this->getTaken($cell->getIdx());
+                $available = array_values(array_diff($this->number_set, $taken));
+                $available = $this->filterNumsThatCauseNonUnique($cell, $available);
+                $choice = $s[$i];
+                if (!in_array($choice, $available)) {
+                    $this->clearSelection($strip); // FIX do not change already set 
+                    continue 2;
+                }
+                // temporarily set for filterNumsThatCauseNonUnique
+                $this->selectValue($cell->getIdx(), [$choice]);
+            }
+            // what still here?
+            $stripAdded = true;
+        }
+
+        return $stripAdded;
     }
 
     protected function addNumber($idx)
@@ -221,9 +285,7 @@ $this->log('add ss '.json_encode($s), true);
         }
         $cell = $this->cells[$idx];
 
-$this->log('add nbr '.$idx, true);
-$this->log($cell->dump(), true);
-$this->display(3);
+$this->log('add nbr '.$cell->dump(), true);
 
         $taken = $this->getTaken($idx);
         $available = array_values(array_diff($this->number_set, $taken));
@@ -235,7 +297,7 @@ $this->log("nothing available at $idx ".$cell->dump(), true);
             $this->removeStrips($idx);
             return false;
         } else {
-            return $this->selectValue($idx, $available);
+            return $this->selectValue($idx, $available, true);
         }
     }
 
@@ -294,7 +356,6 @@ $this->log("nothing available at $idx ".$cell->dump(), true);
         }
 
         foreach ($commonValuedCellPairs as $pair) {
-// $this->display(3);
             $intersection = $this->interesect($pair, $cell);
             if ($intersection) {
                 if($intersection->getIdx() == $idx) {
@@ -304,9 +365,9 @@ $this->log("nothing available at $idx ".$cell->dump(), true);
                 if (!$intersectionValue) {
                     continue;
                 }
-$this->log($idx . ' pair '.$pair[0]->getChoice(), true);
+// $this->log($idx . ' pair '.$pair[0]->getChoice(), true);
                 $this->unsetValue($available, $intersection->getChoice());
-$this->log('note '.$idx.' cannot have ' .$intersection->getChoice(), true);
+// $this->log('note '.$idx.' cannot have ' .$intersection->getChoice(), true);
                 // we also cannot have pair - iV + choice available
                 // a  b    b  a
                 // b  X    a  Y = b+X-a
@@ -315,7 +376,7 @@ $this->log('note '.$idx.' cannot have ' .$intersection->getChoice(), true);
                 foreach ($available as $candidateValue) {
                     if (in_array($candidateValue + $diff, $available)) {
                         $this->unsetValue($available, $candidateValue);
-$this->log('type 2 '.$idx.' cannot have ' .$candidateValue, true);
+// $this->log('type 2 '.$idx.' cannot have ' .$candidateValue, true);
                     }
                 }
             }
@@ -373,7 +434,7 @@ $this->log('type 2 '.$idx.' cannot have ' .$candidateValue, true);
                     }
 
                     if (empty(array_diff($a1, $a2))) {
-                        $this->log("filter2 not possible $idx $candidateValue" , true);
+                        // $this->log("filter2 not possible $idx $candidateValue" , true);
                         $this->unsetValue($available, $candidateValue);
                     }
                 }
@@ -390,7 +451,6 @@ $this->log('type 2 '.$idx.' cannot have ' .$candidateValue, true);
         //         (add b's strips if they contain a
         //             each "a" cell in those strips, add their strips if they contain b) recurse
         //         count the a's and b's in the strips. if ==, can't set to a
-$this->display(3);
         $idx = $cell->getIdx();
         $strips = $this->findMyStrips($idx, false);
         if (empty($strips)) {
@@ -416,7 +476,7 @@ $this->display(3);
 
             if ($cells->count() > 2 && !($cells->count() % 2)) {
                 $this->unsetValue($available, $choice);
-$this->log('type 3 '.$idx.' cannot have ' .$choice, true);
+// $this->log('type 3 '.$idx.' cannot have ' .$choice, true);
             }
 
             $this->clearSelection([$cell]);
@@ -528,9 +588,9 @@ $this->log('type 3 '.$idx.' cannot have ' .$choice, true);
         }
     }
 
-    protected function selectValue($idx, $choices)
+    protected function selectValue($idx, $choices, $log = false)
     {
-$this->log('sv '.$idx.' '.json_encode($choices), true);
+$this->log('sv '.$idx.' '.json_encode($choices), $log);
         if (count($choices) > 1) {
             $this->lastChoice[] = $idx;
             sort($choices);
@@ -547,7 +607,7 @@ $this->log('sv '.$idx.' '.json_encode($choices), true);
         $this->cellChoices[$idx] = $val;
         $this->cells[$idx]->setChoice($val);
         $this->setOrder[] = $idx;
-$this->log("set $idx to $val", true);
+$this->log("set $idx to $val", $log);
         return true;
     }
 
@@ -676,7 +736,9 @@ $this->display(3);
             }
             $choices = $cell->getChoices();
             $choiceCount = count($choices);
+if ($choiceCount > 1) {
 $this->log($idx.' has ' . $choiceCount . ' choices', true);
+}
             if ($choiceCount > $mostChoices) {
                 $mostChoices = $choiceCount;
                 $idxToChange = $idx;
@@ -722,6 +784,16 @@ $this->log('yes easily reduc', true);
     protected function isSimpleStrip($strip)
     {
         return false; // TBI
+    }
+
+    protected function classify()
+    {
+        $parameters = [
+            'grid' => $this->gridObj,
+        ];
+
+        $classifier = KakuroClassifier::autoExecute($parameters, null);
+        $this->gridObj->setDifficulty($classifier->getDifficulty());
     }
 
     protected function testUnique()
@@ -839,15 +911,15 @@ $this->log('yes easily reduc', true);
         return $strip;
     }
 
-    public function display($padding = 10, $frameOnly = false)
+    public function display($padding = 10, $header = '')
     {
-        $str = "\ncurrently\n" . $this->displayChoicesHeader();
+        $str = "\nheader\n" . $this->displayChoicesHeader();
 
         foreach ($this->cells as $idx => $cell) {
             if ($this->isNonDataCell($idx, true)) {
                 $c = '.';
             } else {
-                $c = $frameOnly ? 'D' : $cell->getChoice();
+                $c = $cell->getChoice();
             }
             if ($cell->getCol() < 1) {
                 $str .= "\n";

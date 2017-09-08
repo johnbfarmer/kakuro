@@ -83,7 +83,7 @@ class ApiController extends Controller
             'grid' => $grid,
             'cells' => $grid->getForProcessing(),
             'uiChoices' => $cells,
-            'hint' => true,
+            'hintOnly' => true,
         ];
         $reducer = KakuroReducer::autoExecute($parameters, null);
         return new JsonResponse($reducer->getHint());

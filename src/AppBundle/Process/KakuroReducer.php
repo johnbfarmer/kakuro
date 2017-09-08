@@ -18,6 +18,8 @@ class KakuroReducer extends BaseKakuro
         $uiChoices,
         $stripsNew,
         $indexesNotToProcess = [],
+        $hintOnly = false,
+        $hint = "Sorry, no hint...",
         $fails = false;
 
     public function __construct($parameters = [], $em = [])
@@ -32,6 +34,7 @@ class KakuroReducer extends BaseKakuro
 
         $this->width = $this->gridObj->getWidth();
         $this->simpleReduction = !empty($this->parameters['simpleReduction']);
+        $this->hintOnly = !empty($this->parameters['hintOnly']);
         $this->changedStrips = new ArrayCollection();
     }
 
@@ -105,7 +108,6 @@ class KakuroReducer extends BaseKakuro
             $strips = clone $this->changedStrips;
         }
 
-        // return $this->isSolved();
         return true;
     }
 
@@ -201,10 +203,14 @@ class KakuroReducer extends BaseKakuro
             unset($complement[$indx]);
             $choices = $cell->getChoices();
             foreach ($choices as $idx => $v) {
-                if (!$this->isPossibleNew($complement, $sum - $v, array_merge($used, [$v]))) {
+                if (!$this->isPossible($complement, $sum - $v, array_merge($used, [$v]))) {
                     unset($choices[$idx]);
                     if (empty($choices)) {
                         $this->failReason = "No choices reducing by complement cell ".$cell->dump();
+                        return false;
+                    }
+                    if ($this->hintOnly) {
+                        $this->hint = $cell->dump() . " cannot have " . $v;
                         return false;
                     }
                     $cell->setChoices($choices);
@@ -329,7 +335,7 @@ class KakuroReducer extends BaseKakuro
         }
     }
 
-    protected function isPossibleNew($cells, $sum, $used)
+    protected function isPossible($cells, $sum, $used)
     {
         // if there are 2 in the set, just  test for complement: BUT TAKE USED INTO ACCT
         if (count($cells) === 2) {
@@ -362,7 +368,7 @@ class KakuroReducer extends BaseKakuro
                 $v = current($new_choices);
                 $complement = $cells;
                 unset($complement[$idx]);
-                if (!$this->isPossibleNew($complement, $sum - $v, array_merge($used, [$v]))) {
+                if (!$this->isPossible($complement, $sum - $v, array_merge($used, [$v]))) {
                     return false;
                 }
             }
@@ -459,6 +465,6 @@ class KakuroReducer extends BaseKakuro
 
     public function getHint()
     {
-        return ['hint' => 'you look nice'];
+        return ['hint' => $this->hint];
     }
 }
