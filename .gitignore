@@ -19,5 +19,5 @@ files/*.kak
 
 /node_modules/
 
-/tmp/
+/tmp/*
 !/tmp/x.kak
