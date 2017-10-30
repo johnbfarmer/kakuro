@@ -46,6 +46,7 @@ class BuildKakuro extends BaseKakuro
     public function __construct($parameters = [], $em = [])
     {
         parent::__construct($parameters, $em);
+        $this->file = !empty($parameters['file']) ? $parameters['file'] : null;
     }
 
     public function execute()
@@ -60,18 +61,96 @@ class BuildKakuro extends BaseKakuro
         $this->em->persist($this->gridObj);
         $parameters = $this->parameters;
         $parameters['grid'] = $this->gridObj;
-        $name = $this->em->getRepository('AppBundle:Grid')->getNextUniqueGridName();
-        $this->gridObj->setName($name);
-        $this->cells = BuildKakuroFrame::autoExecute($parameters)->getCells();
-        // $this->gridObj->setWidth($this->width);
-        // $this->gridObj->setHeight($this->height);
-        $parameters['cells'] = $this->cells;
+        if ($this->file) {
+            $parameters['fromFile'] = true;
+            $this->cells = $parameters['cells'] = $this->readInputFile();
+        } else {
+            $name = $this->em->getRepository('AppBundle:Grid')->getNextUniqueGridName();
+            $this->gridObj->setName($name);
+            $this->cells = BuildKakuroFrame::autoExecute($parameters)->getCells();
+            $parameters['cells'] = $this->cells;
+        }
         $success = BuildKakuroSolution::autoExecute($parameters)->isSolvable();
         if ($success) {
             $this->save();
         } else {
             throw new \Exception("No luck");
         }
+    }
+
+    protected function readInputFile()
+    {
+        $f = fopen($this->file, 'r');
+        $this->gridObj->setName(pathinfo($this->file, PATHINFO_FILENAME));
+        $h = 0;
+        $fileCells = [];
+        $anchors = [];
+        $cells = [];
+        $sum = 0;
+        $lastRow = 0;
+        $lastCol = 0;
+        while ($ln = fgets($f)) {
+            $arr = explode('  ', trim($ln));
+            if (empty($arr)) {
+                continue;
+            }
+            $fileCells[] = $arr;
+            $w = count($arr);
+            $i = $h++;
+            $anchors[$i] = [];
+
+            foreach ($arr as $j => $cell) {
+                if ($cell === '.') {
+                    $anchors[$lastRow][$lastCol] = ['label_h' => $sum];
+                    $sum = 0;
+                    $lastRow = $i;
+                    $lastCol = $j;
+                } else {
+                    $sum += $cell;
+                }
+            }
+        }
+
+        $anchors[$lastRow][$lastCol] = ['label_h' => $sum];
+
+        for ($j = 0; $j < $h; $j++) {
+            for ($i = 0; $i < $w; $i++) {
+                $cell = $fileCells[$i][$j];
+                if ($cell === '.') {
+                    $anchors[$lastRow][$lastCol]['label_v'] = $sum;
+                    $sum = 0;
+                    $lastRow = $i;
+                    $lastCol = $j;
+                } else {
+                    $sum += $cell;
+                }
+            }
+        }
+
+        $anchors[$lastRow][$lastCol]['label_v'] = $sum;
+
+        $this->gridObj->setWidth($w);
+        $this->gridObj->setHeight($h);
+        for ($i=0; $i < $h; $i++) {
+            for ($j=0; $j < $w; $j++) {
+                $cell = new Cell();
+                $this->gridObj->addCell($cell);
+                $cell->setLocation($i, $j);
+                $idx = $cell->getIdx();
+                if (!empty($anchors[$i][$j])) {
+                    $cell->setDataCell(false);
+                } else {
+                    $cell->setDataCell(true);
+                    $choice = $fileCells[$i][$j];
+                    if ($choice !== 'X') {
+                        $cell->setChoice($fileCells[$i][$j]);
+                    }
+                }
+                $cells[$idx] = $cell;
+            }
+        }
+
+        return $cells;
     }
 
     protected function save()

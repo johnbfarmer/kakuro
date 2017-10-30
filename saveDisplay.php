@@ -61,7 +61,7 @@ for ($j = 0; $j < $h; $j++) {
 
 $anchors[$last_row][$last_col]['label_v'] = $sum;
 
-var_dump(json_encode($anchors[16]));
+// var_dump(json_encode($anchors[16]));
 // exit;
 $sql = 'insert ignore grids (name, width, height) values ("aaatest", '.$w.', '.$h.')';
 $dbh->exec($sql);

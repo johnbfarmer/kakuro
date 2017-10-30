@@ -209,6 +209,8 @@ $this->log('testing density -- '.$density, true);
         $max_fullness = $this->density_constant + $density_randomness;
         $this->highDensity = $density > $max_fullness;
         $this->lowDensity = $density < $min_fullness;
+// gradually extend the randomness to avoid repeated failures
+$this->density_randomness *= 1.1;
         return !$this->highDensity && !$this->lowDensity;
     }
 

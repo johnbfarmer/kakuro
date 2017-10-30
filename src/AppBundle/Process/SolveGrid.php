@@ -8,6 +8,7 @@ class SolveGrid extends BaseGrid
 {
     protected 
         $changed = false,
+        $changed_strips = [],
         $current_path = [],
         $problem_strips = [],
         $solutions_desired = 2,
@@ -20,6 +21,9 @@ class SolveGrid extends BaseGrid
         $use_advanced_threshold = 50,
         $simple_reduction,
         $reduce_only,
+        $gridObj,
+        $cellsNew,
+        $stripsNew,
         $last_output_time;
 
     public function __construct($parameters = [], $em = [])
@@ -47,6 +51,9 @@ class SolveGrid extends BaseGrid
         if (!empty($this->parameters['cells'])) {
             $this->cells = $this->parameters['cells'];
         }
+        if (!empty($this->parameters['grid'])) {
+            $this->gridObj = $this->parameters['grid'];
+        }
 
         $this->simple_reduction = !empty($this->parameters['simple_reduction']);
         $this->reduce_only = !empty($this->parameters['reduce_only']);
@@ -60,6 +67,8 @@ class SolveGrid extends BaseGrid
         if ($this->grid_name) {
             // $this->readInputFile();
             $this->readInputFromDb();
+            $this->cellsNew = $this->gridObj->getForProcessing();
+            $this->stripsNew = $this->gridObj->getStrips();
             // $this->log('File read. Alternatively call with args ' . json_encode($this->hsums). ' ' . json_encode($this->vsums));
         }
         $this->timeCheck();
@@ -84,6 +93,7 @@ class SolveGrid extends BaseGrid
                         if (!empty($this->cells[$idx]['choices'])) {
                             $xxx = $this->cells[$idx]['choices'];
                             $pv = array_values(array_intersect($xxx, $pv));
+                            $this->cellsNew[$idx]->setChoices($pv);
                         }
                     }
                     $this->grid['cells'][$i][$j]['choices'] = $pv;
@@ -100,6 +110,7 @@ class SolveGrid extends BaseGrid
         $this->display($this->grid);
         $this->log("DOING INITIAL REDUCTION", $this->debug);
         $this->grid = $this->reduceGrid($this->grid, [], !$this->simple_reduction);
+        $this->cellsNew = $this->reduceGridNew([], !$this->simple_reduction);
         $this->timeCheck();
         // if (empty($this->grid)) {
             // throw new \Exception("Initial Reduction fails");
@@ -118,6 +129,7 @@ class SolveGrid extends BaseGrid
 
     protected function init()
     {
+        // now, lose hsums here. grid entity needs to tell each cell what his strips are and manage those strips
         // correctly populate h/v sums, size, and grid
         foreach ($this->hsums as $i => $row) {
             foreach ($row as $j => $cell) {
@@ -135,8 +147,8 @@ class SolveGrid extends BaseGrid
             foreach ($row as $j => $cell) {
                 if (!$this->isBlank($i,$j)) {
                     if ($j > 0 && !$this->isBlank($i,$j-1)) {
-                            $hidx = $this->grid['cells'][$i][$j-1]['strip_indices']['h'];
-                            $hstrip = $this->strips[$hidx];
+                        $hidx = $this->grid['cells'][$i][$j-1]['strip_indices']['h'];
+                        $hstrip = $this->strips[$hidx];
                     } else {
                         $hstrip = GridHelper::getStrip($i, $j, $this->grid['cells'], 'h', $this->hsums[$i][$j]);
                         $hidx = $strips_index++;
@@ -545,6 +557,151 @@ $this->log($idx . ' has difficulty ' . $grid['difficulty']);
         $this->store($grids);
 
         return $return;
+    }
+
+    protected function reduceGridNew($strip_ids_to_process = [], $use_advanced_reduction)
+    {
+        if (empty($strip_ids_to_process)) {
+            $strips = $this->stripsNew;
+        } else {
+            $strips = [];
+            foreach($strip_ids_to_process as $idx) {
+                $strips[$idx] = $this->stripsNew[$idx];
+            }
+        }
+
+        while (!empty($strips) && !$this->done) {
+            $this->changed_strips = [];
+            foreach ($strips as $idx => $strip) {
+                if (!$this->reduceStripNew($strip, $use_advanced_reduction)) {
+                    $this->log("problem reducing strip $idx");
+                    $this->problem_strips[$idx] = $strip;
+                    $this->log($this->problem_strips);
+                    return false;
+                }
+            }
+
+            if (empty($this->changed_strips)) {
+                break;
+            }
+
+            $strips = [];
+            foreach($this->changed_strips as $idx) {
+                $strips[$idx] = $this->stripsNew[$idx];
+            }
+        }
+
+        return $this->cellsNew;
+    }
+
+    protected function reduceStripNew($strip, $use_advanced_reduction)
+    {
+        // set up vars
+        $sum = $strip->getTotal();
+        $len = $strip->getLen();
+        $dir = $strip->getDir();
+        $used_numbers = [];
+        if ($dir === 'h') {
+            $start = $strip->getStartCol();
+            $row = $strip->getStartRow();
+        } else {
+            $start = $strip->getStartRow();
+            $col = $strip->getStartCol();
+        }
+
+        // see if anything to do, get ready if so
+        $undecided_cells = [];
+        $decided_cells = [];
+        for ($k = $start; $k < $start + $len; $k++) {
+            $i = $dir === 'v' ? $k : $row; 
+            $j = $dir === 'h' ? $k : $col;
+            $idx = ($i + 1) * ($this->width + 1) + ($j + 1);
+            $cell = $this->cellsNew[$idx];
+            if (count($cell->getChoices()) === 1) {
+                $num = current($cell->getChoices());
+                $sum -= $num;
+                $used_numbers[] = $num;
+                $decided_cells[] = $cell;
+            } else {
+                $undecided_cells[] = $cell;
+            }
+        }
+
+        if (empty($undecided_cells)) { // nothing to do
+            return $this->cellsNew;
+        }
+
+        $size = $len - count($used_numbers);
+        $choices = $this->getValues($sum, $size, $used_numbers);
+        $still_undecided_cells = [];
+
+        foreach ($undecided_cells as $idx => $cell) {
+            $pv = $cell->getChoices();
+            $new_pv = array_values(array_intersect($pv, $choices));
+            if (count($undecided_cells) === 2) {
+                $other_guy = $undecided_cells;
+                unset($other_guy[$idx]);
+                $other = current($other_guy); // ok ok better way needed
+                $sum = $strip->getTotal();
+                foreach ($decided_cells as $dc) {
+                    $sum -= current($dc->getChoices());
+                }
+                $new_pv = $this->reduceDupletNew($sum, $cell, $other);
+            }
+            if (empty($new_pv)) {
+                return false;
+            }
+            if (count($new_pv) < count($pv)) {
+                $cell->setChoices($new_pv);
+                $arr_idx = ($cell->getRow() + 1) * ($this->width + 1) + ($$cell->getCol() + 1);
+                $this->cellsNew[$arr_idx] = $cell;
+                $this->addCellsStripsToChanged($cell);
+            }
+            if (count($new_pv) === 1) {
+                $num = current($new_pv);
+                $sum -= $num;
+                $used_numbers[] = $num;
+                $size--;
+                $choices = $this->getValues($sum, $size, $used_numbers);
+            } else {
+                $still_undecided_cells[] = $cell;
+            }
+        }
+
+        // if (empty($still_undecided_cells)) {
+        //     if (!$this->checkStrip($strip, $sgx)) {
+        //         return false;
+        //     }
+        //     return $sgx;
+        // }
+
+        // return $use_advanced_reduction ? $this->advancedStripReductionNew($sgx, $still_undecided_cells, $sum, $used_numbers) : $sgx;
+        return true;
+    }
+
+    protected function reduceDupletNew($sum, $cell, $other)
+    {
+        $choices = $cell->getChoices();
+        $pv = [];
+        foreach($choices as $idx => $choice) {
+            if (in_array($sum - $choice, $other->getChoices())) {
+                $pv[] = $choice;
+            }
+        }
+
+        return $pv;
+    }
+
+    protected function addCellsStripsToChanged($cell)
+    {
+        $ids = [];
+        $ids[] = $cell->getStripH()->getId();
+        $ids[] = $cell->getStripV()->getId();
+        foreach ($ids as $id) {
+            if (!in_array($id, $this->changed_strips)) {
+                $this->changed_strips[] = $id;
+            }
+        }
     }
 
     protected function reduceGrid($sgx, $strip_ids_to_process = [], $use_advanced_reduction = true, $skip_cache = false)

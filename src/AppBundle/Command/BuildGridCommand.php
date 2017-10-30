@@ -27,7 +27,10 @@ class BuildGridCommand extends Command
                 'size', InputArgument::OPTIONAL, 'heightxwidth'
             )
             ->addOption(
-                'frame-id', 'f', InputOption::VALUE_REQUIRED, ''
+                'frame-id', null, InputOption::VALUE_REQUIRED, ''
+            )
+            ->addOption(
+                'file', 'f', InputOption::VALUE_REQUIRED, ''
             )
             ->addOption(
                 'density', 'd', InputOption::VALUE_REQUIRED, '0<x<1'

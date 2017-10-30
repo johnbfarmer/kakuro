@@ -195,7 +195,7 @@ class BaseKakuro extends BaseProcess
         return $count;
     }
 
-    protected function getNeighboringCoordinates($idx, $include_diagonals = false)
+    protected function getNeighboringCoordinates($idx, $include_diagonals = false, $indexSubset = [])
     {
         $indexes = [
             'top' => null,
@@ -215,6 +215,14 @@ class BaseKakuro extends BaseProcess
         }
         if ($idx % $this->width < $this->width - 1) {
             $indexes['right'] = $idx + 1;
+        }
+
+        if (!empty($indexSubset)) {
+            $i = [];
+            foreach ($indexSubset as $idx) {
+                $i[$idx] = $indexes[$idx];
+            }
+            $indexes = $i;
         }
 
         return $indexes;
@@ -302,6 +310,17 @@ class BaseKakuro extends BaseProcess
         }
 
         return null;
+    }
+
+    protected function sortCells(&$cells)
+    {
+        $arr = [];
+        foreach ($cells as $cell) {
+            $arr[$cell->getIdx()] = $cell;
+        }
+
+        ksort($arr);
+        $cells = array_values($arr);
     }
 
     // sort an associative array by a simple sort array {k1:asc}
