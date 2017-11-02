@@ -97,23 +97,16 @@ $this->log("last unforced = $idx", true);
 $this->log("$idx $val is forbidden", true);
         $this->forbiddenValues[$idx][] = $val;
         $idxs = [$idx];
-        $s = array_flip($this->setOrder)[$idx];
-$this->log("remove from setOrder anything after $s", true);
-        for ($i = $s; $i < count($this->setOrder); $i++) {
-            unset($this->setOrder[$i]);
-        }
+        // $s = array_flip($this->setOrder)[$idx]; // improve code
+        $s = array_search($idx, $this->setOrder);
 $this->log('set order '.json_encode(array_values($this->setOrder)), true);
-        for ($i = 1; $i < count($this->cells); $i++) {
-            if (!$this->isNonDataCell($i) && !in_array($i, $this->setOrder)) {
-                if ($i != $idx) {
-                    $this->forbiddenValues[$i] = [];
-                    $idxs[] = $i;
-                }
-                $this->cellChoices[$i] = null;
-            }
+$this->log("remove anything after $s in set order", true);
+        $cells = [];
+        for ($i = $s; $i < count($this->setOrder); $i++) {
+            // unset($this->setOrder[$i]);
+            $cells[] = $this->cells[$this->setOrder[$i]];
         }
-$this->log('fv '.json_encode($this->forbiddenValues), true);
-        // $this->idxsWithNoChoice = $idxs;
+        $this->clearSelection($cells);
         return false;
     }
 
@@ -143,6 +136,7 @@ $this->log('top of add nbrs loop'.json_encode($idxs), true);
             if (empty($this->cellChoices)) {
                 $idxs = array_keys($this->cells);
                 $this->shuffle($idxs);
+                $this->sortByLongestStrips($idxs);
                 foreach ($idxs as $idx) {
                     $this->addStrip($idx);
                 }
@@ -224,9 +218,9 @@ $this->display(3);
             }
 
             // get the strip to process
-            // both empty, shorter; one empty, use it; both nonempty + !steptwo go away; else use shorter*; never allTaken
+            // both empty, shorter; one empty, use it; both nonempty + !steptwo go away; else use longer*; never allTaken
             if ($stripStatus['h']['allEmpty'] === $stripStatus['v']['allEmpty']) {
-                $stripIdx = count($strips['h']) < count($strips['v']) ? (
+                $stripIdx = count($strips['h']) > count($strips['v']) ? (
                         !$stripStatus['h']['allTaken'] ? 'h' : (
                             !$stripStatus['v']['allTaken'] ? 'v' : null)
                     ) : null;
@@ -269,14 +263,10 @@ $this->display(3);
     protected function fillStrip($strip)
     {
         $ct = count($strip);
-        if ($ct > 5) {
-            return false; // no point in adding large strips here
-        }
         $ss = $this->getSimpleStrips($ct);
         $this->shuffle($ss);
         foreach ($ss as $s) {
-// $this->log('testing strip '.json_encode($s), true);
-            // $stripAdded = false;
+$this->log('testing strip '.json_encode($s), true);
             $this->shuffle($s);
             foreach ($strip as $i => $cell) {
                 $taken = $this->getTaken($cell->getIdx());
@@ -291,10 +281,7 @@ $this->display(3);
                 // $this->selectValue($cell->getIdx(), [$choice], ['initialStrip' => true]);
                 $this->selectValue($cell->getIdx(), [$choice], ['initialStrip' => false, 'log' => true]);
             }
-            // what still here?
 // $this->log('added strip '.json_encode($s), true);
-            // $stripAdded = true;
-            // break;
             foreach ($strip as $cell) {
                 $this->idxsInitialStrips[] = $cell->getIdx();
             }
@@ -336,10 +323,10 @@ $this->log('add nbr '.$cell->dump(), true);
         $available = $this->filterNumsThatCauseNonUnique($cell, $available);
 
         if (empty($available)) {
-$this->log("nothing available at $idx ".$cell->dump(), true);
-            // return $this->changeLastUnforcedNumber();
-            $this->removeStrips($idx);
-            return false;
+$this->log("nothing available at ".$cell->dump(), true);
+            return $this->changeLastUnforcedNumber();
+            // $this->removeStrips($idx);
+            // return false;
         } else {
             return $this->selectValue($idx, $available, ['log' => true]);
         }
@@ -1283,6 +1270,7 @@ $this->log('type 3 '.$idx.' cannot have ' .$choice, true);
             $this->cellChoices[$idx] = null;
             $this->cells[$idx]->setChoice(null);
             $this->unsetValue($this->setOrder, $idx);
+            $this->forbiddenValues[$idx] = [];
         }
     }
 
@@ -1315,7 +1303,9 @@ $this->log('sv '.$this->cells[$idx]->dump().' '.json_encode($choices), $log);
         $val = $choices[$index];
         $this->cellChoices[$idx] = $val;
         $this->cells[$idx]->setChoice($val);
-        $this->setOrder[] = $idx;
+        if (!in_array($idx, $this->setOrder)) {
+            $this->setOrder[] = $idx;
+        }
         if ($initialStrip) {
             $this->idxsInitialStrips[] = $idx;
         }
@@ -1339,6 +1329,7 @@ $this->log('set '.$this->cells[$idx]->dump().' to '. $val, $log);
             }
             if (!empty($decided)) {
                 // see if we can complete a simple strip
+$this->log('decided '.json_encode($decided), true);
                 $valsToCompleteSimpleStrip = $this->completeSimpleStrip(count($strip), $decided);
                 if (!empty($valsToCompleteSimpleStrip)) {
                     $choicesToCompleteSimpleStrip = array_values(array_intersect($choices, $valsToCompleteSimpleStrip));
@@ -1352,20 +1343,20 @@ $this->log('to complete ss try '.$val, true);
                 }
 
                 // no? then see if high or low might be better (this don't help much)
-                $decidedAvg = $decidedSum / count($decided);
-                if ($decidedAvg >= 5) {
-                    if ($selectionType !== 'low') {
-                        $selectionType = 'high';
-                    } else {
-                        $selectionType = 'random';
-                    }
-                } else {
-                    if ($selectionType !== 'high') {
-                        $selectionType = 'low';
-                    } else {
-                        $selectionType = 'random';
-                    }
-                }
+                // $decidedAvg = $decidedSum / count($decided);
+                // if ($decidedAvg >= 5) {
+                //     if ($selectionType !== 'low') {
+                //         $selectionType = 'high';
+                //     } else {
+                //         $selectionType = 'random';
+                //     }
+                // } else {
+                //     if ($selectionType !== 'high') {
+                //         $selectionType = 'low';
+                //     } else {
+                //         $selectionType = 'random';
+                //     }
+                // }
             }
         }
 $selectionType = 'random'; // minimize repetitive loops
@@ -1784,6 +1775,19 @@ exit;
         }
 
         return $sum;
+    }
+
+    protected function sortByLongestStrips(&$idxs)
+    {
+        $maxStripLens = [];
+        foreach ($idxs as $idx) {
+            $strips = $this->findMyStrips($idx);
+            $maxStripLens[$idx] = max(count($strips['h']), count($strips['v']));
+        }
+
+        arsort($maxStripLens);
+
+        $idxs = array_keys($maxStripLens);
     }
 
     protected function getSimpleStrips($len)
