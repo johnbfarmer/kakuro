@@ -106,7 +106,7 @@ class BuildKakuro extends BaseKakuro
                     $lastRow = $i;
                     $lastCol = $j;
                 } else {
-                    $sum += $cell;
+                    $sum += $cell == 'X' ? 0 : $cell;
                 }
             }
         }
@@ -122,7 +122,7 @@ class BuildKakuro extends BaseKakuro
                     $lastRow = $i;
                     $lastCol = $j;
                 } else {
-                    $sum += $cell;
+                    $sum += $cell == 'X' ? 0 : $cell;
                 }
             }
         }

@@ -456,7 +456,7 @@ class KakuroReducer extends BaseKakuro
         $grid = ['cells' => $cells, 'error' => false];
         if (!empty($this->failedStrip)) {
             $grid['error'] = true;
-            $grid['message'] = 'problem reducing';
+            $grid['message'] = 'problem reducing (' . $this->failReason . ')';
             $grid['failedStripId'] = $this->failedStrip;
             $grid['failReason'] = $this->failReason;
         }
