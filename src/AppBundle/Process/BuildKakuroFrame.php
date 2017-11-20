@@ -101,14 +101,14 @@ class BuildKakuroFrame extends BaseKakuro
                 $this->island = [];
 
                 // if ($this->symmetry && $this->height - $j <= $i) {
-$this->log("Mirror of $idx is ". $this->getMirrorIdx($idx), true);
+// $this->log("Mirror of $idx is ". $this->getMirrorIdx($idx), true);
                     // continue;
                 // }
 
 
                 $must_be_blank = $this->mustBeBlank($idx);
                 $must_be_data = $this->mustBeData($idx);
-    $this->log("$idx must be blank:$must_be_blank must be data:$must_be_data", true);
+    // $this->log("$idx must be blank:$must_be_blank must be data:$must_be_data", true);
                 if ($must_be_blank && !$must_be_data) {
                     $this->setBlank($idx, true, true);
                     $this->setForced($idx, true);
@@ -125,7 +125,7 @@ $this->log("Mirror of $idx is ". $this->getMirrorIdx($idx), true);
                 }
 
                 if ($must_be_blank && $must_be_data) {
-                    $this->log("$idx, must be blank & must be data", true);
+                    // $this->log("$idx, must be blank & must be data", true);
                     $this->setUnknown($idx);
                     $this->changeLastUnforced($idx);
                     continue 2;
@@ -134,7 +134,7 @@ $this->log("Mirror of $idx is ". $this->getMirrorIdx($idx), true);
 
             $this->finished = true;
         }
-$this->display(3, true);
+// $this->display(3, true);
         return true;
     }
 
@@ -147,10 +147,10 @@ $this->display(3, true);
             $this->randomlyDecideBlankOrNot($idx);
         } else {
             $fullness = $nonblanks / ($blanks + $nonblanks);
-$this->log('f: '.$fullness .', '. $desired_fullness .', '. $this->density_randomness, true);
+// $this->log('f: '.$fullness .', '. $desired_fullness .', '. $this->density_randomness, true);
             if (($this->island && $this->preferToRemoveIsland)
                 || (!$this->island && $fullness > $desired_fullness + $this->density_randomness)) {
-$this->log('prefer: '.$this->preferToRemoveIsland, true);
+// $this->log('prefer: '.$this->preferToRemoveIsland, true);
                 $this->setBlank($idx, true, true);
             } elseif ($fullness <  $desired_fullness - $this->density_randomness) {
                 $this->setNonBlank($idx, true);
@@ -174,7 +174,7 @@ $this->log('prefer: '.$this->preferToRemoveIsland, true);
     protected function changeLastUnforced($idx)
     {
         // walk back to last unforced cell; change; unset forced cells set after that; rewalk from there
-$this->display(3, true);
+// $this->display(3, true);
         while (true) {
             $idx = $this->setOrder[count($this->setOrder) - 1];
             if ($this->isForced($idx)) {
@@ -203,7 +203,7 @@ $this->display(3, true);
 
     protected function testDensity() {
         $density = $this->getDensity();
-$this->log('testing density -- '.$density, true);
+// $this->log('testing density -- '.$density, true);
         $density_randomness = $this->density_randomness / 2;
         $min_fullness = $this->density_constant - $density_randomness;
         $max_fullness = $this->density_constant + $density_randomness;
@@ -228,7 +228,7 @@ $this->density_randomness *= 1.1;
         // modifications -- check min strip modified perhaps -- get strips, pluck this out
         // now have 4 (poss empty) strips. if empty, non violation. check min length elsewise
         // todo: rewrite mustBeData to account for non LRTB order
-$this->log('adjustForHighDensity', true);
+// $this->log('adjustForHighDensity', true);
         $idxs = array_keys($this->cells);
         $this->shuffle($idxs);
         foreach ($idxs as $idx) {
@@ -244,7 +244,7 @@ $this->log('adjustForHighDensity', true);
     }
 
     protected function adjustForLowDensity() {
-$this->log('adjustForLowDensity', true);
+// $this->log('adjustForLowDensity', true);
         $idxs = array_keys($this->cells);
         $this->shuffle($idxs);
         foreach ($idxs as $idx) {
@@ -336,13 +336,13 @@ $this->log('adjustForLowDensity', true);
             if ($len && $len < $this->minimumStripSize) {
                 // any unknowns makes this ok
                 foreach ($substrip as $cell) {
-$this->log($cell->dump(),true);
+// $this->log($cell->dump(),true);
                     if ($this->isUnknown($cell->getIdx())) {
                         continue 2;
                     }
                 }
-$this->log('fail to meet striplencriteria '.$idx. ' '.$len,true);
-$this->display(3, true);
+// $this->log('fail to meet striplencriteria '.$idx. ' '.$len,true);
+// $this->display(3, true);
                 return true;
             } 
         }
@@ -485,13 +485,13 @@ $this->display(3, true);
 
         // $this->setUnknown($idx);
 
-$this->log($idx.' island?', true);
-$this->log($dataIdx.' start data', true);
+// $this->log($idx.' island?', true);
+// $this->log($dataIdx.' start data', true);
 sort($web);
-$this->log($web, true);
-$this->display(3, true);
+// $this->log($web, true);
+// $this->display(3, true);
         if ($nonBlankCountWeb < $nonBlankCount) {
-$this->log($idx.' DOES create island', true);
+// $this->log($idx.' DOES create island', true);
             $island1 = [];
             $island2 = [];
             foreach ($this->cellTypes as $i => $type) {
@@ -503,8 +503,8 @@ $this->log($idx.' DOES create island', true);
                     }
                 }
             }
-$this->log(json_encode($island1).' island 1', true);
-$this->log(json_encode($island2).' island 2', true);
+// $this->log(json_encode($island1).' island 1', true);
+// $this->log(json_encode($island2).' island 2', true);
 
             return count($island1) >= count($island2) ? $island2 : $island1;
         }
@@ -529,16 +529,16 @@ $this->log(json_encode($island2).' island 2', true);
         if ($fullnessWithoutIsland < $desired_fullness - $densityRandomness) {
             return false;
         }
-$this->log("ok to remove island", true);
+// $this->log("ok to remove island", true);
         $this->preferToRemoveIsland = abs($desired_fullness - $fullnessWithIsland) > abs($desired_fullness - $fullnessWithoutIsland);
-$this->log("prefer to remove island? ".$this->preferToRemoveIsland, true);
+// $this->log("prefer to remove island? ".$this->preferToRemoveIsland, true);
 
         return true;
     }
 
     protected function removeIsland($island)
     {
-$this->log('remove island ' . json_encode($island), true);
+// $this->log('remove island ' . json_encode($island), true);
         foreach ($island as $idx) {
             $this->setBlank($idx, true);
         }
@@ -569,14 +569,14 @@ $this->log('remove island ' . json_encode($island), true);
         if ($nonTemp && !in_array($idx, $this->setOrder)) {
             $this->setOrder[] = $idx;
         }
-$this->log("$idx now $val", true);
+// $this->log("$idx now $val", true);
         if ($this->symmetry) {
             $mirrorIdx = $this->getMirrorIdx($idx);
             $this->cellTypes[$mirrorIdx] = $val;
             if ($nonTemp && !in_array($mirrorIdx, $this->setOrder)) {
                 $this->setOrder[] = $mirrorIdx;
             }
-$this->log("$mirrorIdx now $val", true);
+// $this->log("$mirrorIdx now $val", true);
         }
     }
 
@@ -597,12 +597,12 @@ $this->log("$mirrorIdx now $val", true);
     {
         unset($this->cellTypes[$idx]);
         $this->unsetValue($this->setOrder, $idx);
-$this->log("$idx now unknown", true);
+// $this->log("$idx now unknown", true);
         if ($this->symmetry) {
             $mirrorIdx = $this->getMirrorIdx($idx);
             unset($this->cellTypes[$mirrorIdx]);
             $this->unsetValue($this->setOrder, $mirrorIdx);
-$this->log("$mirrorIdx now unknown", true);
+// $this->log("$mirrorIdx now unknown", true);
         }
     }
 
