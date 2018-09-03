@@ -27,4 +27,12 @@ class DefaultController extends Controller
     {
         return $this->render('default/grid.html.twig', []);
     }
+
+    /**
+     * @Route("/grid/design", name="design_grid")
+     */
+    public function designGridAction(Request $request)
+    {
+        return $this->render('default/design_grid.html.twig', []);
+    }
 }

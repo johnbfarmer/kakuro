@@ -343,7 +343,6 @@ export default class Grid extends React.Component {
                     cell={cell}
                     solved={this.state.solved}
                     key={index}
-                    handleKey={this.handleKey}
                     onClick={() => this.setActive(cell.row, cell.col)}
                     onChange={this.handleChangedCell}
                    />;
@@ -360,7 +359,7 @@ export default class Grid extends React.Component {
                 <div className="col-md-4">
                     <KakuroControls
                         savedGameName={this.state.savedGameName}
-                        grid_name={this.state.name}
+                        gridName={this.state.name}
                         save={this.saveChoices}
                         grids={this.state.grids}
                         getGrid={this.getGrid}

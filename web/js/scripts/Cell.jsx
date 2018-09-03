@@ -16,7 +16,7 @@ export default class Cell extends React.Component {
         this.state.active = cell.active;
         this.state.choices = cell.choices;
         this.state.remove = [];
-        if (this.state.editable) {
+        if (this.state.is_data) {
             this.state.display = cell.choices.join('');
         }
     }
@@ -27,12 +27,12 @@ export default class Cell extends React.Component {
 
     loadVals(props) {
         var cell = props.cell;
-        var editable = cell.is_data;
+        var editable = 'is_editable' in cell ? cell.is_editable : cell.is_data;
         var display = cell.choices.join('');
         var label_v = '';
         var label_h = '';
         var sum_box = false;
-        if (!editable) {
+        if (!cell.is_data) {
             label_v = cell.display[0] ? cell.display[0].toString() : '';
             label_h = cell.display[1] ? cell.display[1].toString() : '';
             if (label_h.length > 0 || label_v.length > 0) {
@@ -45,6 +45,7 @@ export default class Cell extends React.Component {
         this.state.label_h = label_h;
         this.state.sum_box = sum_box;
         this.state.choices = cell.choices;
+        this.state.is_data = cell.is_data;
         this.state.editable = editable;
         this.state.active = cell.active;
         this.state.row = cell.row;
@@ -54,7 +55,7 @@ export default class Cell extends React.Component {
 
     getClasses() {
         var classes = "kakuro-cell";
-        if (!this.state.editable) {
+        if (!this.state.is_data) {
             classes = classes + " blnk";
         }
          if (this.state.sum_box) {
@@ -84,7 +85,7 @@ export default class Cell extends React.Component {
     }
 
     render() {
-        if (this.state.editable) {
+        if (this.state.is_data) {
             return (
                 <div className={this.getClasses()} onClick={() => this.setActive()}>
                     <span className='choice-box'>{this.props.cell.choices.join('')}</span>
