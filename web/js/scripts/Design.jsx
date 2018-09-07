@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Cell from './Cell.jsx';
 import KakuroControls from './KakuroControls.jsx';
-import {adjustLabels, getCellArray} from './f.js';
+import {GridHelper} from './GridHelper.js';
 
 export default class GridDesigner extends React.Component {
     constructor(props) {
@@ -44,8 +44,7 @@ export default class GridDesigner extends React.Component {
     }
 
     newGrid(h, w) {
-        var c = getCellArray(h, w);
-        console.log(c);
+        var c = GridHelper.getCellArray(h, w);
         var cells = this.processNewData(c, h, w);
         this.setState({cells: cells, height: h, width: w, active_row: h-1, active_col: w-1, gridId: 0});
     }
@@ -106,6 +105,11 @@ export default class GridDesigner extends React.Component {
     setActiveCellVal(val) {
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         var cells = this.state.cells;
+
+        if (!GridHelper.valAllowed(val, idx, cells, this.state.height, this.state.width)) {
+            return;
+        }
+
         switch(val) {
             case 'x':
                 cells[idx].is_data = !cells[idx].is_data;
@@ -116,12 +120,38 @@ export default class GridDesigner extends React.Component {
 
         // adjust other cells based on this action:
         // adjust labels
-        cells = adjustLabels(idx, cells, this.state.height, this.state.width);
+        cells = GridHelper.adjustLabels(idx, cells, this.state.height, this.state.width);
 
         // adjust possible values
-        // TBI
+        // cells = getChoices(cells).then(resp => {
+        //     console.log('hi');
+        //     console.log(resp.cells[9].choices);
+        //     this.setState({cells: resp.cells});
+        // });
+
+        cells = this.reduce(idx, cells, this.state.height, this.state.width)
 
         this.setState({cells: cells});
+    }
+
+    reduce(idx, cells, h, w) {
+        var p = GridHelper.peers(idx, cells, h, w);
+        if (cells[idx].is_data) {
+            var val = cells[idx].choices[0];
+            p.forEach((v) => {
+                v.choices.forEach((c, k)=> {
+                    if (c === val) {
+                        v.choices.splice(k, 1);
+                    }
+                });
+                var i = p.row * w + p.col;
+                cells[i] = v;
+            });
+        } else {
+
+        }
+
+        return cells;
     }
 
     setActive(row, col) {
