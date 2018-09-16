@@ -170,6 +170,7 @@ class BuildKakuro extends BaseKakuro
         }
         $this->gridObj->removeAllCells();
         foreach ($cells as $cell) {
+$this->log($cell->dump());
             $this->gridObj->addCell($cell);
         }
 

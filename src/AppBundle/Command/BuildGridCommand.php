@@ -60,8 +60,8 @@ class BuildGridCommand extends Command
             $size = $parameters['size'];
             $size_array = explode('x', $size);
             if (count($size_array) !== 2) {
-                throw new \Exception('Size argument "' . $size . '" must be heightxwidth, like 12x12');
-                
+                $size_array = [8,8];
+                // throw new \Exception('Size argument "' . $size . '" must be heightxwidth, like 12x12');
             }
 
             $parameters['height'] = $size_array[0];

@@ -40,7 +40,7 @@ class BuildKakuroFrame extends BaseKakuro
         parent::__construct($parameters, $em);
         $this->width = !empty($this->parameters['width']) ? $this->parameters['width'] : 12;
         $this->height = !empty($this->parameters['height']) ? $this->parameters['height'] : 12;
-        $this->density_constant = !empty($this->parameters['density']) ? $this->parameters['density'] : 12;
+        $this->density_constant = !empty($this->parameters['density']) ? $this->parameters['density'] : .7;
         $this->maxStripLength = !empty($this->parameters['max-strip-length']) ? $this->parameters['max-strip-length'] : count($this->number_set);
         $this->symmetry = !empty($this->parameters['symmetry']);
         if (!empty($this->parameters['frame-id'])) {

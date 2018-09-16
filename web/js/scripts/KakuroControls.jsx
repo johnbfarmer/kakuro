@@ -8,8 +8,8 @@ export default class KakuroControls extends React.Component {
             savedGameName: '',
             grids: [],
             createMode: false,
-            height: 8,
-            width: 8,
+            height: 4,
+            width: 4,
         };
 
         this.loadVals(props);

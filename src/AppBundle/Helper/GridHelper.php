@@ -169,6 +169,576 @@ class GridHelper
         return $i_stop;
     }
 
+    public static function populateDesignChoices($cells, $height, $width)
+    {
+        foreach ($cells as $idx => $cell) {
+            if (!empty($cell['is_data']) && count($cell['choices']) !== 1) {
+                $cells[$idx]['choices'] = self::designChoices($cell, $cells, $height, $width);
+            }
+        }
+
+        $cells = self::filterNumsThatCauseNonUnique($cells, $height, $width);
+
+        return $cells;
+    }
+
+    public static function taken($cell, $cells, $height, $width)
+    {
+        $strips = self::strips($cell, $cells, $height, $width);
+
+        $taken = [];
+
+        foreach ($strips as $strip) {
+            foreach ($strip as $stripCell) {
+                if ($stripCell['idx'] === $cell['idx'] || count($stripCell['choices']) !== 1) {
+                    continue;
+                }
+
+                $val = $stripCell['choices'][0];
+                if (!in_array($val, $taken)) {
+                    $taken[] = $val;
+                }
+            }
+        }
+
+        return $taken;
+    }
+
+    public static function designChoices($cell, $cells, $height, $width)
+    {
+        $numberSet = [1,2,3,4,5,6,7,8,9];
+        $taken = self::taken($cell, $cells, $height, $width);
+        $available = array_values(array_diff($numberSet, $taken));
+        // $cell['choices'] = array_values(array_diff($numberSet, $taken));
+        // $cell['choices'] = array_values(array_diff($cell['choices'], $taken));
+        return $available;
+    }
+
+    public static  function filterNumsThatCauseNonUnique($cells, $height, $width)
+    {
+        // get all h strips
+        $hStrips = [];
+        $indexedStrips = [];
+
+        // add strips key data cells:
+        foreach ($cells as $idx => $cell) {
+            if (empty($cell['is_data'])) {
+                continue;
+            }
+
+            $strips = self::strips($cell, $cells, $height, $width);
+            $sh = $strips['h'];
+            $sv = $strips['v'];
+            $ih = self::stripIndex($sh);
+            $iv = self::stripIndex($sv);
+            $cells[$idx]['strips'] = ['h' => $ih, 'v' => $iv];
+        }
+
+        // build strip indexes:
+        foreach ($cells as $idx => $cell) {
+            if (empty($cell['is_data'])) {
+                continue;
+            }
+
+            // have to do this again here to get the updated cells from above
+            $strips = self::strips($cell, $cells, $height, $width);
+            $sh = $strips['h'];
+            $sv = $strips['v'];
+            $ih = self::stripIndex($sh);
+            $iv = self::stripIndex($sv);
+            if (!in_array($ih, array_keys($indexedStrips))) {
+                $indexedStrips[$ih] = $sh;
+                $hStrips[] = $sh;
+            }
+            if (!in_array($iv, array_keys($indexedStrips))) {
+                $indexedStrips[$iv] = $sv;
+            }
+        }
+
+        // get swappable subsets -- 2x2, must have exactly one empty cell
+        $swappableSubsets = [];
+        foreach ($hStrips as $strip) {
+            foreach ($strip as $cell1) {
+                // if (count($cell1['choices']) !== 1) {
+                //     continue;
+                // }
+                $vStrip1 = $indexedStrips[$cell1['strips']['v']];
+                foreach ($strip as $cell2) {
+                    if ($cell2['row'] <= $cell1['row'] && $cell2['col'] <= $cell1['col']) {
+                        continue;
+                    }
+                    if (count($cell1['choices']) !== 1 && count($cell2['choices']) !== 1) {
+                        continue;
+                    }
+
+                    $w1 = [$cell1, $cell2];
+                    $vStrip2 = $indexedStrips[$cell2['strips']['v']];
+                    $w2s = self::getSwappableMatches($cell1, $cell2, $vStrip1, $vStrip2, $cells);
+                    if (!empty($w2s)) {
+                        foreach ($w2s as $w2) {
+                            $swappableSubsets[] = [$w1, $w2];
+                        }
+                    }
+                }
+
+            }
+        }
+
+// self::log('jbf');
+// self::log(json_encode($swappableSubsets));
+        foreach ($swappableSubsets as $swappableSubset) {
+            $cells = self::filterNumsThatCauseSwap2($swappableSubset, $indexedStrips, $cells, $height, $width);
+        }
+
+        // $available = $this->filterNumsThatCauseSwap3($cell, $available);
+
+        // $available = $cell['choices'];
+        return $cells;
+    }
+
+    public static function getSwappableMatches($cell1, $cell2, $vStrip1, $vStrip2, $cells)
+    {
+        $matches = [];
+        $hasEmpty = count($cell1['choices']) !== 1 || count($cell2['choices']) !== 1;
+        foreach ($vStrip1 as $cell3) {
+            if (count($cell3['choices']) !== 1) {
+                if ($hasEmpty) {
+                    continue;
+                }
+
+                $hasEmpty = true;
+            }
+            if ($cell3['row'] <= $cell1['row'] && $cell3['col'] <= $cell1['col']) {
+                continue;
+            }
+            foreach ($vStrip2 as $cell4) {
+                if (count($cell4['choices']) !== 1) {
+                    if ($hasEmpty) {
+                        continue;
+                    }
+                }
+                if ($cell4['row'] !== $cell3['row'] && $cell4['col'] !== $cell3['col']) {
+                    continue;
+                }
+                if (self::connected($cell3, $cell4, $cells)) {
+                    $matches[] = [$cell3, $cell4];
+                }
+            }
+        }
+
+        return $matches;
+    }
+
+    public static function connected($cell1, $cell2, $cells)
+    {
+        return $cell1['strips']['h'] === $cell2['strips']['h'] || $cell1['strips']['v'] === $cell2['strips']['v']; // tbi
+    }
+
+    public static  function filterNumsThatCauseSwap2($swappableSubset, $indexedStrips, $cells, $height, $width)
+    {
+        foreach ($swappableSubset as $outerIdx => $pair) {
+            foreach ($pair as $innerIdx => $cell) {
+                if ($cell['choices'] !== 1) {
+                    // X is unknown; b is diagonal to X; a and c are the others
+                    $X = $cell;
+                    $a = $pair[abs($innerIdx - 1)];
+                    $otherPair = $swappableSubset[abs($outerIdx - 1)];
+                    if ($otherPair[0]['row'] === $X['row'] || $otherPair[0]['col'] === $X['col']) {
+                        $b = $otherPair[1];
+                        $c = $otherPair[0];
+                    } else {
+                        $b = $otherPair[0];
+                        $c = $otherPair[1];
+                    }
+                    break 2;
+                }
+            }
+        }
+
+        // get available options for a,b and c:
+        $a = self::setAvailable($a, $indexedStrips);
+        $b = self::setAvailable($b, $indexedStrips);
+        $c = self::setAvailable($c, $indexedStrips);
+        $a['available'][] = $b['choices'][0];
+        $b['available'][] = $a['choices'][0];
+        $b['available'][] = $c['choices'][0];
+        $c['available'][] = $b['choices'][0];
+// self::log($a);
+// self::log($b);
+// self::log($c);
+// self::log($X);exit;
+        // see what values of X we can have. also need to unset by similar sums
+        foreach ($X['choices'] as $choiceIdx => $candidate) {
+            if (self::failTests($candidate, $a['choices'][0], $b['choices'][0], $c['choices'][0], $X['choices'], $a['available'], $b['available'], $c['available'])) {
+self::log('unset ' . $candidate . ' for ' . $choiceIdx);
+                unset($X['choices'][$choiceIdx]);
+            }
+        }
+
+        $X['choices'] = array_values($X['choices']);
+        $cells[$X['idx']] = $X;
+
+        return $cells;
+    }
+
+    public static function setAvailable($cell, $indexedStrips)
+    {
+        $numberSet = [1,2,3,4,5,6,7,8,9];
+        $taken = [];
+        foreach ($cell['strips'] as $stripIdx) {
+            $strip = $indexedStrips[$stripIdx];
+            foreach ($strip as $stripCell) {
+                if ($stripCell['idx'] === $cell['idx'] || count($stripCell['choices']) !== 1) {
+                    continue;
+                }
+                $taken[] = $stripCell['choices'][0];
+            }
+        }
+
+        $cell['available'] = array_values(array_diff($numberSet, $taken));
+        return $cell;
+    }
+
+    public static function failTests($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        if (self::failTest1($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+            return true;
+        }
+        if (self::failTest2($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+            return true;
+        }
+        if (self::failTest3($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+            return true;
+        }
+        if (self::failTest4($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function failTest1($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        // H-strip permutation
+        // X valid (a)
+        // a valid (X)
+        // a+b-X valid in setB
+        // b+c-(a+b)+X -> c-a+X valid in setC
+        // X != a+b-X -> X != (a+b)/2
+        // a+b-X != c-a+X -> X != (2a+b-c)/2
+        // c-a+X != a -> X != 2a-c
+
+        if (!in_array($X, $setA)) {
+            return false;
+        }
+
+        if (!in_array($a, $setX)) {
+            return false;
+        }
+
+        if (!in_array($a+$b-$X, $setB)) {
+            return false;
+        }
+
+        if (!in_array($X+$c-$a, $setC)) {
+            return false;
+        }
+
+        if ($X == ($a+$b)/2) {
+            return false;
+        }
+
+        if ($X == 2*$a-$c) {
+            return false;
+        }
+
+        if ($X == 2*$a-2*$b-$c) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static function failTest2($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        // V-strip permutation
+        // c valid (X)
+        // X valid (c)
+        // b+c-X valid
+        // a-c+X valid
+        // X != (b+c)/2
+        // X != (2c+b-a)/2
+        // X != 2c-a
+
+        if (!in_array($c, $setX)) {
+            return false;
+        }
+
+        if (!in_array($X, $setC)) {
+            return false;
+        }
+
+        if (!in_array($b+$c-$X, $setB)) {
+            return false;
+        }
+
+        if (!in_array($X+$a-$c, $setA)) {
+            return false;
+        }
+
+        if ($X == ($c+$b)/2) {
+            return false;
+        }
+
+        if ($X == 2*$c-$a) {
+            return false;
+        }
+
+        if ($X == (2*$c+$b-$a)/2) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static function failTest3($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        // H-neighbor permutation
+        // c valid (b)
+        // b valid (c)
+        // a+b-c valid for a's position
+        // X+c-b valid for X's position
+        // c != (a+b)/2
+        // X != 2b-c
+        // X != 2b-2c+a
+
+        if (!in_array($c, $setB)) {
+            return false;
+        }
+
+        if (!in_array($b, $setC)) {
+            return false;
+        }
+
+        if (!in_array($a+$b-$c, $setA)) {
+            return false;
+        }
+
+        if (!in_array($X+$c-$b, $setX)) {
+            return false;
+        }
+
+        if ($c == ($a+$b)/2) {
+            return false;
+        }
+
+        if ($X == 2*$b-$c) {
+            return false;
+        }
+
+        if ($X == 2*$b-2*$c+$a) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static function failTest4($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        // V-neighbor permutation
+        // b valid (a)
+        // a valid (b)
+        // b+c-a valid (c)
+        // X+a-b valid (X)
+        // a != (b+c)/2
+        // X != 2b-a
+        // X != 2b-2a+c
+
+        if (!in_array($b, $setA)) {
+            return false;
+        }
+
+        if (!in_array($a, $setB)) {
+            return false;
+        }
+
+        if (!in_array($c+$b-$a, $setC)) {
+            return false;
+        }
+
+        if (!in_array($X+$a-$b, $setX)) {
+            return false;
+        }
+
+        if ($a == ($c+$b)/2) {
+            return false;
+        }
+
+        if ($X == 2*$b-$a) {
+            return false;
+        }
+
+        if ($X == 2*$b-2*$a+$c) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public static function getImmediateNeighbors($cell, $cells, $height, $width)
+    {
+        $idx = $cell['idx'];
+
+        $nbrs = [
+            'top' => null,
+            'bottom' => null,
+            'left' => null,
+            'right' => null,
+        ];
+
+        if ($idx >= $width) {
+            $nbrs['top'] = $cells[$idx - $width];
+        }
+        if ($idx < ($height - 1) * $width) {
+            $nbrs['bottom'] = $cells[$idx + $width];
+        }
+        if ($idx % $width) {
+            $nbrs['left'] = $cells[$idx - 1];
+        }
+        if ($idx % $width < $width - 1) {
+            $nbrs['right'] = $cells[$idx + 1];
+        }
+
+        return $nbrs;
+    }
+
+    public static function interesectByValue($strips) // takes 2 strips
+    {
+        $cells = [];
+        $strips = array_values($strips);
+        if (empty($strips[0]) || empty($strips[1])) {
+            return [];
+        }
+
+        foreach ($strips[0] as $cell) {
+            if (count($cell['choices']) !== 1) {
+                continue;
+            }
+            $choice = $cell['choices'][0];
+            if (!$choice) {
+                continue;
+            }
+            foreach ($strips[1] as $vCell) {
+                if ($vCell['choices'][0] === $choice) {
+                    $cells[] = [$cell, $vCell];
+                    continue 2;
+                }
+            }
+        }
+
+        return $cells;
+    }
+
+    public static function strips($cell, $cells, $height, $width)
+    {
+        $isDataCell = !empty($cell['is_data']);
+        $nbrs = [];
+
+        // vertical
+        // walk up to nearest non-data
+        $strip = [];
+        $i = $cell['idx'] - $width;
+        while ($i > 0) {
+            if (!($cells[$i]['is_data'])) {
+                break;
+            } else {
+                $strip[] = $cells[$i];
+            }
+            $i = $i - $width;
+        }
+
+        if (!$isDataCell) {
+            $nbrs['v'] = $strip;
+            $strip = [];
+        } else {
+            $strip[] = $cell;
+        }
+
+        // walk down to nearest non-data
+        $i = $cell['idx'] + $width;
+        while ($i < $height * $width) {
+            if (!($cells[$i]['is_data'])) {
+                break;
+            } else {
+                $strip[] = $cells[$i];
+            }
+            $i += $width;
+        }
+        $nbrs['v'] = $strip;
+
+        // horizontal
+        // walk left to nearest non-data
+        $i = $cell['idx'] - 1;
+        $strip = [];
+        while ($i % $width !== $width - 1) { // walk until you have wrapped
+            if (!($cells[$i]['is_data'])) {
+                break;
+            } else {
+                $strip[] = $cells[$i];
+            }
+            $i = $i - 1;
+        }
+
+        if (!$isDataCell) {
+            $nbrs['h'] = $strip;
+            $strip = [];
+        } else {
+            $strip[] = $cell;
+        }
+     
+        // walk right to nearest non-data
+        $i = $cell['idx'] + 1;
+        while ($i % $width) {
+            if (!($cells[$i]['is_data'])) {
+                break;
+            } else {
+                $strip[] = $cells[$i];
+            }
+            $i += 1;
+        }
+        $nbrs['h'] = $strip;
+
+        return $nbrs;
+    }
+
+    public static function stripIndex($strip)
+    {
+        $isHorizontal = true;
+        $minRow = null;
+        $minCol = null;
+        $prevRow = null;
+        forEach($strip as $cell) {
+            if ($minRow === null || $cell['row'] < $minRow) {
+                $minRow = $cell['row'];
+            }
+
+            if ($minCol === null || $cell['col'] < $minCol) {
+                $minCol = $cell['col'];
+            }
+
+            if ($prevRow !== null && $cell['row'] != $prevRow) { 
+                $isHorizontal = false;
+            }
+
+            $prevRow = $cell['row'];
+        }
+
+        $orientation = $isHorizontal ? '_h' : '_v';
+        $stripStart =  $minRow . '_' . $minCol ;
+
+        return $stripStart . $orientation;
+    }
+
     // move to base process class
     public static function pickRandom($arr)
     {

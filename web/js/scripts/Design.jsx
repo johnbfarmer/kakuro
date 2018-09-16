@@ -35,10 +35,11 @@ export default class GridDesigner extends React.Component {
 
     getGrid(id) {
         return $.getJSON(
-            "http://kak.uro/app_dev.php/api/grid/" + id
+            "http://kak.uro/app_dev.php/api/solution/" + id
         ).then(data => {
             console.log('gg ', data);
             var cells = this.processNewData(data.cells, data.height, data.width);
+            cells = GridHelper.adjustAllLabels(cells, data.height, data.width);
             this.setState({cells: cells, height: data.height, width: data.width, gridId: id});
         });
     }
@@ -49,8 +50,33 @@ export default class GridDesigner extends React.Component {
         this.setState({cells: cells, height: h, width: w, active_row: h-1, active_col: w-1, gridId: 0});
     }
 
-    saveChoices() {
+    saveChoices(name) {
         console.log('sc');
+        if (!GridHelper.validGrid(this.state.cells, this.state.height, this.state.width)) {
+            console.log('invalid for saving');
+            console.log(GridHelper.message);
+        }
+
+        // if (!GridHelper.saveGame(name, this.state.cells, this.state.height, this.state.width)) {
+        //     console.log('error saving');
+        // }
+
+        var cells = JSON.stringify(this.state.cells);
+        name = name || null;
+        return $.post(
+            "http://kak.uro/app_dev.php/api/save-design",
+            {
+                grid_id: this.state.gridId,
+                height: this.state.height,
+                width: this.state.width,
+                name: name,
+                cells: cells,
+            },
+            function(resp) {
+                console.log(resp);
+            },
+            'json'
+        );
     }
 
     getGames() {
@@ -68,7 +94,7 @@ export default class GridDesigner extends React.Component {
             if (!('display' in cell)) {
                 cell.display = [0,0];
             }
-            if (cell.row == 0 || cell.col == 0) {
+            if (('is_data' in cell && !cell.is_data) || cell.row == 0 || cell.col == 0) {
                 cell.is_data = false;
                 cell.display = cell.display || [0,0];
             } else {
@@ -77,6 +103,7 @@ export default class GridDesigner extends React.Component {
             cell.active = cell.row === this.state.active_row && cell.col === this.state.active_col;
             cells[idx] = cell;
         });
+
         return cells;
     }
 
@@ -129,29 +156,32 @@ export default class GridDesigner extends React.Component {
         //     this.setState({cells: resp.cells});
         // });
 
-        cells = this.reduce(idx, cells, this.state.height, this.state.width)
+        // cells = this.reduce(idx, cells, this.state.height, this.state.width);
+        var me = this;
+        $.post(
+            "http://kak.uro/app_dev.php/api/design/choices",
+            {
+                height: this.state.height,
+                width: this.state.width,
+                cells: JSON.stringify(cells),
+            },
+            function(resp) {
+                // console.log(resp);
+                cells = resp;
+                // me.setState({cells: cells});
+            },
+            'json'
+        ).then(cells => {
+            this.setState({cells: cells});
+        });
 
-        this.setState({cells: cells});
+        // GridHelper.checkSwap(idx, cells, this.state.height, this.state.width);
+
+        // this.setState({cells: cells});
     }
 
     reduce(idx, cells, h, w) {
-        var p = GridHelper.peers(idx, cells, h, w);
-        if (cells[idx].is_data) {
-            var val = cells[idx].choices[0];
-            p.forEach((v) => {
-                v.choices.forEach((c, k)=> {
-                    if (c === val) {
-                        v.choices.splice(k, 1);
-                    }
-                });
-                var i = p.row * w + p.col;
-                cells[i] = v;
-            });
-        } else {
-
-        }
-
-        return cells;
+        return GridHelper.reduce(idx, cells, h, w);
     }
 
     setActive(row, col) {

@@ -3,6 +3,7 @@
 namespace AppBundle\Controller;
 
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Route;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\Method;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,7 +12,9 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use AppBundle\Process\SolveGrid;
 use AppBundle\Process\KakuroReducer;
 use AppBundle\Process\SaveGrid;
+use AppBundle\Process\SaveDesign;
 use AppBundle\Process\LoadSavedGrid;
+use AppBundle\Process\KakuroSolution;
 use AppBundle\Helper\GridHelper;
 use AppBundle\Entity\Grid;
 
@@ -113,5 +116,61 @@ class ApiController extends Controller
         $saved_grid_id = $request->request->get('saved_grid_id');
         $savedGrid = $this->getDoctrine()->getManager()->getRepository('AppBundle:SavedGrid')->find($saved_grid_id);
         return new JsonResponse($savedGrid->getForApi());
+    }
+
+    /**
+     * @Route("api/build/get-choices", name="build_choices")
+     * @Method({"POST"})
+     */
+    public function getBuildChoicesAction(Request $request)
+    {
+        // $cells = $request->request->get('cells');
+        $cells = json_decode($request->request->get('cells'), true);
+        // $cells[9]['choices'] = [2,3];
+        $parameters = [
+            'cells' => $cells,
+        ];
+        // $reducer = KakuroReducer::autoExecute($parameters, null);
+        return new JsonResponse($parameters);
+    }
+
+    /**
+     * @Route("api/save-design", name="grid_save_design")
+     */
+    public function saveDesignAction(Request $request)
+    {
+        $cells = json_decode($request->request->get('cells'), true);
+        $id = $request->request->has('grid_id') ? $request->request->get('grid_id') : null;
+        $height = $request->request->get('height');
+        $width = $request->request->get('width');
+        $name = $request->request->has('name') && !empty($request->request->get('name')) 
+            ? $request->request->get('name') 
+            : 'kakuro_' . time();
+        $parameters = ['id' => $id, 'name' => $name, 'cells' => $cells, 'height' => $height, 'width' => $width];
+        SaveDesign::autoExecute($parameters, null);
+        $grid = [];
+        return new JsonResponse($grid);
+    }
+
+    /**
+     * @Route("api/design/choices", name="design_choices")
+     * @Method({"POST"})
+     */
+    public function getDesignChoicesAction(Request $request)
+    {
+        $cells = json_decode($request->request->get('cells'), true);
+        $height = $request->request->get('height');
+        $width = $request->request->get('width');
+        $cells = GridHelper::populateDesignChoices($cells, $height, $width);
+        return new JsonResponse($cells);
+    }
+
+    /**
+     * @Route("api/solution/{id}", name="solution")
+     */
+    public function gridSolutionAction(Request $request, $id)
+    {
+        $solution = KakuroSolution::autoexecute(['id' => $id], null);
+        return new JsonResponse($solution->getResult());
     }
 }

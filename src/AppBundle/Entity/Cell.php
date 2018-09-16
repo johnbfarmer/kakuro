@@ -275,7 +275,8 @@ class Cell
     {
         $str = '(' . $this->row.','.$this->col.')';
         if (!$coords_only) {
-            $str .= ', '.json_encode($this->choices);
+            // $str .= ', '.json_encode($this->choices);
+            $str .= ': ' . $this->choice;
         }
 
         return $str;

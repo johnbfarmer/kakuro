@@ -71,17 +71,24 @@ class BuildKakuroSolution extends BaseKakuro
         if (!empty($this->parameters['fromFile'])) {
             $this->handlePresets();
         }
-        $this->countDataCells();
-        $this->fillStrips();
-        $this->addNumbers();
+
+        if (!$this->solvable) {
+            $this->countDataCells();
+            $this->fillStrips();
+            $this->addNumbers();
+        }
     }
 
     protected function fillStrips()
     {
+$this->ctr = 0;
         $idxs = array_keys($this->cells);
         $strips = $this->getStripsSortByLongest($idxs);
         foreach ($strips as $strip) {
-            if ($this->simpleStripPct > $this->maxSimpleStripPercentage) { // lazy. already bigger. but no biggie
+$this->log('attempting to add strip '.$this->getStripIdx($strip), true);
+            // if ($this->simpleStripPct > $this->maxSimpleStripPercentage) { // lazy. already bigger. but no biggie
+            if ($this->ctr++ > 1) {
+$this->log('simpleStripPct is bigger', true);
                 break;
             }
             $this->fillStrip($strip);
@@ -102,7 +109,8 @@ $this->log('add nbrs ', true);
             $idxs = $this->getIdxsToProcess();
             $this->idxsToProcess = [];
 // $this->log('idxs to process'.json_encode($idxs), true);
-            if (empty ($idxs)) {
+            if (empty($idxs)) {
+$this->log('idxs is empty', true);
                 if (!$this->unsetLastNumber()) {
                     if (!$this->unsetLastStrip()) {
                         $this->log('no strips to unset', true);
@@ -115,20 +123,30 @@ $this->log('add nbrs ', true);
             $this->readyForTesting = false;
             foreach ($idxs as $idx) {
                 // fill in the blanks
-                if (!$this->addNumber($idx)) {
+                $choices = $this->getAvailable($idx);
+                if (!$this->addNumberTryAllChoices($idx, $choices)) {
+$this->log('addNumberTryAllChoices returns false', true);
                     continue 2;
+                } else {
+                    $this->display(3, 'after adding ' . $this->cells[$idx]->dump(false));
                 }
+                // while (!empty($choices)) {
+                //     if (!$this->addNumber($idx, $choices)) {
+                //         /////// next choice; if out of choices, back up
+                //         continue 3;
+                //     }
+                // }
 
 // $this->display(3);
                 if ($this->readyForTesting || $this->gridIsFull()) {
                     break;
                 }
-                continue 2; // add one number, re-loop
+                // continue 2; // add one number, re-loop
             }
 
             $this->calculateStrips();
 
-            if (!$this->makeEasilyReducible()) {
+            if (!$this->checkForSolution()) {
                 continue;
             }
 
@@ -138,6 +156,39 @@ $this->log('add nbrs ', true);
             }
         }
 
+        return false;
+    }
+
+    protected function addNumberTryAllChoices($idx, $choices)
+    {
+$this->log($this->cells[$idx]->dump() . ' try all choices',true);
+        foreach ($choices as $choice) {
+            if ($this->addNumberExamineImpact($idx, $choice)) {
+                // store other choices for future
+                $this->unusedChoices[$idx] = $choices;
+                return true;
+            } else {
+$this->log('line 171 return false',true);
+                $this->unsetValue($choices, $choice);
+            }
+        }
+
+        return false;
+    }
+
+    protected function addNumberExamineImpact($idx, $choice)
+    {
+// $this->log('examine impact', true);
+        if ($this->addNumber($idx, [$choice])) {
+            $idxs = $this->getIdxsToProcess();
+            if (!empty($idxs)) {
+                $this->idxsToProcess = $idxs;
+                return true;
+            }
+
+            return true;
+        }
+$this->log('examine impact returns false', true);
         return false;
     }
 
@@ -221,6 +272,7 @@ $this->log("remove anything after $s in set order", true);
             $available = array_values(array_diff($this->number_set, $taken));
 // $this->log('available '.json_encode($available), true);
             $available = $this->filterNumsThatCauseNonUnique($cell, $available);
+// $this->log('available after filter '.json_encode($available), true);
             $r[$idx] = count($available);
 // $this->log('look at '.$cell->dump().' has '.count($available).' choices', true);
             $this->clearSelection($cell);
@@ -255,39 +307,51 @@ $this->log('nothing would be available at '.$this->cells[$idx]->dump(), true);
                 $available = array_values(array_diff($this->number_set, $taken));
                 $available = $this->filterNumsThatCauseNonUnique($cell, $available);
                 if (count($available) == 1) {
-// $this->log($cell->dump().' must have '.current($available), true);
                     $existingChoices[$i] = current($available);
                     $this->selectValue($cell->getIdx(), $available, ['initialStrip' => true, 'log' => true]);
+$this->log($cell->dump() . ' must have '.current($available), true);
+$this->log('taken '.json_encode($taken), true);
+$this->log('available '.json_encode($available), true);
+
+$this->log($this->cellChoices, true);
+$this->display(3, 'spot check'); //exit;
                 } else {
                     $availableChoices[$i] = $available;
                 }
             }
         }
+$this->log('filling strip '.$this->getStripIdx($strip), true);
+$this->log('existingChoices '.json_encode($existingChoices), true);
+// $this->log('availableChoices '.json_encode($availableChoices), true);
         foreach ($ss as $s) {
 // $this->log('testing strip '.json_encode($s), true);
             if (!empty(array_diff($existingChoices, $s))) {
-// $this->log('missing existing vals', true);
+                // this set of numbers conflicts with numbers already in place
                 continue;
             }
 
             foreach ($existingChoices as $i => $choice) {
+                // this choice is already set from a previous action
+$this->log('unsetting: '.$choice, true);
                 $this->unsetValue($s, $choice);
             }
             $this->shuffle($s);
-// $this->log('stripped and shuffled ss: '.json_encode($s), true);
+$this->log('ss after unset: '.json_encode($s), true);
 
             $addedCells = [];
-            // not quite. need to figure out which cells can have which choices and proceed from there
+            // need to figure out which cells can have which choices and proceed from there
             foreach ($strip as $i => $cell) {
                 if (!empty($existingChoices[$i])) {
+$this->log($cell->dump().' clearSelection', true);
+                    $this->clearSelection($strip);
                     continue;
                 }
                 $possibleChoices = array_values(array_intersect($availableChoices[$i], $s));
                 if (count($possibleChoices) == 1) {
                     $existingChoices[$i] = current($possibleChoices);
-                    $this->selectValue($cell->getIdx(), $possibleChoices, ['initialStrip' => true, 'log' => true]);
+                    $this->selectValue($cell->getIdx(), $possibleChoices, ['initialStrip' => false, 'log' => true]);
                     $this->unsetValue($s, current($possibleChoices));
-// $this->log($cell->dump().' must have(2) '.current($possibleChoices), true);
+$this->log($cell->dump().' must have(2) '.current($possibleChoices), true);
                 }
                 $addedCells[] = $cell;
             }
@@ -308,14 +372,17 @@ $this->log('nothing would be available at '.$this->cells[$idx]->dump(), true);
                 // $this->selectValue($cell->getIdx(), [$choice], ['initialStrip' => true]);
                 $this->selectValue($cell->getIdx(), [$choice], ['initialStrip' => false, 'log' => true]);
             }
+
+            // made it here? added
             foreach ($strip as $cell) {
+$this->log($cell->dump().' set initial strip', true);
                 $this->idxsInitialStrips[] = $cell->getIdx();
             }
             if (!in_array($stripIdx, $this->stripOrder)) {
                 $this->stripOrder[] = $stripIdx;
             }
             $this->strips[$stripIdx] = $addedCells;
-$this->display(3, 'added strip');
+$this->display(3, 'added strip ' . $this->getStripIdx($addedCells));
 
             $this->calculateStripPct($stripCount);
 
@@ -362,23 +429,34 @@ $this->display(3, 'added strip');
         return $arr;
     }
 
-    protected function addNumber($idx)
+    protected function getAvailable($idx)
+    {
+        $taken = $this->getTaken($idx);
+        $cell = $this->cells[$idx];
+        $available = array_values(array_diff($this->number_set, $taken));
+        $available = $this->filterNumsThatCauseNonUnique($cell, $available);
+        return $available;
+    }
+
+    protected function addNumber($idx, $available)
     {
         if ($this->isNonDataCell($idx)) {
             return true;
         }
-
+        $cell = $this->cells[$idx];
+$this->log($cell->dump() . ' cellChoices: ' . json_encode($this->cellChoices[$idx]), true);
         if (!empty($this->cellChoices[$idx])) {
             return $this->replaceValue($idx);
         }
 
-        $cell = $this->cells[$idx];
 
-$this->log('add nbr '.$cell->dump(), true);
-
-        $taken = $this->getTaken($idx);
-        $available = array_values(array_diff($this->number_set, $taken));
-        $available = $this->filterNumsThatCauseNonUnique($cell, $available);
+        // this block should not be necessary
+        if (empty($available)) {
+$this->log('this block should not be necessary', true);
+            $taken = $this->getTaken($idx);
+            $available = array_values(array_diff($this->number_set, $taken));
+            $available = $this->filterNumsThatCauseNonUnique($cell, $available);
+        }
 
         if (empty($available)) {
 $this->log("nothing available at ".$cell->dump(), true);
@@ -423,7 +501,7 @@ $this->log("nothing available at $idx ".$cell->dump(), true);
 
         $log = !empty($options['log']);
         $initialStrip = !empty($options['initialStrip']);
-// $this->log('sv '.$this->cells[$idx]->dump().' '.json_encode($choices), $log);
+$this->log('sv '.$this->cells[$idx]->dump().' '.json_encode($choices), $log);
 
         if (count($choices) == 1) {
             $this->unsetValue($this->lastChoice, $idx);
@@ -446,12 +524,15 @@ $this->log("nothing available at $idx ".$cell->dump(), true);
         if ($initialStrip) {
             $this->idxsInitialStrips[] = $idx; // no longer needed
         }
+if ($log) {
 $this->log('set '.$this->cells[$idx]->dump().' to '. $val.' '.json_encode($choices), $log);
+}
         return true;
     }
 
     protected function getBestChoice($idx, $choices)
     {
+$this->log('get best choice', true);
         $strips = $this->findMyStrips($idx);
         foreach ($strips as $strip) {
             $decidedSum = 0;
@@ -480,6 +561,7 @@ $this->log('to complete ss try '.$val, true);
             }
         }
 
+$this->log('random choice', true);
         return rand(1, count($choices)) - 1;
     }
 
@@ -612,9 +694,10 @@ $this->log('to complete ss try '.$val, true);
         // 4 8 3 7 6 5 1
         // 5 6 8 9 1 2 3
 
-        // note this let pass:
+        // note it let this pass:
         // 8 6
         // 7 9 
+        // note the columns can just be switched, which we need to catch
         // so it is verrrry baaad. we only consider intersection of values between the strips. need to look at swapping in general.
 
         // for now, let's do parallel contiguous only:
@@ -644,7 +727,6 @@ $this->log('to complete ss try '.$val, true);
 
             foreach ($intersections as $pos => $y) {
                 if (count($y) > 2) { // case count 2 is already handled
-                    $z = 'dbg';
                     $a1 = [];
                     $a2 = [];
                     foreach ($y as $pair) {
@@ -658,7 +740,7 @@ $this->log('to complete ss try '.$val, true);
                     }
 
                     if (empty(array_diff($a1, $a2))) {
-// $this->log("filter2 not possible $idx $candidateValue" , true);
+$this->log("filter2 not possible " . $cell->dump() . " $candidateValue" , true);
                         $this->unsetValue($available, $candidateValue);
                     }
                 }
@@ -710,7 +792,7 @@ $this->log('to complete ss try '.$val, true);
 // $this->log($sum, true);
                     if ($sum === $nsSum) {
                         $this->unsetValue($available, $candidateValue);
-                        // $this->log($candidateValue . ' is not allowed', true);
+// $this->log($candidateValue . ' is not allowed (equal sums) '.$this->getStripIdx($ns), true);
                         continue 3;
                     }
 
@@ -735,7 +817,7 @@ $this->log('to complete ss try '.$val, true);
                         $validB = array_values(array_diff($this->number_set, $takenB));
                         $validC = array_values(array_diff($this->number_set, $takenC));
                         if ($this->failTests($candidateValue, $a->getChoice(), $b->getChoice(), $c->getChoice(), $validX, $validA, $validB, $validC)) {
-                            // $this->log($candidateValue . ' is not allowed (latest)', true);
+// $this->log($candidateValue . ' is not allowed (latest)', true);
 // $this->log($a->dump().', '.$b->dump().', '.$c->dump(), true);
                             $this->unsetValue($available, $candidateValue);
                             continue 3;
@@ -1400,10 +1482,12 @@ $this->log('to complete ss try '.$val, true);
         foreach ($cells as $cell) {
             $idx = $cell->getIdx();
             if (!$ignore_initial && in_array($idx, $this->idxsInitialStrips)) {
+// $this->log('ignore '.$this->cells[$idx]->dump(),true);
                 continue;
             }
             $this->cellChoices[$idx] = null;
             $this->cells[$idx]->setChoice(null);
+// $this->log('unset '.$this->cells[$idx]->dump(),true);
             $this->unsetValue($this->cellOrder, $idx);
             $this->forbiddenValues[$idx] = [];
         }
@@ -1419,6 +1503,9 @@ $this->log('to complete ss try '.$val, true);
                 }
             }
         }
+
+        $this->calculateStrips();
+        $this->checkForSolution();
     }
 
     protected function completeSimpleStrip($len, $decided)
@@ -1519,12 +1606,14 @@ $this->log('tv '.$idx.' '.json_encode($choices), true);
                 $counts[$idx] = $choiceCount;
             }
         }
-
         if (!empty($counts)) {
+// $this->log('no', true);
+// $this->log($counts, true);
             asort($counts);
             $this->storeTestResult($counts);
             return $counts;
         } else {
+// $this->log('yes', true);
             $this->solvable = true;
             return null;
         }
@@ -1553,7 +1642,7 @@ $this->log('tv '.$idx.' '.json_encode($choices), true);
         return !empty($this->solutionCandidateHashes[$hash]);
     }
 
-    protected function makeEasilyReducible()
+    protected function checkForSolution()
     {
         if ($this->timesThru++ > $this->maxTimesThru) {
             $this->resetNumbers();
@@ -1571,41 +1660,9 @@ $this->display(3);
         } else {
 $this->log('yes easily reduc', true);
             $this->solvable = true;
+            $this->finished = true;
             return true;
         }
-    }
-
-    protected function fixByThrees($idxs)
-    {
-        // of my strips find allsubstrips of size 3
-        // if I don't have any, go back and get me another idx (better to pass you an array then huh?) yeh
-        // for all my 3-substrips, get the parallel connected guys. each 3-substrip + parallel nbr set is to be fixed as follows:
-        // get the shortest strip (if more than one, rules to come). make it ss (if not possible rules to come)
-        while ($idx = array_pop($idxs)) {
-            $strips = $this->findMyStrips($idx);
-            foreach ($strips as $dir => $strip) {
-                $neighborSubstrips = $this->getNeighborSubstrips($strip, $this->cells[$idx], $dir == 'v');
-                foreach ($neighborSubstrips as $ns) {
-                    $this->log($this->getStripIdx($ns), true);
-                }
-            }
-exit;
-        }
-    }
-
-    protected function changeToSimpleStripsWherePossible($idxs)
-    {
-        while ($idx = array_pop($idxs)) {
-            $strips = $this->findMyStrips($idx);
-            foreach($strips as $strip) {
-$this->log("check ".$this->cells[$idx]->dump(). ' '. $this->getStripIdx($strip), true);
-                if (!$this->isSimpleStrip($strip)) {
-$this->log("fix ".$this->cells[$idx]->dump(). ' '. $this->getStripIdx($strip), true);
-exit;
-                }
-            }
-        }
-        
     }
 
     protected function removeStrips($idx)
@@ -1739,7 +1796,7 @@ exit;
         return $strip;
     }
 
-    public function display($padding = 10, $header = 'choice')
+    public function display($padding = 10, $header = 'displaing choices')
     {
         $str = "\n$header\n" . $this->displayChoicesHeader();
 
@@ -1913,7 +1970,7 @@ exit;
     protected function save()
     {
         // only anchors get written to the db
-$this->log('unique solution found', true);
+$this->log('unique solution found (DEPRECATED?)', true);
 $this->display(3);
         $cells = [];
         foreach ($this->gridObj->getCells() as $idx => $cell) {
