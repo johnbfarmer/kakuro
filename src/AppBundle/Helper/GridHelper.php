@@ -290,7 +290,7 @@ class GridHelper
             $cells = self::filterNumsThatCauseSwap2($swappableSubset, $indexedStrips, $cells, $height, $width);
         }
 
-        // $available = $this->filterNumsThatCauseSwap3($cell, $available);
+        $cells = self::filterNumsThatCauseSwap3($cells, $height, $width);
 
         // $available = $cell['choices'];
         return $cells;
@@ -331,7 +331,7 @@ class GridHelper
 
     public static function connected($cell1, $cell2, $cells)
     {
-        return $cell1['strips']['h'] === $cell2['strips']['h'] || $cell1['strips']['v'] === $cell2['strips']['v']; // tbi
+        return $cell1['strips']['h'] === $cell2['strips']['h'] || $cell1['strips']['v'] === $cell2['strips']['v'];
     }
 
     public static  function filterNumsThatCauseSwap2($swappableSubset, $indexedStrips, $cells, $height, $width)
@@ -363,10 +363,7 @@ class GridHelper
         $b['available'][] = $a['choices'][0];
         $b['available'][] = $c['choices'][0];
         $c['available'][] = $b['choices'][0];
-// self::log($a);
-// self::log($b);
-// self::log($c);
-// self::log($X);exit;
+
         // see what values of X we can have. also need to unset by similar sums
         foreach ($X['choices'] as $choiceIdx => $candidate) {
             if (self::failTests($candidate, $a['choices'][0], $b['choices'][0], $c['choices'][0], $X['choices'], $a['available'], $b['available'], $c['available'])) {
@@ -415,6 +412,84 @@ self::log('unset ' . $candidate . ' for ' . $choiceIdx);
         }
 
         return false;
+    }
+
+    public static function filterNumsThatCauseSwap3($cells, $height, $width)
+    {
+        // each posible val (a) -- temporarily set cell to val a, consider his strips:
+        //     find common vals, for each one (b):
+        //         (add b's strips if they contain a
+        //             each "a" cell in those strips, add their strips if they contain b) recurse
+        //         count the a's and b's in the strips. if ==, can't set to a
+        foreach($cells as $cellIdx => $cell) {
+            if (empty($cell['is_data']) || count($cell['choices']) < 2) {
+                continue;
+            }
+
+            $strips = strips($cell, $cells, $height, $width);
+            $commonValuedCellPairs = self::interesectByValue($strips);
+            if (empty($commonValuedCellPairs)) {
+                continue;
+            }
+
+
+            $xx = [];
+            $available = $cell['choices'];
+            foreach ($available as $choiceIdx => $choice) {
+                $cell['choices'] = [$choice];
+                $xx = [];
+                $xx[] = $cell;
+                foreach ($commonValuedCellPairs as $pair) {
+                    $xx = self::findConnectedStripsMutuallyContaining($cell, $pair, $xx);
+                }
+
+                if (count($xx) > 2 && !(count($xx) % 2)) {
+                    unset($available[$choiceIdx]);
+                }
+            }
+
+            $cells[$cellIdx]['choices'] = $available;
+        }
+
+
+
+        return $cells;
+    }
+
+    public static function findConnectedStripsMutuallyContaining($cell1, $pair, $cells)
+    {
+        $val1 = $cell1['choice'][0];
+        foreach ($pair as $cell) {
+            foreach ($cells as $c) {
+                if ($c['idx'] == $cell['idx']) {
+                    continue;
+                }
+            }
+
+
+            // cell2 get strips. see if both contain cell1 val. if yes, add to cells (if not already there) and recurse
+            $pairForRecurse = [];
+            $strips = $this->findMyStrips($idx, false);
+            foreach ($strips as $strip) {
+                foreach ($strip as $c) {
+                    $found = false;
+                    $choice = $c->getChoice();
+                    if ($choice == $val1) {
+                        $found = true;
+                        $pairForRecurse[] = $c;
+                        continue 2; // next strip
+                    }
+                }
+                if (!$found) {
+                    continue 2; // went thru all cells, value not there. next cell in the pair please
+                }
+            }
+
+            $cells->add($cell);
+            $cells = $this->findConnectedStripsMutuallyContaining($cell, $pairForRecurse, $cells);
+        }
+
+        return $cells;
     }
 
     public static function failTest1($X, $a, $b, $c, $setX, $setA, $setB, $setC)

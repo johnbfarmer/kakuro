@@ -4,12 +4,16 @@ import Cell from './Cell.jsx';
 import KakuroControls from './KakuroControls.jsx';
 import {GridHelper} from './GridHelper.js';
 
+var gridId = document.getElementById("content").dataset.id;
+console.log(gridId);
+
 export default class GridDesigner extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             grids: [],
             gridId: 0,
+            gridName: '',
             cells: [],
             height: 0,
             width: 0,
@@ -31,6 +35,9 @@ export default class GridDesigner extends React.Component {
 
     componentDidMount() {
         this.getGames();
+        if (gridId > 0) {
+            this.getGrid(gridId);
+        }
     }
 
     getGrid(id) {
@@ -40,7 +47,7 @@ export default class GridDesigner extends React.Component {
             console.log('gg ', data);
             var cells = this.processNewData(data.cells, data.height, data.width);
             cells = GridHelper.adjustAllLabels(cells, data.height, data.width);
-            this.setState({cells: cells, height: data.height, width: data.width, gridId: id});
+            this.setState({cells: cells, height: data.height, width: data.width, gridId: id, gridName: data.name});
         });
     }
 
@@ -244,7 +251,7 @@ export default class GridDesigner extends React.Component {
                 </div>
                 <div className="col-md-4">
                     <KakuroControls
-                        savedGameName=''
+                        savedGameName={this.state.gridName}
                         selectedGrid={this.state.gridId}
                         save={this.saveChoices}
                         grids={this.state.grids}

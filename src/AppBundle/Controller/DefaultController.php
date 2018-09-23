@@ -29,10 +29,10 @@ class DefaultController extends Controller
     }
 
     /**
-     * @Route("/grid/design", name="design_grid")
+     * @Route("/grid/design/{id}", name="design_grid", defaults={"id"=0})
      */
-    public function designGridAction(Request $request)
+    public function designGridAction(Request $request, $id)
     {
-        return $this->render('default/design_grid.html.twig', []);
+        return $this->render('default/design_grid.html.twig', ['gridId' => $id]);
     }
 }

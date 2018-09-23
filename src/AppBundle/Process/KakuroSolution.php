@@ -24,13 +24,14 @@ class KakuroSolution extends BaseGrid
     protected function execute()
     {
         $sql = '
-        select height, width
+        select height, width, name
         from grids
         WHERE id = ' . $this->gridId;
 
         $record = $this->fetch($sql);
         $h = $record['height'];
         $w = $record['width'];
+        $name = $record['name'];
         $cells = [];
         
         $sql = '
@@ -58,6 +59,7 @@ class KakuroSolution extends BaseGrid
 
         $this->result['height'] = $h;
         $this->result['width'] = $w;
-        $this->result['cells'] = $cells;        
+        $this->result['cells'] = $cells;   
+        $this->result['name'] = $name;   
     }
 }
