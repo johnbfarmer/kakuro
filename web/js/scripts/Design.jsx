@@ -5,7 +5,6 @@ import KakuroControls from './KakuroControls.jsx';
 import {GridHelper} from './GridHelper.js';
 
 var gridId = document.getElementById("content").dataset.id;
-console.log(gridId);
 
 export default class GridDesigner extends React.Component {
     constructor(props) {
@@ -15,8 +14,8 @@ export default class GridDesigner extends React.Component {
             gridId: 0,
             gridName: '',
             cells: [],
-            height: 0,
-            width: 0,
+            height: 4,
+            width: 4,
             active_row: -1,
             active_col: -1,
         };
@@ -30,6 +29,11 @@ export default class GridDesigner extends React.Component {
         this.handleKey = this.handleKey.bind(this);
         this.newGrid = this.newGrid.bind(this);
         this.setActiveCellVal = this.setActiveCellVal.bind(this);
+        this.checkSolution = this.checkSolution.bind(this);
+        this.removeRow = this.removeRow.bind(this);
+        this.addRow = this.addRow.bind(this);
+        this.removeCol = this.removeCol.bind(this);
+        this.addCol = this.addCol.bind(this);
         
     }
 
@@ -44,10 +48,9 @@ export default class GridDesigner extends React.Component {
         return $.getJSON(
             "http://kak.uro/app_dev.php/api/solution/" + id
         ).then(data => {
-            console.log('gg ', data);
             var cells = this.processNewData(data.cells, data.height, data.width);
             cells = GridHelper.adjustAllLabels(cells, data.height, data.width);
-            this.setState({cells: cells, height: data.height, width: data.width, gridId: id, gridName: data.name});
+            this.setState({cells: cells, height: parseInt(data.height), width: parseInt(data.width), gridId: id, gridName: data.name});
         });
     }
 
@@ -131,6 +134,18 @@ export default class GridDesigner extends React.Component {
         if (keyCode === 88) { // x
             this.setActiveCellVal('x');
         }
+        if (keyCode === 82) { // r
+            this.removeRow();
+        }
+        if (keyCode === 67) { // c
+            this.removeCol();
+        }
+        if (keyCode === 65) { // a
+            this.addRow();
+        }
+        if (keyCode === 66) { // b
+            this.addCol();
+        }
         if (keyCode > 48 && keyCode <= 57) { // 1-9
             this.setActiveCellVal(keyCode - 48);
         }
@@ -146,6 +161,10 @@ export default class GridDesigner extends React.Component {
 
         switch(val) {
             case 'x':
+                if (cells[idx].col == 0 || cells[idx].row == 0) {
+                    return;
+                }
+
                 cells[idx].is_data = !cells[idx].is_data;
                 break;
             default:
@@ -187,6 +206,50 @@ export default class GridDesigner extends React.Component {
         // this.setState({cells: cells});
     }
 
+    removeRow() {
+        var active_row = this.state.active_row;
+        if (!active_row) {
+            return;
+        }
+        var cells = this.state.cells;
+        var height = this.state.height;
+        var width = this.state.width;
+        cells = GridHelper.removeRow(active_row, cells, height, width);
+        this.setState({cells: cells, height: height - 1});
+    }
+
+    removeCol() {
+        var active_col = this.state.active_col;
+        if (!active_col) {
+            return;
+        }
+        var cells = this.state.cells;
+        var height = this.state.height;
+        var width = this.state.width;
+        cells = GridHelper.removeCol(active_col, cells, height, width);
+        this.setState({cells: cells, width: width - 1});
+    }
+
+    addRow() {
+        var cells = this.state.cells;
+        var height = this.state.height;
+        var width = this.state.width;
+        var active_row = this.state.active_row;
+        cells = GridHelper.insertRow(active_row, cells, height, width) ;
+        console.log(cells);
+        this.setState({cells: cells, height: height + 1});
+    }
+
+    addCol() {
+        var cells = this.state.cells;
+        var height = this.state.height;
+        var width = this.state.width;
+        var active_col = this.state.active_col;
+        cells = GridHelper.insertCol(active_col, cells, height, width) ;
+        console.log(cells);
+        this.setState({cells: cells, width: width + 1});
+    }
+
     reduce(idx, cells, h, w) {
         return GridHelper.reduce(idx, cells, h, w);
     }
@@ -198,7 +261,6 @@ export default class GridDesigner extends React.Component {
             cells[k].active=false;
         });
         cells[idx].active = true;
-        // cells[idx].choices = [1,2,3,4,5,6,7,8,9];Down
         this.setState({cells: cells, active_row: row, active_col: col});
     }
 
@@ -224,17 +286,35 @@ export default class GridDesigner extends React.Component {
             active_col =  this.state.width - 1;
         }
 
-        if (!this.state.cells[active_row * this.state.width + active_col].is_editable) {
-            this.moveActive(v, h, active_row, active_col);
-        } else {
-            this.setActive(active_row, active_col);
-        }
+        this.setActive(active_row, active_col);
+    }
+
+    checkSolution() {
+console.log('checkSolution');
+        var cells = JSON.stringify(this.state.cells);
+        return $.post(
+            "http://kak.uro/app_dev.php/api/check-uniqueness",
+            {
+                cells: cells,
+                height: this.state.height,
+                width: this.state.width,
+            },
+            function(resp) {
+                if (resp.error) {
+                    alert(resp.message);
+                }
+            },
+            'json'
+        ).then(data => {
+console.log(data);
+        });
     }
 
     render() {
         var classes = "kakuro-grid col-md-8";
         var cells = this.state.cells.map(function(cell, index) {
             cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
+            cell.semiactive = cell.row == this.state.active_row || cell.col == this.state.active_col;
             return <Cell 
                     cell={cell}
                     solved={false}
@@ -252,12 +332,15 @@ export default class GridDesigner extends React.Component {
                 <div className="col-md-4">
                     <KakuroControls
                         savedGameName={this.state.gridName}
+                        height={this.state.height}
+                        width={this.state.width}
                         selectedGrid={this.state.gridId}
                         save={this.saveChoices}
                         grids={this.state.grids}
                         getGrid={this.getGrid}
                         newGrid={this.newGrid}
                         createMode={true}
+                        checkSolution={this.checkSolution}
                     />
                 </div>
             </div>

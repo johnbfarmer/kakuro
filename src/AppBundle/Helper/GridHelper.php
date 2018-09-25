@@ -426,7 +426,7 @@ self::log('unset ' . $candidate . ' for ' . $choiceIdx);
                 continue;
             }
 
-            $strips = strips($cell, $cells, $height, $width);
+            $strips = self::strips($cell, $cells, $height, $width);
             $commonValuedCellPairs = self::interesectByValue($strips);
             if (empty($commonValuedCellPairs)) {
                 continue;
@@ -458,7 +458,8 @@ self::log('unset ' . $candidate . ' for ' . $choiceIdx);
 
     public static function findConnectedStripsMutuallyContaining($cell1, $pair, $cells)
     {
-        $val1 = $cell1['choice'][0];
+return $cells; // tbi
+        $val1 = $cell1['choices'][0];
         foreach ($pair as $cell) {
             foreach ($cells as $c) {
                 if ($c['idx'] == $cell['idx']) {
@@ -469,7 +470,7 @@ self::log('unset ' . $candidate . ' for ' . $choiceIdx);
 
             // cell2 get strips. see if both contain cell1 val. if yes, add to cells (if not already there) and recurse
             $pairForRecurse = [];
-            $strips = $this->findMyStrips($idx, false);
+            $strips = self::strips($idx, false);//($cell, $cells, $height, $width)
             foreach ($strips as $strip) {
                 foreach ($strip as $c) {
                     $found = false;
@@ -486,7 +487,7 @@ self::log('unset ' . $candidate . ' for ' . $choiceIdx);
             }
 
             $cells->add($cell);
-            $cells = $this->findConnectedStripsMutuallyContaining($cell, $pairForRecurse, $cells);
+            $cells = self::findConnectedStripsMutuallyContaining($cell, $pairForRecurse, $cells);
         }
 
         return $cells;

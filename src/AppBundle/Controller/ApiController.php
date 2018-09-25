@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 use AppBundle\Process\SolveGrid;
 use AppBundle\Process\KakuroReducer;
+use AppBundle\Process\KakuroUniquenessTester;
 use AppBundle\Process\SaveGrid;
 use AppBundle\Process\SaveDesign;
 use AppBundle\Process\LoadSavedGrid;
@@ -172,5 +173,22 @@ class ApiController extends Controller
     {
         $solution = KakuroSolution::autoexecute(['id' => $id], null);
         return new JsonResponse($solution->getResult());
+    }
+
+    /**
+     * @Route("api/check-uniqueness", name="check-uniqueness")
+     */
+    public function checkUniquenessAction(Request $request)
+    {
+        $cells = json_decode($request->request->get('cells'), true);
+        $height = json_decode($request->request->get('height'), true);
+        $width = json_decode($request->request->get('width'), true);
+        $parameters = [
+            'uiChoices' => $cells,
+            'height' => $height,
+            'width' => $width,
+        ];
+        $tester = KakuroUniquenessTester::autoExecute($parameters, null); // build grid from cells, call KakuroReducer wirh advanced = true
+        return new JsonResponse($tester->getApiResponse()); // and this will need true|false and some info about alternate solutions
     }
 }

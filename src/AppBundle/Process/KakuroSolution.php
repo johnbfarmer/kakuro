@@ -49,11 +49,11 @@ class KakuroSolution extends BaseGrid
         }
 
         for ($i=0; $i<$w*$h; $i++) {
-            // if ($i < $w || !($i % $w)) {
+            $isEditable = $i > $w && $i % $w;
             if (empty($choices[$i])) {
-                $cells[] = ['choices' => [], 'is_editable' => false, 'is_data' => false, 'idx' => $i];
+                $cells[] = ['choices' => [], 'is_editable' => $isEditable, 'is_data' => false, 'idx' => $i];
             } else {
-                $cells[] = ['choices' => [(int)$choices[$i]], 'is_editable' => true, 'is_data' => true, 'idx' => $i];
+                $cells[] = ['choices' => [(int)$choices[$i]], 'is_editable' => $isEditable, 'is_data' => true, 'idx' => $i];
             }
         }
 

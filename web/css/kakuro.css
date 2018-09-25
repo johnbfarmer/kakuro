@@ -15,7 +15,13 @@ body {
 }
 .actv {
     color: red;
+    background-color: yellow;
+}
+.semiactive {
     background-color: lightyellow;
+}
+.semiactive-blnk {
+    background-color: lightgreen;
 }
 .clr {
     clear: both;
@@ -28,6 +34,15 @@ body {
            rgba(0,0,0,1) 50%,
            lightblue calc(50% + 0.8px),
            lightblue 100%);
+}
+.semiactive-sum-box {
+    background: 
+       linear-gradient(to top right,
+           lightgreen 0%,
+           lightgreen calc(50% - 0.8px),
+           rgba(0,0,0,1) 50%,
+           lightgreen calc(50% + 0.8px),
+           lightgreen 100%);
 }
 .kakuro-row {
     margin-left: 20px;

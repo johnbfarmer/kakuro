@@ -55,10 +55,10 @@ export default class Cell extends React.Component {
 
     getClasses() {
         var classes = "kakuro-cell";
-        if (!this.state.is_data) {
+        if (!this.props.cell.semiactive && !this.state.is_data) {
             classes = classes + " blnk";
         }
-         if (this.state.sum_box) {
+         if (this.state.sum_box && !this.props.cell.semiactive) {
             classes = classes + " sum-box";
         } else {
             if (this.props.cell.choices.length === 1) {
@@ -70,6 +70,17 @@ export default class Cell extends React.Component {
             if (this.props.cell.active) {
                 classes = classes + " actv";
             }
+            if (!this.props.cell.active && 'semiactive' in this.props.cell && this.props.cell.semiactive) {
+                if (this.state.is_data) {
+                    classes = classes + " semiactive";
+                } else {
+                    if (this.state.sum_box) {
+                        classes = classes + " semiactive-sum-box";
+                    } else {
+                        classes = classes + " semiactive-blnk";
+                    }
+                }
+            }
         }
         if (this.state.col === 0) {
             classes = classes + " clr";
@@ -79,9 +90,9 @@ export default class Cell extends React.Component {
     }
 
     setActive() {
-        if (this.state.editable) {
+        // if (this.state.editable) {
             this.props.onClick();
-        }
+        // }
     }
 
     render() {
@@ -93,7 +104,7 @@ export default class Cell extends React.Component {
             );
         }
         return (
-            <div className={this.getClasses()}>
+            <div className={this.getClasses()} onClick={() => this.setActive()}>
                 <div className='label-v'>{this.state.label_v}</div><div className='label-h'>{this.state.label_h}</div>
             </div>
         );

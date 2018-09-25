@@ -29,6 +29,8 @@ export default class KakuroControls extends React.Component {
 
     loadVals(props) {
         this.state.savedGameName = props.savedGameName;
+        this.state.height = props.height;
+        this.state.width = props.width;
         this.state.grids = this.processDropdownOptions(props.grids);
         this.state.createMode = props.createMode || false;
     }
@@ -65,9 +67,9 @@ export default class KakuroControls extends React.Component {
         var k = ds.newattr;
         if (k === 'height' || k === 'width') {
             val = parseInt(val);
-            if (isNaN(val)) {return}
         }
         var s = this.state;
+        if (isNaN(val)) {val = '';}
         s[k] = val;
         this.setState(s);
     }
@@ -86,17 +88,35 @@ export default class KakuroControls extends React.Component {
             <div className="row">
                 height: <input value={this.state.height} data-newattr="height" onChange={this.updateNewAttributes} />
                 width: <input value={this.state.width} data-newattr="width" onChange={this.updateNewAttributes} />
-                    <ButtonGroup>
-                        <Button onClick={this.newGrid} title="save">
-                            <Glyphicon glyph="floppy-disk" />
-                        </Button>
-                    </ButtonGroup>
+                <ButtonGroup>
+                    <Button onClick={this.newGrid} title="create">
+                        <Glyphicon glyph="arrow-right" />
+                    </Button>
+                </ButtonGroup>
+            </div>
+        );
+    }
+
+    getCheckSolutionButtonGroup() {
+        if (!this.state.createMode) {
+            return '';
+        }
+
+        return (
+            <div className="row">
+                check solution:
+                <ButtonGroup>
+                    <Button onClick={this.props.checkSolution} title="check solution">
+                        <Glyphicon glyph="ok" />
+                    </Button>
+                </ButtonGroup>
             </div>
         );
     }
 
     render() {
         var newGridAttributes = this.getNewGridAttributes();
+        var checkSolutionButtonGroup = this.getCheckSolutionButtonGroup();
         return (
             <div>
                 <div className="row">
@@ -105,6 +125,7 @@ export default class KakuroControls extends React.Component {
                     </select>
                 </div>
                 {newGridAttributes}
+                {checkSolutionButtonGroup}
                 <div className="row">
                     <input value={this.state.savedGameName} onChange={this.updateSavedGameName} />
                     <ButtonGroup>

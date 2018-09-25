@@ -337,6 +337,109 @@ ctr: 0,
         return c;
     },
 
+    removeRow: (r, cells, h, w) => {
+        h = h - 1;
+        var c = [];
+        cells.forEach((cell, idx) => {
+            if (cell.row == r) {
+                return;
+            }
+            if (cell.row > r) {
+                cell.idx -= w;
+                cell.row -= 1;
+            }
+
+            c.push(cell);
+        });
+
+        return c;
+    },
+
+    removeCol: (col, cells, h, w) => {
+        w = w - 1;
+        var c = [];
+        cells.forEach((cell, idx) => {
+            if (cell.col == col) {
+                return;
+            }
+            if (cell.col > col) {
+                cell.col -= 1;
+            }
+
+            cell.idx = w * cell.row + cell.col;
+            c.push(cell);
+        });
+
+        return c;
+    },
+
+    sortCells: (cells) => {
+        var c = [];
+        var nextIdx = 1;
+        var len = cells.length;
+        while (c.length < len) {
+            cells.forEach((cell, idx) => {
+                if (cell.idx < nextIdx) {
+                    cells.splice(idx, 1);
+                    c.push(cell);
+                    nextIdx += 1;
+                    return;
+                }
+            });
+        }
+
+        return c;
+    },
+
+    insertRow(r, cells, h, w) {
+        var c = [];
+        cells.forEach((cell, idx) => {
+            if (cell.row > r) {
+                cell.row += 1;
+            }
+
+            cell.idx = w * cell.row + cell.col;
+            c.push(cell);
+
+            // insert the cell below
+            if (cell.row == r) {
+                if (cell.col == 0) {
+                    c.push({choices: [], is_editable: false, is_data: false, idx: ((r + 1) * w + cell.col), row: r + 1, col: cell.col, display: []});
+                } else {
+                    c.push({choices: [1,2,3,4,5,6,7,8,9], is_editable: true, is_data: true, idx: ((r + 1) * w + cell.col), row: r + 1, col: cell.col, display: []});
+                }
+            }
+        });
+
+        return this.sortCells(c);
+    },
+
+    insertCol(col, cells, h, w) {
+        var c = [];
+        w++;
+        col++;
+        cells.forEach((cell, idx) => {
+            if (cell.col > col) {
+                cell.col += 1;
+            }
+
+            cell.idx = w * cell.row + cell.col;
+            c.push(cell);
+
+            // insert the cell below
+            if (cell.col == col - 1) {
+                if (cell.row == 0) {
+                    c.push({choices: [], is_editable: false, is_data: false, idx: (cell.row * w + col), row: cell.row, col: col, display: []});
+                } else {
+                    c.push({choices: [1,2,3,4,5,6,7,8,9], is_editable: true, is_data: true, idx: (cell.row * w + col), row: cell.row, col: col, display: []});
+                }
+            }
+        });
+
+        // return c;
+        return this.sortCells(c);
+    },
+
     reduce(idx, cells, h, w) {
         var p = this.peers(idx, cells, h, w);
         p.forEach((cell) => {
