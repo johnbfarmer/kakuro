@@ -1,16 +1,3 @@
-// export const getChoices = (cells) => {
-//     var url = "http://kak.uro/app_dev.php/api/build/get-choices";
-//     var data = {cells: JSON.stringify(cells)};
-//     return $.post(
-//         url,
-//         data,
-//         function(resp) {
-//             cells = resp.cells;
-//         },
-//         'json'
-//     );
-// }
-
 export const GridHelper = {
     message: 'test',
 ctr: 0,
@@ -26,19 +13,38 @@ ctr: 0,
         return p;
     },
 
+    allStripsLite(cells, h, w) {
+        var strips = this.allStrips(cells, h, w);
+        var stripsLite = [];
+        var liteStrip;
+        strips.forEach(strip => {
+            liteStrip = {cells: [], idx: strip.idx}
+            strip.cells.forEach(cell => {
+                liteStrip.cells.push(cell.idx);
+            });
+            stripsLite.push(liteStrip);
+        });
+
+        return stripsLite;
+    },
+
     allStrips(cells, h, w) {
-        var nbrStrips, strips = [], stripIdxs = [];
+        var nbrStrips, strips = [], stripIdxs = [], idx;
         cells.forEach(cell => {
             if (cell.row === 0 || cell.col === 0) {
                 return;
             }
             nbrStrips = this.strips(cell.idx, cells, h, w);
             nbrStrips.forEach(strip => {
+                if (!strip.length) {
+                    return;
+                }
+
                 // strip idx is row_col with __ between dudes like 1_1__1_2 or row_col for first and orientation like 1_1_h
-                strip.idx = this.stripIndex(strip);
-                if (stripIdxs.indexOf(strip.idx) < 0) {
-                    stripIdxs.push(strip.idx);
-                    strips.push(strip);
+                idx = this.stripIndex(strip);
+                if (stripIdxs.indexOf(idx) < 0) {
+                    stripIdxs.push(idx);
+                    strips.push({cells: strip, idx: idx});
                 }
             });
         });
@@ -71,6 +77,8 @@ ctr: 0,
     },
 
     strips: (idx, cells, h, w) => {
+        h = parseInt(h);
+        w = parseInt(w);
         var isDataCell = cells[idx].is_data;
         var nbrs = [];
 
@@ -88,7 +96,7 @@ ctr: 0,
             i = i - w;
         }
 
-        // walk down to nearest non-data
+        // if this cell is a data cell, add it; otherwise add the strip
         if (!isDataCell) {
             nbrs.push(strip);
             strip = [];
@@ -96,6 +104,7 @@ ctr: 0,
             strip.push(cells[idx]);
         }
 
+        // walk down to nearest non-data
         i = idx + w;
         while (i < h * w) {
             if (!(cells[i].is_data)) {
@@ -126,7 +135,7 @@ ctr: 0,
         } else {
             strip.push(cells[idx]);
         }
-     
+ 
         // walk right to nearest non-data
         i = idx + 1;
         while (i % w) {
@@ -140,6 +149,56 @@ ctr: 0,
         nbrs.push(strip);
 
         return nbrs;
+    },
+
+    setLabels(cells, strips) {
+        var labelCell, sum, displayPos, cell;
+        strips.forEach(strip => {
+            labelCell = this.getLabelCell(strip, cells);
+            sum = 0;
+            strip.cells.some(cellIdx => {
+                var cell = cells[cellIdx];
+                if (cell.choices.length > 1) {
+                    sum = 0;
+                    return true;
+                }
+                sum += cell.choices[0];
+            });
+            displayPos = strip.idx.split('_')[2] === 'h' ? 1 : 0;
+            cells[labelCell.idx].display[displayPos] = sum;
+        });
+
+        return cells;
+    },
+
+    getLabelCell(strip, cells) {
+        var idx = strip.idx;
+        var idxParts = idx.split('_');
+        var referenceLocation = {
+            row: idxParts[0],
+            col: idxParts[1],
+        };
+        if (idxParts[2] === 'v') {
+            referenceLocation.row -= 1;
+            return this.findCellByLocation(referenceLocation, cells);
+        } else {
+            referenceLocation.col -= 1;
+            return this.findCellByLocation(referenceLocation, cells);
+        }
+    },
+
+    findCellByLocation(referenceLocation, cells) {
+        var targetCell;
+        cells.some(cell => {
+            if (cell.row == referenceLocation.row) {
+                if (cell.col == referenceLocation.col) {
+                    targetCell = cell;
+                    return true;
+                }
+            }
+        });
+
+        return targetCell;
     },
 
     adjustAllLabels(cells, h, w) {
@@ -521,7 +580,7 @@ console.log('values not good');
 
         strips = this.allStrips(cells, h, w);
         strips.some(strip => {
-            if (!this.stripContainsUniqueValues(strip)) {
+            if (!this.stripContainsUniqueValues(strip.cells)) {
                 this.message = strip.idx + ' has a repeated value';
                 allowed = false;
                 return true;

@@ -17,6 +17,7 @@ export default class KakuroControls extends React.Component {
         this.updateSavedGameName = this.updateSavedGameName.bind(this);
         this.changeGrid = this.changeGrid.bind(this);
         this.save = this.save.bind(this);
+        this.saveCopy = this.saveCopy.bind(this);
         this.updateNewAttributes = this.updateNewAttributes.bind(this);
         this.newGrid = this.newGrid.bind(this);
     }
@@ -41,7 +42,11 @@ export default class KakuroControls extends React.Component {
     }
 
     save() {
-        this.props.save(this.state.savedGameName);
+        this.props.save(this.state.savedGameName, true);
+    }
+
+    saveCopy() {
+        this.props.save(this.state.savedGameName, false);
     }
 
     processDropdownOptions(data) {
@@ -131,6 +136,9 @@ export default class KakuroControls extends React.Component {
                     <ButtonGroup>
                         <Button onClick={this.save} title="save">
                             <Glyphicon glyph="floppy-disk" />
+                        </Button>
+                        <Button onClick={this.saveCopy} title="save">
+                            <Glyphicon glyph="duplicate" />
                         </Button>
                     </ButtonGroup>
                 </div>

@@ -32,7 +32,6 @@ class KakuroReducer extends BaseKakuro
             $this->gridObj = $this->parameters['grid'];
         }
 
-        $this->width = $this->gridObj->getWidth();
         $this->simpleReduction = !empty($this->parameters['simpleReduction']);
         $this->hintOnly = !empty($this->parameters['hintOnly']);
         $this->changedStrips = new ArrayCollection();
@@ -41,6 +40,7 @@ class KakuroReducer extends BaseKakuro
     protected function execute()
     {
         parent::execute();
+        $this->width = $this->gridObj->getWidth();
         $this->cells = $this->gridObj->getCells();
         $this->stripsNew = $this->gridObj->getStrips();
         if (!empty($this->cells)) {
@@ -436,7 +436,11 @@ class KakuroReducer extends BaseKakuro
         $this->log($str, true);
     }
 
-    public function getApiResponse()
+    public function getApiResponse() {
+        return $this->getGridForResponse();
+    }
+
+    public function getGridForResponse()
     {
         if (!$this->fails) {
             $cells = [];

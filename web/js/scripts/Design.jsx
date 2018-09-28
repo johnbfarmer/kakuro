@@ -13,6 +13,7 @@ export default class GridDesigner extends React.Component {
             grids: [],
             gridId: 0,
             gridName: '',
+            strips: [],
             cells: [],
             height: 4,
             width: 4,
@@ -49,8 +50,10 @@ export default class GridDesigner extends React.Component {
             "http://kak.uro/app_dev.php/api/solution/" + id
         ).then(data => {
             var cells = this.processNewData(data.cells, data.height, data.width);
-            cells = GridHelper.adjustAllLabels(cells, data.height, data.width);
-            this.setState({cells: cells, height: parseInt(data.height), width: parseInt(data.width), gridId: id, gridName: data.name});
+            var strips = GridHelper.allStripsLite(cells, data.height, data.width);
+// console.log(strips);
+            cells = GridHelper.setLabels(cells, strips);
+            this.setState({cells: cells, height: parseInt(data.height), width: parseInt(data.width), gridId: id, gridName: data.name, strips: strips});
         });
     }
 
@@ -60,8 +63,7 @@ export default class GridDesigner extends React.Component {
         this.setState({cells: cells, height: h, width: w, active_row: h-1, active_col: w-1, gridId: 0});
     }
 
-    saveChoices(name) {
-        console.log('sc');
+    saveChoices(name, asCopy) {
         if (!GridHelper.validGrid(this.state.cells, this.state.height, this.state.width)) {
             console.log('invalid for saving');
             console.log(GridHelper.message);
@@ -81,10 +83,12 @@ export default class GridDesigner extends React.Component {
                 width: this.state.width,
                 name: name,
                 cells: cells,
+                asCopy: asCopy,
             },
             function(resp) {
                 console.log(resp);
-            },
+                this.setState({gridName: resp.name, gridId: parseInt(resp.id)});
+            }.bind(this),
             'json'
         );
     }
@@ -173,7 +177,7 @@ export default class GridDesigner extends React.Component {
 
         // adjust other cells based on this action:
         // adjust labels
-        cells = GridHelper.adjustLabels(idx, cells, this.state.height, this.state.width);
+        cells = GridHelper.setLabels(cells, this.state.strips);
 
         // adjust possible values
         // cells = getChoices(cells).then(resp => {
@@ -236,7 +240,7 @@ export default class GridDesigner extends React.Component {
         var width = this.state.width;
         var active_row = this.state.active_row;
         cells = GridHelper.insertRow(active_row, cells, height, width) ;
-        console.log(cells);
+        // console.log(cells);
         this.setState({cells: cells, height: height + 1});
     }
 
@@ -246,7 +250,7 @@ export default class GridDesigner extends React.Component {
         var width = this.state.width;
         var active_col = this.state.active_col;
         cells = GridHelper.insertCol(active_col, cells, height, width) ;
-        console.log(cells);
+        // console.log(cells);
         this.setState({cells: cells, width: width + 1});
     }
 
@@ -290,7 +294,6 @@ export default class GridDesigner extends React.Component {
     }
 
     checkSolution() {
-console.log('checkSolution');
         var cells = JSON.stringify(this.state.cells);
         return $.post(
             "http://kak.uro/app_dev.php/api/check-uniqueness",
@@ -306,7 +309,17 @@ console.log('checkSolution');
             },
             'json'
         ).then(data => {
-console.log(data);
+            if (data.hasError) {
+                alert('error');
+                return;
+            }
+            if (!data.hasUniqueSolution) {
+                alert('solution is not unique');
+                cells = GridHelper.setLabels(data.grid, this.state.strips);
+                this.setState({cells: cells});
+            } else {
+                alert('solution is unique');
+            }
         });
     }
 

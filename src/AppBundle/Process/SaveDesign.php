@@ -6,7 +6,8 @@ class SaveDesign extends BaseGrid
 {
     protected
         $name,
-        $id;
+        $id,
+        $asCopy;
 
     public function __construct($parameters = [], $em = [])
     {
@@ -27,10 +28,13 @@ class SaveDesign extends BaseGrid
         if (!empty($this->parameters['width'])) {
             $this->width = $this->parameters['width'];
         }
+        $this->asCopy = !empty($this->parameters['asCopy']);
     }
 
     protected function execute()
     {
+        $this->handleCopy();
+
         $id = $this->id ?: 'null';
         $timestamp = date('Y-m-d H:i:s');
 
@@ -47,6 +51,7 @@ class SaveDesign extends BaseGrid
 
         $this->exec($sql);
         $id = $this->lastInsertId();
+        $this->id = $id;
         if (empty($id)) {
             throw new \Exception('Unable to get last id');
         }
@@ -123,5 +128,27 @@ class SaveDesign extends BaseGrid
         choice = VALUES(choice)';
 
         $this->exec($sql);
+    }
+
+    protected function handleCopy()
+    {
+        $sql = '
+        SELECT count(1) AS ct FROM grids
+        WHERE name = "' . $this->name .'"'; 
+
+        $record = $this->fetch($sql);
+        if ($record['ct'] > 0) {
+            $this->name .= ' (copy)';
+        }
+
+        $this->id = null;
+    }
+
+    public function getResponse()
+    {
+        return [
+            'name' => $this->name,
+            'id' => $this->id,
+        ];
     }
 }

@@ -148,9 +148,9 @@ class ApiController extends Controller
             ? $request->request->get('name') 
             : 'kakuro_' . time();
         $parameters = ['id' => $id, 'name' => $name, 'cells' => $cells, 'height' => $height, 'width' => $width];
-        SaveDesign::autoExecute($parameters, null);
-        $grid = [];
-        return new JsonResponse($grid);
+        $processor = SaveDesign::autoExecute($parameters, null);
+        $response = $processor->getResponse();
+        return new JsonResponse($response);
     }
 
     /**

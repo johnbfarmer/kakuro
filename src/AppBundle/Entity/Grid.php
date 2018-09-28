@@ -158,7 +158,7 @@ class Grid
         return $this;
     }
 
-    protected function setStripsForCell($cell)
+    public function setStripsForCell($cell)
     {
         if ($cell->isDataCell()) {
             foreach ($this->strips as $idx => $strip) {
@@ -209,6 +209,9 @@ class Grid
         $id = 0;
         $previous_idx = null;
         foreach ($this->cells as $cell) {
+            if ($cell->isDataCell()) {
+                continue;
+            }
             if (!is_null($previous_idx)) {
                 $stop = $cell->getRow() === $this->strips[$previous_idx]->getStartRow() ? $cell->getCol() - 1 : $this->width - 1;
                 $this->strips[$previous_idx]->setStopCol($stop);
@@ -224,7 +227,7 @@ class Grid
                 $strip->setTotal($sum);
                 $strip->setStartRow($cell->getRow());
                 $strip->setStopRow($cell->getRow());
-                $strip->setStartCol($cell->getCol()+1);
+                $strip->setStartCol($cell->getCol() + 1);
                 $this->strips->set($idx, $strip);
                 $previous_idx = $idx;
             }
@@ -248,6 +251,9 @@ class Grid
         $cells = new ArrayCollection(iterator_to_array($iterator));
 
         foreach ($cells as $cell) {
+            if ($cell->isDataCell()) {
+                continue;
+            }
             if (!is_null($previous_idx)) {
                 $stop = $cell->getCol() === $this->strips[$previous_idx]->getStartCol() ? $cell->getRow() - 1 : $this->height - 1;
                 $this->strips[$previous_idx]->setStopRow($stop);
