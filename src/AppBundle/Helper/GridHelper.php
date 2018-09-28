@@ -271,7 +271,7 @@ class GridHelper
                         continue;
                     }
 
-                    $w1 = [$cell1, $cell2];
+                    $w1 = [$cell1['idx'], $cell2['idx']];
                     $vStrip2 = $indexedStrips[$cell2['strips']['v']];
                     $w2s = self::getSwappableMatches($cell1, $cell2, $vStrip1, $vStrip2, $cells);
                     if (!empty($w2s)) {
@@ -321,7 +321,7 @@ class GridHelper
                     continue;
                 }
                 if (self::connected($cell3, $cell4, $cells)) {
-                    $matches[] = [$cell3, $cell4];
+                    $matches[] = [$cell3['idx'], $cell4['idx']];
                 }
             }
         }
@@ -337,22 +337,27 @@ class GridHelper
     public static  function filterNumsThatCauseSwap2($swappableSubset, $indexedStrips, $cells, $height, $width)
     {
         foreach ($swappableSubset as $outerIdx => $pair) {
-            foreach ($pair as $innerIdx => $cell) {
-                if ($cell['choices'] !== 1) {
+            foreach ($pair as $innerIdx => $cellIdx) {
+                $cell = $cells[$cellIdx];
+                if (count($cell['choices']) !== 1) {
                     // X is unknown; b is diagonal to X; a and c are the others
                     $X = $cell;
-                    $a = $pair[abs($innerIdx - 1)];
+                    $a = $cells[$pair[abs($innerIdx - 1)]];
                     $otherPair = $swappableSubset[abs($outerIdx - 1)];
                     if ($otherPair[0]['row'] === $X['row'] || $otherPair[0]['col'] === $X['col']) {
-                        $b = $otherPair[1];
-                        $c = $otherPair[0];
+                        $b = $cells[$otherPair[1]];
+                        $c = $cells[$otherPair[0]];
                     } else {
-                        $b = $otherPair[0];
-                        $c = $otherPair[1];
+                        $b = $cells[$otherPair[0]];
+                        $c = $cells[$otherPair[1]];
                     }
                     break 2;
                 }
             }
+        }
+
+        if (empty($X)) {
+            return $cells;
         }
 
         // get available options for a,b and c:
@@ -374,7 +379,7 @@ self::log('unset ' . $candidate . ' for ' . $choiceIdx);
 
         $X['choices'] = array_values($X['choices']);
         $cells[$X['idx']] = $X;
-
+self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx']]['choices']));
         return $cells;
     }
 
