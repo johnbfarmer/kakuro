@@ -13,13 +13,14 @@ export default class GridDesigner extends React.Component {
             grids: [],
             gridId: 0,
             gridName: '',
-            strips: [],
             cells: [],
             height: 4,
             width: 4,
             active_row: -1,
             active_col: -1,
         };
+
+        this.strips = [];
 
         this.getGrid = this.getGrid.bind(this);
         this.saveChoices = this.saveChoices.bind(this);
@@ -50,10 +51,10 @@ export default class GridDesigner extends React.Component {
             "http://kak.uro/app_dev.php/api/solution/" + id
         ).then(data => {
             var cells = this.processNewData(data.cells, data.height, data.width);
-            var strips = GridHelper.allStripsLite(cells, data.height, data.width);
+            this.strips = GridHelper.allStripsLite(cells, data.height, data.width);
 // console.log(strips);
-            cells = GridHelper.setLabels(cells, strips);
-            this.setState({cells: cells, height: parseInt(data.height), width: parseInt(data.width), gridId: id, gridName: data.name, strips: strips});
+            cells = GridHelper.setLabels(cells, this.strips);
+            this.setState({cells: cells, height: parseInt(data.height), width: parseInt(data.width), gridId: id, gridName: data.name});
         });
     }
 
@@ -159,6 +160,7 @@ export default class GridDesigner extends React.Component {
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         var cells = this.state.cells;
 
+console.log(val);
         if (!GridHelper.valAllowed(val, idx, cells, this.state.height, this.state.width)) {
             return;
         }
@@ -170,6 +172,8 @@ export default class GridDesigner extends React.Component {
                 }
 
                 cells[idx].is_data = !cells[idx].is_data;
+                cells[idx].choices = [];
+                this.strips = GridHelper.allStripsLite(cells, this.state.height, this.state.width);
                 break;
             default:
                 cells[idx].choices = [val];
@@ -177,7 +181,7 @@ export default class GridDesigner extends React.Component {
 
         // adjust other cells based on this action:
         // adjust labels
-        cells = GridHelper.setLabels(cells, this.state.strips);
+        cells = GridHelper.setLabels(cells, this.strips);
 
         // adjust possible values
         // cells = getChoices(cells).then(resp => {
@@ -187,7 +191,6 @@ export default class GridDesigner extends React.Component {
         // });
 
         // cells = this.reduce(idx, cells, this.state.height, this.state.width);
-        var me = this;
         $.post(
             "http://kak.uro/app_dev.php/api/design/choices",
             {
@@ -196,9 +199,7 @@ export default class GridDesigner extends React.Component {
                 cells: JSON.stringify(cells),
             },
             function(resp) {
-                // console.log(resp);
                 cells = resp;
-                // me.setState({cells: cells});
             },
             'json'
         ).then(cells => {
@@ -219,6 +220,8 @@ export default class GridDesigner extends React.Component {
         var height = this.state.height;
         var width = this.state.width;
         cells = GridHelper.removeRow(active_row, cells, height, width);
+        this.strips = GridHelper.allStripsLite(cells, this.state.height - 1, this.state.width);
+        cells = GridHelper.setLabels(cells, this.strips);
         this.setState({cells: cells, height: height - 1});
     }
 
@@ -231,6 +234,8 @@ export default class GridDesigner extends React.Component {
         var height = this.state.height;
         var width = this.state.width;
         cells = GridHelper.removeCol(active_col, cells, height, width);
+        this.strips = GridHelper.allStripsLite(cells, this.state.height, this.state.width - 1);
+        cells = GridHelper.setLabels(cells, this.strips);
         this.setState({cells: cells, width: width - 1});
     }
 
@@ -239,7 +244,9 @@ export default class GridDesigner extends React.Component {
         var height = this.state.height;
         var width = this.state.width;
         var active_row = this.state.active_row;
-        cells = GridHelper.insertRow(active_row, cells, height, width) ;
+        cells = GridHelper.insertRow(active_row, cells, height, width);
+        this.strips = GridHelper.allStripsLite(cells, this.state.height + 1, this.state.width);
+        cells = GridHelper.setLabels(cells, this.strips);
         // console.log(cells);
         this.setState({cells: cells, height: height + 1});
     }
@@ -249,7 +256,9 @@ export default class GridDesigner extends React.Component {
         var height = this.state.height;
         var width = this.state.width;
         var active_col = this.state.active_col;
-        cells = GridHelper.insertCol(active_col, cells, height, width) ;
+        cells = GridHelper.insertCol(active_col, cells, height, width);
+        this.strips = GridHelper.allStripsLite(cells, this.state.height, this.state.width + 1);
+        cells = GridHelper.setLabels(cells, this.strips);
         // console.log(cells);
         this.setState({cells: cells, width: width + 1});
     }
@@ -315,7 +324,7 @@ export default class GridDesigner extends React.Component {
             }
             if (!data.hasUniqueSolution) {
                 alert('solution is not unique');
-                cells = GridHelper.setLabels(data.grid, this.state.strips);
+                cells = GridHelper.setLabels(data.grid, this.strips);
                 this.setState({cells: cells});
             } else {
                 alert('solution is unique');

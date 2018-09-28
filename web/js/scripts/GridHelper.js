@@ -152,7 +152,11 @@ ctr: 0,
     },
 
     setLabels(cells, strips) {
+console.log(cells, strips);
         var labelCell, sum, displayPos, cell;
+        cells.forEach((cell, idx) => {
+            cells[idx].display = [0,0];
+        });
         strips.forEach(strip => {
             labelCell = this.getLabelCell(strip, cells);
             sum = 0;
