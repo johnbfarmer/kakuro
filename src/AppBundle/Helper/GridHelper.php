@@ -710,6 +710,9 @@ return $cells; // tbi
                 continue;
             }
             foreach ($strips[1] as $vCell) {
+                if (count($vCell['choices']) !== 1) {
+                    continue;
+                }
                 if ($vCell['choices'][0] === $choice) {
                     $cells[] = [$cell, $vCell];
                     continue 2;

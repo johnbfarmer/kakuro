@@ -271,6 +271,11 @@ class Cell
         ];
     }
 
+    public function coords()
+    {
+        return '(' . $this->row.','.$this->col.')';
+    }
+
     public function dump($coords_only = true)
     {
         $str = '(' . $this->row.','.$this->col.')';

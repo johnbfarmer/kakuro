@@ -139,6 +139,9 @@ export default class GridDesigner extends React.Component {
         if (keyCode === 88) { // x
             this.setActiveCellVal('x');
         }
+        if (keyCode === 89) { // y
+            this.setActiveCellVal('y');
+        }
         if (keyCode === 82) { // r
             this.removeRow();
         }
@@ -160,7 +163,6 @@ export default class GridDesigner extends React.Component {
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         var cells = this.state.cells;
 
-console.log(val);
         if (!GridHelper.valAllowed(val, idx, cells, this.state.height, this.state.width)) {
             return;
         }
@@ -174,6 +176,9 @@ console.log(val);
                 cells[idx].is_data = !cells[idx].is_data;
                 cells[idx].choices = [];
                 this.strips = GridHelper.allStripsLite(cells, this.state.height, this.state.width);
+                break;
+            case 'y':
+                cells[idx].choices = [1,2,3,4,5,6,7,8,9];
                 break;
             default:
                 cells[idx].choices = [val];
@@ -324,8 +329,8 @@ console.log(val);
             }
             if (!data.hasUniqueSolution) {
                 alert('solution is not unique');
-                cells = GridHelper.setLabels(data.grid, this.strips);
-                this.setState({cells: cells});
+                // cells = GridHelper.setLabels(data.grid, this.strips);
+                // this.setState({cells: cells});
             } else {
                 alert('solution is unique');
             }

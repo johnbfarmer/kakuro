@@ -122,10 +122,15 @@ class Strip
         return $this->possibleValues;
     }
 
+    public function getIdx()
+    {
+        return $this->startRow . '_' . $this->startCol . '_' . $this->dir;      
+    }
+
     public function dump()
     {
         return 'strip len ' . $this->len . ' sum ' . $this->total .
              ' (' . $this->startRow . ', ' . $this->startCol . ') - ' .
-             ' (' . $this->stopRow . ', ' . $this->stopCol . ')';
+             ' (' . $this->stopRow . ', ' . $this->stopCol . ')';             
     }
 }

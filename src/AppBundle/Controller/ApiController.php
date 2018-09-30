@@ -49,14 +49,15 @@ class ApiController extends Controller
     public function getChoicesAction(Request $request)
     {
         $cells = json_decode($request->request->get('cells'), true);
-        $advanced_reduction = $request->request->has('advanced') && $request->request->get('advanced');
+        // $advanced_reduction = $request->request->has('advanced') && $request->request->get('advanced');
         $grid_id = $request->request->get('grid_id');
+        $level = $request->request->get('level');
         $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($grid_id);
         $parameters = [
             'grid' => $grid,
             'cells' => $grid->getForProcessing(),
             'uiChoices' => $cells,
-            'simpleReduction' => !$advanced_reduction,
+            'level' => $level,
         ];
         $reducer = KakuroReducer::autoExecute($parameters, null);
         return new JsonResponse($reducer->getApiResponse());
@@ -87,10 +88,12 @@ class ApiController extends Controller
             'grid' => $grid,
             'cells' => $grid->getForProcessing(),
             'uiChoices' => $cells,
-            'hintOnly' => true,
+            'oneStep' => true,
+            // 'hintOnly' => true,
         ];
         $reducer = KakuroReducer::autoExecute($parameters, null);
-        return new JsonResponse($reducer->getHint());
+        return new JsonResponse($reducer->getApiResponse());
+        // return new JsonResponse($reducer->getHint());
     }
 
     /**

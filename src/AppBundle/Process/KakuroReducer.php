@@ -12,13 +12,14 @@ class KakuroReducer extends BaseKakuro
         $changedStrips,
         $failedStrip = [],
         $failReason,
-        $simpleReduction,
+        $reductionLevel = 0,
         $gridObj,
         $cells,
         $uiChoices,
         $stripsNew,
         $indexesNotToProcess = [],
         $hintOnly = false,
+        $oneStep = false,
         $hint = "Sorry, no hint...",
         $fails = false;
 
@@ -32,8 +33,12 @@ class KakuroReducer extends BaseKakuro
             $this->gridObj = $this->parameters['grid'];
         }
 
-        $this->simpleReduction = !empty($this->parameters['simpleReduction']);
-        $this->hintOnly = !empty($this->parameters['hintOnly']);
+        $this->reductionLevel = !empty($this->parameters['level']) ? (int)$this->parameters['level'] : 0;
+        if (isset($this->parameters['simpleReduction'])) {
+            $this->reductionLevel = !empty($this->parameters['simpleReduction']) ? 4 : 3;
+        }
+        $this->oneStep = $this->reductionLevel == 1;
+        $this->hintOnly = !empty($this->parameters['hintOnly']); // not used currently
         $this->changedStrips = new ArrayCollection();
     }
 
@@ -55,12 +60,16 @@ class KakuroReducer extends BaseKakuro
             }
         }
 
-        if (!$this->reduce($this->stripsNew, !$this->simpleReduction)) {
+        if ($this->reductionLevel === 2) {
+            return true;
+        }
+
+        if (!$this->reduce($this->stripsNew, $this->reductionLevel)) {
             $this->fails = true;
         }
     }
 
-    protected function reduce($strips, $use_advanced_reduction)
+    protected function reduce($strips, $level)
     {
         while (!$strips->isEmpty()) {
             $this->changedStrips->clear();
@@ -71,9 +80,11 @@ class KakuroReducer extends BaseKakuro
 
                 $cells = $this->getCellsForStrip($strip);
                 $pv = $this->getPossibleValuesForStrip($strip, $cells)['values'];
+$this->log('current strip '.$strip->getIdx().' pv '.json_encode($pv));
                 foreach ($cells as $cell) {
                     if (!in_array($cell->getIdx(), $this->indexesNotToProcess)) {
                         $choices = $cell->getChoices();
+// $this->log($cell->coords(). ' '.json_encode($choices));
                         if (count($choices) === 1) {
                             continue;
                         }
@@ -89,14 +100,18 @@ class KakuroReducer extends BaseKakuro
                             return false;
                         }
                         if ($changed || count($newChoices) < count($choices)) {
+$this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newChoices));
                             $cell->setChoices($newChoices);
                             $this->addCellsStripsToChanged($cell);
                             $this->cells[$cell->getIdx()] = $cell; // not needed?
+                            if ($this->oneStep) {
+                                return true;
+                            }
                         }
                     }
                 }
 
-                if ($use_advanced_reduction) {
+                if ($level > 3) {
                     if (!$this->adv($strip, $cells)) {
                         $this->failedStrip = $strip->getId();
                         $this->failReason .= ", strip " . $strip->dump();

@@ -282,7 +282,6 @@ class Grid
         }
 
         foreach($this->strips as $strip) {
-            GridHelper::log($strip->dump());
             $strip->setPossibleValues($this->pvFinder->findValues($strip->getTotal(), $strip->getLen(), []));
         }
     }

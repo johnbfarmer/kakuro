@@ -123,14 +123,14 @@ export default class Grid extends React.Component {
         });
     }
 
-    reduce(advanced) {
+    reduce(level) {
         var cells = JSON.stringify(this.state.cells);
         return $.post(
             "http://kak.uro/app_dev.php/api/get-choices",
             {
                 grid_id: this.state.gridId,
                 cells: cells,
-                advanced: ~~advanced
+                level: level,
             },
             function(resp) {
                 if (resp.error) {
@@ -143,7 +143,7 @@ export default class Grid extends React.Component {
         });
     }
 
-    simpleReduce() {
+    simpleReduce(fullRoutine) {
         this.reduce(false);
     }
 
@@ -165,7 +165,9 @@ export default class Grid extends React.Component {
                 }
             },
             'json'
-        );
+        ).then(data => {
+            this.setState({ cells: data.cells });
+        });
     }
 
     clearChoices() {
@@ -283,14 +285,17 @@ export default class Grid extends React.Component {
         if (keyCode === 39) {
             this.moveActive(0,1);
         }
+        if (keyCode === 80) { // p
+            this.reduce(2);
+        }
         if (keyCode === 82) { // r
-            this.simpleReduce();
+            this.reduce(3);
         }
         if (keyCode === 65) { // a
-            this.advancedReduce();
+            this.reduce(4);
         }
-        if (keyCode === 72) { // h -- hint
-            this.giveHint();
+        if (keyCode === 72) { // h -- hint (one step)
+            this.reduce(1);
         }
         if (keyCode === 88) { // x
             this.clearChoices();
