@@ -2,11 +2,13 @@ import React from 'react';
 import Cell from './Cell.jsx';
 import KakuroControls from './KakuroControls.jsx';
 
+var gridId = document.getElementById("content").dataset.id;
+
 export default class Grid extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            name: vars.grid_name,
+            name: '',
             savedGameName: '',
             cells: [],
             height: 0,
@@ -16,7 +18,7 @@ export default class Grid extends React.Component {
             solved: false,
             saved_states: [],
             grids: [{name: 0, label:""}, {name: 4, label:"shit"}, {name: 3, label:"more shit"}],
-            gridId: 1,
+            gridId: 0,
         };
         this.getGames = this.getGames.bind(this);
         this.getGrid = this.getGrid.bind(this);
@@ -41,7 +43,9 @@ export default class Grid extends React.Component {
 
     componentDidMount() {
         this.getGames();
-        // this.getGrid(1);
+        if (gridId > 0) {
+            this.getGrid(gridId);
+        }
     }
 
     getGames() {
@@ -49,7 +53,6 @@ export default class Grid extends React.Component {
             "http://kak.uro/app_dev.php/api/games"
         ).then(data => {
             this.setState({grids: data.games});
-            this.getGrid(data.games[0]['name']);
         });
     }
 
