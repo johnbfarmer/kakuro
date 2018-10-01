@@ -47,7 +47,7 @@ class KakuroUniquenessTester extends KakuroReducer
             }
         }
 
-        if (!$this->reduce($this->stripsNew, !$this->simpleReduction)) {
+        if (!$this->reduce($this->stripsNew, true)) {
             $this->fails = true;
         }
 

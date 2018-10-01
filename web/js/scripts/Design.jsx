@@ -23,9 +23,8 @@ export default class GridDesigner extends React.Component {
         this.strips = [];
 
         this.getGrid = this.getGrid.bind(this);
-        this.saveChoices = this.saveChoices.bind(this);
+        this.saveGame = this.saveGame.bind(this);
         this.getGames = this.getGames.bind(this);
-        this.processNewData = this.processNewData.bind(this);
         this.setActive = this.setActive.bind(this);
         this.moveActive = this.moveActive.bind(this);
         this.handleKey = this.handleKey.bind(this);
@@ -50,9 +49,9 @@ export default class GridDesigner extends React.Component {
         return $.getJSON(
             "http://kak.uro/app_dev.php/api/solution/" + id
         ).then(data => {
-            var cells = this.processNewData(data.cells, data.height, data.width);
-            this.strips = GridHelper.allStripsLite(cells, data.height, data.width);
-// console.log(strips);
+            var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
+            var cells = processed.cells;
+            this.strips = processed.strips;
             cells = GridHelper.setLabels(cells, this.strips);
             this.setState({cells: cells, height: parseInt(data.height), width: parseInt(data.width), gridId: id, gridName: data.name});
         });
@@ -60,19 +59,17 @@ export default class GridDesigner extends React.Component {
 
     newGrid(h, w) {
         var c = GridHelper.getCellArray(h, w);
-        var cells = this.processNewData(c, h, w);
+        var processed = GridHelper.processData(c, h, w, this.state.active_row, this.state.active_col);
+        var cells = processed.cells;
+        this.strips = processed.strips;
         this.setState({cells: cells, height: h, width: w, active_row: h-1, active_col: w-1, gridId: 0});
     }
 
-    saveChoices(name, asCopy) {
+    saveGame(name, asCopy) {
         if (!GridHelper.validGrid(this.state.cells, this.state.height, this.state.width)) {
             console.log('invalid for saving');
             console.log(GridHelper.message);
         }
-
-        // if (!GridHelper.saveGame(name, this.state.cells, this.state.height, this.state.width)) {
-        //     console.log('error saving');
-        // }
 
         var cells = JSON.stringify(this.state.cells);
         name = name || null;
@@ -100,26 +97,6 @@ export default class GridDesigner extends React.Component {
         ).then(data => {
             this.setState({grids: data.games});
         });
-    }
-
-    processNewData(cells, height, width) {
-        cells.forEach((cell, idx) => {
-            cell.col = idx % width;
-            cell.row = Math.floor(idx / width);
-            if (!('display' in cell)) {
-                cell.display = [0,0];
-            }
-            if (('is_data' in cell && !cell.is_data) || cell.row == 0 || cell.col == 0) {
-                cell.is_data = false;
-                cell.display = cell.display || [0,0];
-            } else {
-                cell.is_data = true;
-            }
-            cell.active = cell.row === this.state.active_row && cell.col === this.state.active_col;
-            cells[idx] = cell;
-        });
-
-        return cells;
     }
 
     handleKey(e) {
@@ -362,7 +339,7 @@ export default class GridDesigner extends React.Component {
                         height={this.state.height}
                         width={this.state.width}
                         selectedGrid={this.state.gridId}
-                        save={this.saveChoices}
+                        save={this.saveGame}
                         grids={this.state.grids}
                         getGrid={this.getGrid}
                         newGrid={this.newGrid}

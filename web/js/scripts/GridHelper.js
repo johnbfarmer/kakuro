@@ -13,7 +13,42 @@ ctr: 0,
         return p;
     },
 
-    allStripsLite(cells, h, w) {
+    processData(cells, h, w, r, c) { // r = activeRow, c = acticeCol
+        cells.forEach((cell, idx) => {
+            cell.idx = cell.idx || idx
+            cell.col = cell.col || idx % w;
+            cell.row = cell.row || Math.floor(idx / w);
+            if (!('display' in cell)) {
+                cell.display = [0,0];
+            }
+            if (('is_data' in cell && !cell.is_data) || cell.row == 0 || cell.col == 0) {
+                cell.is_data = false;
+                cell.display = cell.display || [0,0];
+            } else {
+                cell.is_data = true;
+            }
+            cell.active = cell.row === r && cell.col === c;
+            cell.strips = {};
+            cells[idx] = cell;
+        });
+        var strips = this.allStrips(cells, h, w);
+        var stripsLite = [];
+        var liteStrip;
+        var dir;
+        strips.forEach(strip => {
+            liteStrip = {cells: [], idx: strip.idx}
+            dir = strip.idx.split('_')[2];
+            strip.cells.forEach(cell => {
+                liteStrip.cells.push(cell.idx);
+                cells[cell.idx].strips[dir] = strip.idx;
+            });
+            stripsLite.push(liteStrip);
+        });
+
+        return {cells: cells, strips: stripsLite};
+    },
+
+    allStripsLite(cells, h, w) { // lite because strips do not include cells, only indexes
         var strips = this.allStrips(cells, h, w);
         var stripsLite = [];
         var liteStrip;
@@ -28,7 +63,7 @@ ctr: 0,
         return stripsLite;
     },
 
-    allStrips(cells, h, w) {
+    allStrips(cells, h, w) { //strips include cells
         var nbrStrips, strips = [], stripIdxs = [], idx;
         cells.forEach(cell => {
             if (cell.row === 0 || cell.col === 0) {
@@ -152,7 +187,7 @@ ctr: 0,
     },
 
     setLabels(cells, strips) {
-console.log(cells, strips);
+// console.log(cells, strips);
         var labelCell, sum, displayPos, cell;
         cells.forEach((cell, idx) => {
             cells[idx].display = [0,0];

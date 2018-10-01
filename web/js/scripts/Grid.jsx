@@ -1,6 +1,7 @@
 import React from 'react';
 import Cell from './Cell.jsx';
 import KakuroControls from './KakuroControls.jsx';
+import {GridHelper} from './GridHelper.js';
 
 var gridId = document.getElementById("content").dataset.id;
 
@@ -20,6 +21,9 @@ export default class Grid extends React.Component {
             grids: [{name: 0, label:""}, {name: 4, label:"shit"}, {name: 3, label:"more shit"}],
             gridId: 0,
         };
+
+        this.strips = [];
+
         this.getGames = this.getGames.bind(this);
         this.getGrid = this.getGrid.bind(this);
         this.saveState = this.saveState.bind(this);
@@ -32,7 +36,6 @@ export default class Grid extends React.Component {
         this.clearChoices = this.clearChoices.bind(this);
         this.clearAllChoices = this.clearAllChoices.bind(this);
         this.reduce = this.reduce.bind(this);
-        this.processNewData = this.processNewData.bind(this);
         this.setActive = this.setActive.bind(this);
         this.moveActive = this.moveActive.bind(this);
         this.handleChangedCell = this.handleChangedCell.bind(this);
@@ -60,7 +63,9 @@ export default class Grid extends React.Component {
         return $.getJSON(
             "http://kak.uro/app_dev.php/api/grid/" + id
         ).then(data => {
-            var cells = this.processNewData(data.cells, data.height, data.width);
+            var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
+            var cells = processed.cells;
+            this.strips = processed.strips;
             this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id});
             this.saveState();
         });
@@ -120,7 +125,9 @@ export default class Grid extends React.Component {
             },
             'json'
         ).then(data => {
-            cells = this.processNewData(data.cells, data.height, data.width);
+            var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
+            cells = processed.cells;
+            this.strips = processed.strips;
             this.setState({ cells: cells, height: data.height, width: data.width, savedGameName: data.name });
             this.saveState();
         });
@@ -188,20 +195,6 @@ export default class Grid extends React.Component {
         });
 
         this.setState({ cells: cells });
-    }
-
-    processNewData(cells, height, width) {
-        cells.forEach((cell, idx) => {
-            cell.col = idx % width;
-            cell.row = Math.floor(idx / width);
-            if (cell.row == 0 || cell.col == 0) {
-                cell.is_data = false;
-                cell.display = cell.display || [0,0];
-            }
-            cell.active = cell.row === this.state.active_row && cell.col === this.state.active_col;
-            cells[idx] = cell;
-        });
-        return cells;
     }
 
     setActive(row, col) {
