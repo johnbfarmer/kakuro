@@ -20,6 +20,7 @@ export default class Grid extends React.Component {
             saved_states: [],
             grids: [{name: 0, label:""}, {name: 4, label:"shit"}, {name: 3, label:"more shit"}],
             gridId: 0,
+            gridStatus: '', // success, error
         };
 
         this.strips = [];
@@ -34,6 +35,7 @@ export default class Grid extends React.Component {
         this.advancedReduce = this.advancedReduce.bind(this);
         this.giveHint = this.giveHint.bind(this);
         this.clearChoices = this.clearChoices.bind(this);
+        this.updateChoices = this.updateChoices.bind(this);
         this.clearAllChoices = this.clearAllChoices.bind(this);
         this.reduce = this.reduce.bind(this);
         this.setActive = this.setActive.bind(this);
@@ -66,6 +68,7 @@ export default class Grid extends React.Component {
             var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
             var cells = processed.cells;
             this.strips = processed.strips;
+console.log(this.strips);
             this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id});
             this.saveState();
         });
@@ -149,7 +152,7 @@ export default class Grid extends React.Component {
             },
             'json'
         ).then(data => {
-            this.setState({ cells: data.cells });
+            this.updateChoices(data.cells);
         });
     }
 
@@ -180,12 +183,21 @@ export default class Grid extends React.Component {
         });
     }
 
+    updateChoices(cells) {
+        var processed = GridHelper.checkStrips(cells, this.strips);
+        var msg = '';
+        this.strips = processed.strips;
+        cells = processed.cells;
+        this.setState({cells: cells, gridStatus: processed.status});
+        // this.setState({cells: cells}, async () => {console.log('123');});
+    }
+
     clearChoices() {
         var cells = this.state.cells;
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         cells[idx].choices = [];
 
-        this.setState({ cells: cells });
+        this.updateChoices(cells);
     }
 
     clearAllChoices() {
@@ -194,7 +206,7 @@ export default class Grid extends React.Component {
             cell.choices = [];
         });
 
-        this.setState({ cells: cells });
+        this.updateChoices(cells);
     }
 
     setActive(row, col) {
@@ -261,7 +273,7 @@ export default class Grid extends React.Component {
             cell.display = cell.choices.join('');
             cells[idx] = cell;
             this.checkAnswer(cells);
-            this.setState({cells: cells});
+            this.updateChoices(cells);
         } else {
             var keyCode = event.keyCode;
             this.handleKey(keyCode);
@@ -365,6 +377,9 @@ export default class Grid extends React.Component {
                         grids={this.state.grids}
                         getGrid={this.getGrid}
                     />
+                </div>
+                <div className="status-box">
+                    {this.state.gridStatus}
                 </div>
             </div>
         );

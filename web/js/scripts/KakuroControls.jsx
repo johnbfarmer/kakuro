@@ -4,6 +4,7 @@ import { ButtonGroup, Button, Glyphicon } from 'react-bootstrap';
 export default class KakuroControls extends React.Component {
     constructor(props) {
         super(props);
+console.log(props);
         this.state = {
             savedGameName: '',
             grids: [],

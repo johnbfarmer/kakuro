@@ -36,7 +36,7 @@ ctr: 0,
         var liteStrip;
         var dir;
         strips.forEach(strip => {
-            liteStrip = {cells: [], idx: strip.idx}
+            liteStrip = {cells: [], idx: strip.idx, sum: strip.sum || 0, filled: strip.filled || false, correct: strip.correct || null};
             dir = strip.idx.split('_')[2];
             strip.cells.forEach(cell => {
                 liteStrip.cells.push(cell.idx);
@@ -64,7 +64,7 @@ ctr: 0,
     },
 
     allStrips(cells, h, w) { //strips include cells
-        var nbrStrips, strips = [], stripIdxs = [], idx;
+        var nbrStrips, strips = [], stripIdxs = [], idx, sum, labelCell, displayPos;
         cells.forEach(cell => {
             if (cell.row === 0 || cell.col === 0) {
                 return;
@@ -75,13 +75,20 @@ ctr: 0,
                     return;
                 }
 
-                // strip idx is row_col with __ between dudes like 1_1__1_2 or row_col for first and orientation like 1_1_h
+                // strip idx is row_col_orientation like 1_1_h
                 idx = this.stripIndex(strip);
                 if (stripIdxs.indexOf(idx) < 0) {
                     stripIdxs.push(idx);
                     strips.push({cells: strip, idx: idx});
                 }
             });
+        });
+
+        strips.forEach((strip, k) => {
+            labelCell = this.getLabelCell(strip, cells);
+            displayPos = strip.idx.split('_')[2] === 'h' ? 1 : 0;
+            sum = labelCell.display[displayPos];
+            strips[k].sum = sum;
         });
 
         return strips;
@@ -186,13 +193,52 @@ ctr: 0,
         return nbrs;
     },
 
+    checkStrips(cells, strips) {
+        var cell, filled, sum, allFilled = true, allCorrect = true;
+        cells.forEach((cell, k) => {
+            cells[k].error = false;
+        });
+        strips.forEach((strip, k) => {
+            filled = true;
+            sum = 0;
+            strip.cells.some(cellIdx => {
+                cell = cells[cellIdx];
+                if (cell.choices.length !== 1) {
+                    filled = false;
+                    allFilled = false;
+                    allCorrect = false;
+                    sum = 0;
+                    return true;
+                }
+                sum += cell.choices[0];
+            });
+            strips[k].filled = filled;
+            if (filled) {
+                if (strip.sum == sum) {
+                    strip.correct = true;
+                    console.log(strip.idx + ' is filled correctly');
+                } else {
+                    strip.correct = false;
+                    console.log(strip.idx + ' is wrong');
+                    allCorrect = false;
+                    strip.cells.forEach(cellIdx => {
+                        cells[cellIdx].error = true;
+                    });
+                }
+            }
+        });
+
+        var status = allFilled ? (allCorrect ? 'success' :  'error') : 'open';
+
+        return {strips: strips, cells: cells, status: status};
+    },
+
     setLabels(cells, strips) {
-// console.log(cells, strips);
         var labelCell, sum, displayPos, cell;
         cells.forEach((cell, idx) => {
             cells[idx].display = [0,0];
         });
-        strips.forEach(strip => {
+        strips.forEach((strip, k) => {
             labelCell = this.getLabelCell(strip, cells);
             sum = 0;
             strip.cells.some(cellIdx => {
@@ -205,6 +251,7 @@ ctr: 0,
             });
             displayPos = strip.idx.split('_')[2] === 'h' ? 1 : 0;
             cells[labelCell.idx].display[displayPos] = sum;
+            strips[k].sum = sum;
         });
 
         return cells;

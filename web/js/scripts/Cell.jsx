@@ -58,7 +58,12 @@ export default class Cell extends React.Component {
         if (!this.props.cell.semiactive && !this.state.is_data) {
             classes = classes + " blnk";
         }
-         if (this.state.sum_box && !this.props.cell.semiactive) {
+
+        if (this.props.cell.error) {
+            classes = classes + " error";
+        }
+
+        if (this.state.sum_box && !this.props.cell.semiactive) {
             classes = classes + " sum-box";
         } else {
             if (this.props.cell.choices.length === 1) {

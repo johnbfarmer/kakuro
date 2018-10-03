@@ -1,60 +1,70 @@
 body {
-    margin: 20px;
+  margin: 20px;
 }
 
 .kakuro-cell {
-    width: 50px;
-    height: 50px;
-    line-height: 50px;
-    float: left;
-    border: 1px solid blue;
-    text-align: center;
+  width: 50px;
+  height: 50px;
+  line-height: 50px;
+  float: left;
+  border: 1px solid blue;
+  text-align: center;
 }
+
 .blnk {
-    background-color: lightblue;
+  background-color: lightblue;
 }
+
 .actv {
-    color: red;
-    background-color: yellow;
+  color: red;
+  background-color: yellow;
 }
+
 .semiactive {
-    background-color: lightyellow;
+  background-color: lightyellow;
 }
+
 .semiactive-blnk {
-    background-color: lightgreen;
+  background-color: lightgreen;
 }
+
 .clr {
-    clear: both;
+  clear: both;
 }
+
 .sum-box {
-    background: 
-       linear-gradient(to top right,
-           lightblue 0%,
-           lightblue calc(50% - 0.8px),
-           rgba(0,0,0,1) 50%,
-           lightblue calc(50% + 0.8px),
-           lightblue 100%);
+  background: 
+   linear-gradient(to top right,
+     lightblue 0%,
+     lightblue calc(50% - 0.8px),
+     rgba(0,0,0,1) 50%,
+     lightblue calc(50% + 0.8px),
+     lightblue 100%);
 }
+
 .semiactive-sum-box {
-    background: 
-       linear-gradient(to top right,
-           lightgreen 0%,
-           lightgreen calc(50% - 0.8px),
-           rgba(0,0,0,1) 50%,
-           lightgreen calc(50% + 0.8px),
-           lightgreen 100%);
+  background: 
+   linear-gradient(to top right,
+     lightgreen 0%,
+     lightgreen calc(50% - 0.8px),
+     rgba(0,0,0,1) 50%,
+     lightgreen calc(50% + 0.8px),
+     lightgreen 100%);
 }
+
 .kakuro-row {
-    margin-left: 20px;
-    height: 50px;
+  margin-left: 20px;
+  height: 50px;
 }
+
 .kakuro-grid {
-    padding: 20px;
-    outline: none;
+  padding: 20px;
+  outline: none;
 }
+
 .kakuro-cell input {
-    width: 48px;
-    height: 48px;
+  width: 48px;
+  height: 48px;
 }
 
 .label-v {
@@ -86,4 +96,14 @@ body {
 
 .cell-solved {
   background-color: yellow;
+}
+
+.error {
+  background-color: indianred;
+  color: white;
+}
+
+.status-box {
+  font-size: xx-large;
+  color: slateblue;
 }
