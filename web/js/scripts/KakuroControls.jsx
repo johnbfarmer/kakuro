@@ -43,11 +43,11 @@ console.log(props);
     }
 
     save() {
-        this.props.save(this.state.savedGameName, true);
+        this.props.save(this.state.savedGameName, false);
     }
 
     saveCopy() {
-        this.props.save(this.state.savedGameName, false);
+        this.props.save(this.state.savedGameName, true);
     }
 
     processDropdownOptions(data) {
@@ -138,7 +138,7 @@ console.log(props);
                         <Button onClick={this.save} title="save">
                             <Glyphicon glyph="floppy-disk" />
                         </Button>
-                        <Button onClick={this.saveCopy} title="save">
+                        <Button onClick={this.saveCopy} title="save copy">
                             <Glyphicon glyph="duplicate" />
                         </Button>
                     </ButtonGroup>

@@ -228,7 +228,7 @@ ctr: 0,
             }
         });
 
-        var status = allFilled ? (allCorrect ? 'success' :  'error') : 'open';
+        var status = allFilled ? (allCorrect ? 'success' :  'error') : '';
 
         return {strips: strips, cells: cells, status: status};
     },

@@ -33,7 +33,9 @@ class SaveDesign extends BaseGrid
 
     protected function execute()
     {
-        $this->handleCopy();
+        if ($this->asCopy) {
+            $this->handleCopy();
+        }
 
         $id = $this->id ?: 'null';
         $timestamp = date('Y-m-d H:i:s');

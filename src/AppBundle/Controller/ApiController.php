@@ -147,10 +147,11 @@ class ApiController extends Controller
         $id = $request->request->has('grid_id') ? $request->request->get('grid_id') : null;
         $height = $request->request->get('height');
         $width = $request->request->get('width');
+        $asCopy = $request->request->has('asCopy') ? (int)$request->request->get('asCopy') : 0;
         $name = $request->request->has('name') && !empty($request->request->get('name')) 
             ? $request->request->get('name') 
             : 'kakuro_' . time();
-        $parameters = ['id' => $id, 'name' => $name, 'cells' => $cells, 'height' => $height, 'width' => $width];
+        $parameters = ['id' => $id, 'name' => $name, 'cells' => $cells, 'height' => $height, 'width' => $width, 'asCopy' => $asCopy];
         $processor = SaveDesign::autoExecute($parameters, null);
         $response = $processor->getResponse();
         return new JsonResponse($response);

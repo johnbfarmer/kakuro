@@ -84,7 +84,6 @@ export default class GridDesigner extends React.Component {
                 asCopy: asCopy,
             },
             function(resp) {
-                console.log(resp);
                 this.setState({gridName: resp.name, gridId: parseInt(resp.id)});
             }.bind(this),
             'json'
