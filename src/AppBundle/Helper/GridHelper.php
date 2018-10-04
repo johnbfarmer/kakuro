@@ -208,10 +208,7 @@ class GridHelper
     {
         $numberSet = [1,2,3,4,5,6,7,8,9];
         $taken = self::taken($cell, $cells, $height, $width);
-        $available = array_values(array_diff($numberSet, $taken));
-        // $cell['choices'] = array_values(array_diff($numberSet, $taken));
-        // $cell['choices'] = array_values(array_diff($cell['choices'], $taken));
-        return $available;
+        return array_values(array_diff($numberSet, $taken));
     }
 
     public static  function filterNumsThatCauseNonUnique($cells, $height, $width)
@@ -241,6 +238,7 @@ class GridHelper
             }
 
             // have to do this again here to get the updated cells from above
+// note -- use idxs instead of cells in the strips big dummy then ya don't have do so much work
             $strips = self::strips($cell, $cells, $height, $width);
             $sh = $strips['h'];
             $sv = $strips['v'];
@@ -259,9 +257,6 @@ class GridHelper
         $swappableSubsets = [];
         foreach ($hStrips as $strip) {
             foreach ($strip as $cell1) {
-                // if (count($cell1['choices']) !== 1) {
-                //     continue;
-                // }
                 $vStrip1 = $indexedStrips[$cell1['strips']['v']];
                 foreach ($strip as $cell2) {
                     if ($cell2['row'] <= $cell1['row'] && $cell2['col'] <= $cell1['col']) {
@@ -270,7 +265,6 @@ class GridHelper
                     if (count($cell1['choices']) !== 1 && count($cell2['choices']) !== 1) {
                         continue;
                     }
-
                     $w1 = [$cell1['idx'], $cell2['idx']];
                     $vStrip2 = $indexedStrips[$cell2['strips']['v']];
                     $w2s = self::getSwappableMatches($cell1, $cell2, $vStrip1, $vStrip2, $cells);

@@ -81,7 +81,7 @@ export default class GridDesigner extends React.Component {
                 width: this.state.width,
                 name: name,
                 cells: cells,
-                asCopy: asCopy,
+                asCopy: ~~asCopy,
             },
             function(resp) {
                 this.setState({gridName: resp.name, gridId: parseInt(resp.id)});
