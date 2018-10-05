@@ -336,15 +336,12 @@ class GridHelper
                 if (count($cell['choices']) !== 1) {
                     // X is unknown; b is diagonal to X; a and c are the others
                     $X = $cell;
+                    // $a is X's horisontal partner
                     $a = $cells[$pair[abs($innerIdx - 1)]];
                     $otherPair = $swappableSubset[abs($outerIdx - 1)];
-                    if ($otherPair[0]['row'] === $X['row'] || $otherPair[0]['col'] === $X['col']) {
-                        $b = $cells[$otherPair[1]];
-                        $c = $cells[$otherPair[0]];
-                    } else {
-                        $b = $cells[$otherPair[0]];
-                        $c = $cells[$otherPair[1]];
-                    }
+                    // $c has the same col as X so it should have the same inner idx as X
+                    $c = $cells[$otherPair[$innerIdx]];
+                    $b = $cells[$otherPair[abs($innerIdx - 1)]];
                     break 2;
                 }
             }
@@ -362,16 +359,23 @@ class GridHelper
         $b['available'][] = $a['choices'][0];
         $b['available'][] = $c['choices'][0];
         $c['available'][] = $b['choices'][0];
-
+        $choicesToUnset = [];
         // see what values of X we can have. also need to unset by similar sums
         foreach ($X['choices'] as $choiceIdx => $candidate) {
-            if (self::failTests($candidate, $a['choices'][0], $b['choices'][0], $c['choices'][0], $X['choices'], $a['available'], $b['available'], $c['available'])) {
-self::log('unset ' . $candidate . ' for ' . $choiceIdx);
-                unset($X['choices'][$choiceIdx]);
+            if (self::failTests($candidate, $a['choices'][0], $b['choices'][0], $c['choices'][0], array_values($X['choices']), $a['available'], $b['available'], $c['available'])) {
+self::log('unset ' . $candidate . ' idx ' . $choiceIdx);
+                $choicesToUnset[] = $candidate;
+            }
+        }
+self::log('unset '.json_encode($choicesToUnset));
+$newChoices = [];
+        foreach ($X['choices'] as $candidate) {
+            if (!in_array($candidate, $choicesToUnset)) {
+                $newChoices[] = $candidate;
             }
         }
 
-        $X['choices'] = array_values($X['choices']);
+        $X['choices'] = $newChoices;
         $cells[$X['idx']] = $X;
 self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx']]['choices']));
         return $cells;
@@ -397,20 +401,45 @@ self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx
 
     public static function failTests($X, $a, $b, $c, $setX, $setA, $setB, $setC)
     {
+        if ($a === $c && $b === $X) {
+            return true;
+        }
+// self::log('test 1');
         if (self::failTest1($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return true;
+            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 1);
         }
+// self::log('test 2');
         if (self::failTest2($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return true;
+            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 2);
         }
+// self::log('test 3');
         if (self::failTest3($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return true;
+            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 3);
         }
+// self::log('test 4');
         if (self::failTest4($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return true;
+            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 4);
         }
 
-        return false;
+        return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 0, false);;
+    }
+
+    public static function logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, $testNumber, $result = true)
+    {
+        if ($result) {
+            self::log('failed testNumber = '. $testNumber);
+        } else {
+            self::log('passed all tests');
+        }
+        self::log('X = '. $X);
+        self::log('a = '. $a);
+        self::log('b = '. $b);
+        self::log('c = '. $c);
+        self::log('setX = '. json_encode($setX));
+        self::log('setA = '. json_encode($setA));
+        self::log('setB = '. json_encode($setB));
+        self::log('setC = '. json_encode($setC));
+        return $result;
     }
 
     public static function filterNumsThatCauseSwap3($cells, $height, $width)
