@@ -47,18 +47,14 @@ class KakuroUniquenessTester extends KakuroReducer
             }
         }
 
-        if (!$this->reduce($this->stripsNew, 4)) {
+        if (!$this->reduce($this->stripsNew, 5)) {
             $this->fails = true;
         }
 
         $gridForResponse = $this->getGridForResponse();
         $this->cells = $gridForResponse['cells'];
         $this->hasError = $gridForResponse['error'];
-        foreach ($this->cells as $cell) {
-            if (count($cell['choices']) > 1) {
-                $this->hasUniqueSolution = false;
-            }
-        }
+        $this->hasUniqueSolution = $gridForResponse['hasUniqueSolution'];
     }
 
     protected function getGrid()
@@ -83,10 +79,16 @@ class KakuroUniquenessTester extends KakuroReducer
 
     public function getApiResponse()
     {
-        return [
+        $ret = [
             'grid' => $this->cells,
             'hasUniqueSolution' => $this->hasUniqueSolution,
             'hasError' => $this->hasError,
         ];
+
+        if (!$this->hasUniqueSolution) {
+            $ret['solutions'] = $this->solutions;
+        }
+
+        return $ret;
     }
 }

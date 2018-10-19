@@ -8,6 +8,8 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
+use AppBundle\Process\KakuroUniqueFinder;
+
 class KakuroTestCommand extends ContainerAwareCommand
 {
     protected function configure()
@@ -22,13 +24,11 @@ class KakuroTestCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $argument = $input->getArgument('argument');
+        $parameters = array_merge($input->getArguments(), $input->getOptions());
+        $parameters['output'] = $output;
+        // find uq 3x2s
+        KakuroUniqueFinder::autoExecute($parameters, null);
 
-        if ($input->getOption('option')) {
-            // ...
-        }
-
-        $output->writeln('Command result.');
     }
 
 }

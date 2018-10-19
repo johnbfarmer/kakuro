@@ -284,7 +284,7 @@ class GridHelper
             $cells = self::filterNumsThatCauseSwap2($swappableSubset, $indexedStrips, $cells, $height, $width);
         }
 
-        $cells = self::filterNumsThatCauseSwap3($cells, $height, $width);
+        $cells = self::filterNumsThatCauseSwap3($cells, $indexedStrips, $height, $width);
 
         // $available = $cell['choices'];
         return $cells;
@@ -351,24 +351,22 @@ class GridHelper
             return $cells;
         }
 
-        // get available options for a,b and c:
-        $a = self::setAvailable($a, $indexedStrips);
-        $b = self::setAvailable($b, $indexedStrips);
-        $c = self::setAvailable($c, $indexedStrips);
-        $a['available'][] = $b['choices'][0];
-        $b['available'][] = $a['choices'][0];
-        $b['available'][] = $c['choices'][0];
-        $c['available'][] = $b['choices'][0];
+self::log('X is ('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx']]['choices']));
+        // get available options for each:
+        $a = self::setAvailable($a, $indexedStrips, [$b['idx']]);
+        $b = self::setAvailable($b, $indexedStrips, [$a['idx'], $c['idx']]);
+        $c = self::setAvailable($c, $indexedStrips, [$b['idx']]);
+        $X = self::setAvailable($X, $indexedStrips, [$a['idx'], $c['idx']]);
+
         $choicesToUnset = [];
-        // see what values of X we can have. also need to unset by similar sums
+        // see what values of X we can have. also need to unset by similar sums(?) and other filters
         foreach ($X['choices'] as $choiceIdx => $candidate) {
-            if (self::failTests($candidate, $a['choices'][0], $b['choices'][0], $c['choices'][0], array_values($X['choices']), $a['available'], $b['available'], $c['available'])) {
-self::log('unset ' . $candidate . ' idx ' . $choiceIdx);
+            if (self::failTests($candidate, $a['choices'][0], $b['choices'][0], $c['choices'][0], $X['available'], $a['available'], $b['available'], $c['available'])) {
                 $choicesToUnset[] = $candidate;
             }
         }
 self::log('unset '.json_encode($choicesToUnset));
-$newChoices = [];
+        $newChoices = [];
         foreach ($X['choices'] as $candidate) {
             if (!in_array($candidate, $choicesToUnset)) {
                 $newChoices[] = $candidate;
@@ -381,7 +379,7 @@ self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx
         return $cells;
     }
 
-    public static function setAvailable($cell, $indexedStrips)
+    public static function setAvailable($cell, $indexedStrips, $ignore)
     {
         $numberSet = [1,2,3,4,5,6,7,8,9];
         $taken = [];
@@ -389,6 +387,9 @@ self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx
             $strip = $indexedStrips[$stripIdx];
             foreach ($strip as $stripCell) {
                 if ($stripCell['idx'] === $cell['idx'] || count($stripCell['choices']) !== 1) {
+                    continue;
+                }
+                if (in_array($stripCell['idx'], $ignore)) {
                     continue;
                 }
                 $taken[] = $stripCell['choices'][0];
@@ -404,28 +405,42 @@ self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx
         if ($a === $c && $b === $X) {
             return true;
         }
-// self::log('test 1');
-        if (self::failTest1($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 1);
-        }
-// self::log('test 2');
-        if (self::failTest2($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 2);
-        }
-// self::log('test 3');
-        if (self::failTest3($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 3);
-        }
-// self::log('test 4');
-        if (self::failTest4($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
-            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 4);
+
+        if (self::failJuggleTest($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+            return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 'juggle');
         }
 
-        return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 0, false);;
+        return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 0, false);
     }
+
+    // public static function failTests($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    // {
+    //     if ($a === $c && $b === $X) {
+    //         return true;
+    //     }
+
+    //     if (self::failTest1($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+    //         return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 1);
+    //     }
+
+    //     if (self::failTest2($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+    //         return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 2);
+    //     }
+
+    //     if (self::failTest3($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+    //         return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 3);
+    //     }
+
+    //     if (self::failTest4($X, $a, $b, $c, $setX, $setA, $setB, $setC)) {
+    //         return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 4);
+    //     }
+
+    //     return self::logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, 0, false);
+    // }
 
     public static function logTestResult($X, $a, $b, $c, $setX, $setA, $setB, $setC, $testNumber, $result = true)
     {
+// return $result;
         if ($result) {
             self::log('failed testNumber = '. $testNumber);
         } else {
@@ -442,34 +457,116 @@ self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx
         return $result;
     }
 
-    public static function filterNumsThatCauseSwap3($cells, $height, $width)
+    public static function failJuggleTest($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        $testResult = false;
+        // get possibilities for ab and cb
+        $stripsToJuggle = self::stripsToJuggle($X, $a, $b, $c, $setX, $setA, $setB, $setC);
+        if (count($stripsToJuggle[0]) <= count($stripsToJuggle[1])) {
+            $strips = $stripsToJuggle[0];
+        } else {
+            $strips = $stripsToJuggle[1];
+            $tmp = $a;
+            $a = $c;
+            $c = $tmp;
+            $tmp = $setA;
+            $setA = $setC;
+            $setC = $tmp;
+        }
+
+        return self::failXXXTest($strips, $X, $a, $b, $c, $setX, $setA, $setB, $setC);
+    }
+
+    public static function failXXXTest($stripsAB, $X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        if (empty($stripsAB)) {
+            return false;
+        }
+
+        foreach ($stripsAB as $strip) {
+            $h = $strip[0];   // h X*
+            $i = $strip[1];   // i c*
+            $Xp = $X + $a - $h;
+            $cp = $c + $b - $i;
+self::log("$X, $a, $b, $c, $h, $i, $Xp, $cp");
+            if (!in_array($Xp, $setX)) {
+self::log("log 1");
+                break;
+            }
+            if (!in_array($cp, $setC)) {
+self::log("log 2");
+                break;
+            }
+            if ($cp === $Xp) {
+self::log("log 3");
+                break;
+            }
+            if ($cp === $i) {
+self::log("log 4");
+                break;
+            }
+            if ($Xp === $h) {
+self::log("log 5");
+                break;
+            }
+self::log("log 6");
+            return true;
+        }
+        return false;
+    }
+
+    public static function stripsToJuggle($X, $a, $b, $c, $setX, $setA, $setB, $setC)
+    {
+        $sumAB = $a + $b;
+        $pairsAB = [];
+        foreach ($setA as $candA) {
+            $candB = $sumAB - $candA; 
+            if (in_array($candB, $setB) && $candA !== $a) 
+                $pairsAB[] = [$candA, $candB];
+        }
+
+        $sumCB = $c + $b;
+        $pairsCB = [];
+        foreach ($setC as $candC) {
+            $candB = $sumCB - $candC; 
+            if (in_array($candB, $setB) && $candC !== $c) 
+                $pairsCB[] = [$candC, $candB];
+        }
+
+        return [$pairsAB, $pairsCB];
+    }
+
+    public static function filterNumsThatCauseSwap3($cells, $indexedStrips, $height, $width)
     {
         // each posible val (a) -- temporarily set cell to val a, consider his strips:
         //     find common vals, for each one (b):
         //         (add b's strips if they contain a
         //             each "a" cell in those strips, add their strips if they contain b) recurse
         //         count the a's and b's in the strips. if ==, can't set to a
+self::log('swap3');
         foreach($cells as $cellIdx => $cell) {
-            if (empty($cell['is_data']) || count($cell['choices']) < 2) {
+            if (empty($cell['is_data']) || count($cell['choices']) === 1) {
                 continue;
             }
 
-            $strips = self::strips($cell, $cells, $height, $width);
-            $commonValuedCellPairs = self::interesectByValue($strips);
-            if (empty($commonValuedCellPairs)) {
-                continue;
-            }
-
+            $strips = self::strips($cell, $cells, $height, $width); // use what is passed in
 
             $xx = [];
             $available = $cell['choices'];
             foreach ($available as $choiceIdx => $choice) {
                 $cell['choices'] = [$choice];
                 $xx = [];
+                $commonValuedCellPairs = self::interesectByValue($strips); // not yet, no value!
+self::log('cell '.json_encode($cell));
+self::log('prs '.json_encode($commonValuedCellPairs));
+                if (empty($commonValuedCellPairs)) {
+                    continue;
+                }
                 $xx[] = $cell;
                 foreach ($commonValuedCellPairs as $pair) {
-                    $xx = self::findConnectedStripsMutuallyContaining($cell, $pair, $xx);
+                    $xx = self::findConnectedStripsMutuallyContaining($cell, $pair, $xx, $indexedStrips);
                 }
+self::log('csmc '.json_encode($xx));
 
                 if (count($xx) > 2 && !(count($xx) % 2)) {
                     unset($available[$choiceIdx]);
@@ -484,10 +581,16 @@ self::log('('.$X['row'].','.$X['col'].') choices: ' . json_encode($cells[$X['idx
         return $cells;
     }
 
-    public static function findConnectedStripsMutuallyContaining($cell1, $pair, $cells)
+    public static function findConnectedStripsMutuallyContaining($cell1, $pair, $cells, $indexedStrips, $d = 0)
     {
-return $cells; // tbi
-        $val1 = $cell1['choices'][0];
+// $d prevent runaway
+self::log('d '.$d);
+if ($d > 5) {
+    return $cells;
+}
+self::log('('.$cell1['row'].','.$cell1['col'].')');
+self::log('pr ' . json_encode($pair));
+        $val1 = $cell1['choices'][0]; // bad, must go thru available
         foreach ($pair as $cell) {
             foreach ($cells as $c) {
                 if ($c['idx'] == $cell['idx']) {
@@ -495,14 +598,13 @@ return $cells; // tbi
                 }
             }
 
-
             // cell2 get strips. see if both contain cell1 val. if yes, add to cells (if not already there) and recurse
             $pairForRecurse = [];
-            $strips = self::strips($idx, false);//($cell, $cells, $height, $width)
+            $strips = [$indexedStrips[$cell['strips']['h']], $indexedStrips[$cell['strips']['v']]];
             foreach ($strips as $strip) {
                 foreach ($strip as $c) {
                     $found = false;
-                    $choice = $c->getChoice();
+                    $choice = $c['choices'][0];
                     if ($choice == $val1) {
                         $found = true;
                         $pairForRecurse[] = $c;
@@ -514,8 +616,10 @@ return $cells; // tbi
                 }
             }
 
-            $cells->add($cell);
-            $cells = self::findConnectedStripsMutuallyContaining($cell, $pairForRecurse, $cells);
+            $cells[] = $cell;
+self::log('would recurse here ' . '('.$cell['row'].','.$cell['col'].')   ' . json_encode($pairForRecurse));
+// return $cells; // tbi
+            $cells = self::findConnectedStripsMutuallyContaining($cell, $pairForRecurse, $cells, $indexedStrips, $d+1);
         }
 
         return $cells;
@@ -718,6 +822,7 @@ return $cells; // tbi
 
     public static function interesectByValue($strips) // takes 2 strips
     {
+self::log('strips '.json_encode($strips));
         $cells = [];
         $strips = array_values($strips);
         if (empty($strips[0]) || empty($strips[1])) {
@@ -729,6 +834,7 @@ return $cells; // tbi
                 continue;
             }
             $choice = $cell['choices'][0];
+self::log('choice '.json_encode($choice));
             if (!$choice) {
                 continue;
             }

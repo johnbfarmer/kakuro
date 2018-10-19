@@ -21,6 +21,8 @@ class KakuroReducer extends BaseKakuro
         $hintOnly = false,
         $oneStep = false,
         $hint = "Sorry, no hint...",
+        $hasUniqueSolution = true,
+        $solutions = [],
         $fails = false;
 
     public function __construct($parameters = [], $em = [])
@@ -64,9 +66,107 @@ class KakuroReducer extends BaseKakuro
             return true;
         }
 
-        if (!$this->reduce($this->stripsNew, $this->reductionLevel)) {
+        if (!$this->reduce($this->stripsNew, 1 + $this->reductionLevel)) { // 1 + because I want to probe...
             $this->fails = true;
         }
+    }
+
+    protected function reduceByProbe($previousSavedChoiceArray = [], $nestingLevel = 0)
+    {
+// return true;
+if ($nestingLevel > 2) {
+    $this->log('nesting > 2');
+    return false;
+}
+        // find one or more values to probe, pref with few choices
+        // back up so we can restore; we are probing
+        $savedChoiceArray = !empty($previousSavedChoiceArray) ? $previousSavedChoiceArray : $this->buildSavedChoicesArray();
+        $idxs = $this->getIdxsForProbe($savedChoiceArray);
+        $solutionFound = false;
+        $solution = [];
+        while (!empty($idxs)) {
+            $idx = array_pop($idxs);
+            $cell = $this->cells[$idx];
+            $choices = $cell->getChoices();
+            foreach ($choices as $choice) {
+                $cell->setChoices([$choice]);
+                $strips = $cell->getStripObjects();
+$this->log($idx.' probe '.$choice);
+                if ($this->reduce($strips, 4)) {
+$this->log('probe reduced');
+                    if ($this->finished()) {
+$this->log('probe completed');$solutionFound = true;
+                        $solution = $this->buildSavedChoicesArray();
+                        $this->solutions[md5(serialize($solution))] = $solution;
+                        $this->hasUniqueSolution = count($this->solutions) < 2;
+                        if (!$this->hasUniqueSolution) {
+$this->log('prior solution found tho');
+                            $this->restoreSavedChoices($solution);
+                            return false; // multiple solutions
+                        }
+                    } else {
+                    // if the probe did not fail nor complete, recurse:
+$this->log('recursing');
+                        if (!$this->reduceByProbe($this->buildSavedChoicesArray(), $nestingLevel + 1)) {
+$this->log('recursion failed');
+                        }
+                    }
+                    // continue 2; // reduction did not fail or complete, next idx
+// for now, if reduction does not finish everything, try another cell to probe
+                }
+                $this->failedStrip = [];
+                $this->restoreSavedChoices($savedChoiceArray); // choice not valid; need to restore based on idx
+            }
+            if ($solutionFound) {
+                $this->restoreSavedChoices($solution);
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected function getIdxsForProbe($savedChoiceArray)
+    {
+        $ret = [];
+        foreach ($savedChoiceArray as $idx => $choices) {
+            if (count($choices) === 2) {
+                $ret[] = $idx;
+            }
+        }
+        return $ret;
+    }
+
+    protected function buildSavedChoicesArray()
+    {
+        $savedChoiceArray = [];
+        foreach ($this->cells as $idx => $cell) {
+            if ($idx) { // reason: somehow $idx is null or empty in some cases, causes trouble
+                $savedChoiceArray[$idx] = array_values($cell->getChoices());
+            }
+        }
+
+        return $savedChoiceArray;
+    }
+
+    protected function restoreSavedChoices($savedChoiceArray)
+    {
+        foreach ($this->cells as $idx => $cell) {
+            if ($idx) {
+                $this->cells[$idx]->setChoices($savedChoiceArray[$idx]);
+            }
+        }
+    }
+
+    protected function finished()
+    {
+        foreach ($this->cells as $idx => $cell) {
+            if ($idx && $cell->isDataCell() && count($this->cells[$idx]->getChoices()) !== 1) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     protected function reduce($strips, $level)
@@ -84,7 +184,7 @@ $this->log('current strip '.$strip->getIdx().' pv '.json_encode($pv));
                 foreach ($cells as $cell) {
                     if (!in_array($cell->getIdx(), $this->indexesNotToProcess)) {
                         $choices = $cell->getChoices();
-// $this->log($cell->coords(). ' '.json_encode($choices));
+$this->log($cell->coords(). ' has choices '.json_encode($choices));
                         if (count($choices) === 1) {
                             continue;
                         }
@@ -94,6 +194,7 @@ $this->log('current strip '.$strip->getIdx().' pv '.json_encode($pv));
                             $changed = true;
                         }
                         $newChoices = array_values(array_intersect($pv, $choices));
+$this->log($cell->coords(). ' has new choices '.json_encode($choices));
                         if (empty($newChoices)) {
                             $this->failedStrip = $strip->getId();
                             $this->failReason = "No choices for cell " . $cell->dump() . ", strip " . $strip->dump();
@@ -121,6 +222,10 @@ $this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newCh
             }
 
             $strips = clone $this->changedStrips;
+        }
+
+        if ($level > 4) { 
+            return $this->reduceByProbe();
         }
 
         return true;
@@ -433,7 +538,7 @@ $this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newCh
 
     public function display($padding = 10, $frameOnly = false)
     {
-        $str = "" . $this->displayChoicesHeader();
+        $str = "\n\n" . $this->displayChoicesHeader();
         foreach ($this->cells as $idx => $cell) {
             if ($idx === "") {$this->log($cell->dump(), true);continue;}
             if ($this->isBlank($idx, true)) {
@@ -472,13 +577,18 @@ $this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newCh
             $cells = $this->uiChoices;
         }
 
-        $grid = ['cells' => $cells, 'error' => false];
+        $grid = ['cells' => $cells, 'error' => false, 'hasUniqueSolution' => $this->hasUniqueSolution];
         if (!empty($this->failedStrip)) {
             $grid['error'] = true;
             $grid['message'] = 'problem reducing (' . $this->failReason . ')';
             $grid['failedStripId'] = $this->failedStrip;
             $grid['failReason'] = $this->failReason;
         }
+
+        if (!$this->hasUniqueSolution) {
+            $grid['solutions'] = $this->solutions;
+        }
+
         return $grid;
     }
 
