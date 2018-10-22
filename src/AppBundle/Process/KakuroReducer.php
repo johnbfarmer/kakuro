@@ -23,6 +23,7 @@ class KakuroReducer extends BaseKakuro
         $hint = "Sorry, no hint...",
         $hasUniqueSolution = true,
         $solutions = [],
+        $maxNestingLevelForProbing = 1,
         $fails = false;
 
     public function __construct($parameters = [], $em = [])
@@ -75,9 +76,8 @@ class KakuroReducer extends BaseKakuro
 
     protected function reduceByProbe($previousSavedChoiceArray = [], $nestingLevel = 0)
     {
-        // control nesting level
-        if ($nestingLevel > 2) {
-            $this->log('nesting > 2');
+        if ($nestingLevel > $this->maxNestingLevelForProbing) {
+$this->log('nesting > '.$this->maxNestingLevelForProbing);
             return true;
         }
         // no more than 2 solutions for now thanks
@@ -92,7 +92,8 @@ $this->log('idxs '.json_encode($idxs));
         $solutionFound = false;
         $solution = [];
         while (!empty($idxs)) {
-            $idx = array_pop($idxs); // FIX
+            // $idx = array_pop($idxs); // FIX
+            $idx = array_shift($idxs);
             $cell = $this->cells[$idx];
             $choices = $cell->getChoices();
             foreach ($choices as $choice) {
@@ -110,7 +111,7 @@ $this->log('solution '.md5(serialize($solution)));
                         $this->hasUniqueSolution = count($this->solutions) < 2;
                         if (!$this->hasUniqueSolution) {
 $this->log('prior solution found tho');
-                            $this->restoreSavedChoices($solution);
+                            $this->restoreSavedChoices($savedChoiceArray);
                             return true; // multiple solutions
                         }
                     } else {
