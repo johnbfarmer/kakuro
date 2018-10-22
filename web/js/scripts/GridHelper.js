@@ -13,6 +13,16 @@ ctr: 0,
         return p;
     },
 
+    getGridFromSolution(cells, solution) {
+        cells.forEach(cell => {
+            if (cell.is_data) {
+                cell.choices[0] = solution[cell.idx][0];
+            }
+        });
+
+        return cells;
+    },
+
     processData(cells, h, w, r, c) { // r = activeRow, c = acticeCol
         cells.forEach((cell, idx) => {
             cell.idx = cell.idx || idx

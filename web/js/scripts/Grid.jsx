@@ -152,6 +152,10 @@ console.log(this.strips);
             },
             'json'
         ).then(data => {
+            if (!data.hasUniqueSolution) {
+                alert('This game has more than one solution');
+                console.log(data.solutions);
+            }
             this.updateChoices(data.cells);
         });
     }

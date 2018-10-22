@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Cell from './Cell.jsx';
 import KakuroControls from './KakuroControls.jsx';
+import SolutionSwitcher from './SolutionSwitcher.jsx';
 import {GridHelper} from './GridHelper.js';
 
 var gridId = document.getElementById("content").dataset.id;
@@ -18,6 +19,7 @@ export default class GridDesigner extends React.Component {
             width: 4,
             active_row: -1,
             active_col: -1,
+            alternateSolution: [],
         };
 
         this.strips = [];
@@ -35,6 +37,7 @@ export default class GridDesigner extends React.Component {
         this.addRow = this.addRow.bind(this);
         this.removeCol = this.removeCol.bind(this);
         this.addCol = this.addCol.bind(this);
+        this.switchSolution = this.switchSolution.bind(this);
         
     }
 
@@ -284,11 +287,12 @@ export default class GridDesigner extends React.Component {
     }
 
     checkSolution() {
-        var cells = JSON.stringify(this.state.cells);
+        var cellsStr = JSON.stringify(this.state.cells);
+        var cells = JSON.parse(cellsStr); // deep copy solution
         return $.post(
             "http://kak.uro/app_dev.php/api/check-uniqueness",
             {
-                cells: cells,
+                cells: cellsStr,
                 height: this.state.height,
                 width: this.state.width,
             },
@@ -305,12 +309,29 @@ export default class GridDesigner extends React.Component {
             }
             if (!data.hasUniqueSolution) {
                 alert('solution is not unique');
-                // cells = GridHelper.setLabels(data.grid, this.strips);
-                // this.setState({cells: cells});
+                var solutions = data.solutions;
+                var h,i,vals,choice;
+                for (h in solutions) {
+                    for (i in solutions[h]) {
+                        vals = solutions[h][i];
+                        if (vals.length > 0) {
+                            choice = vals[0];
+                            if (choice != this.state.cells[i].choices[0]) {
+                                var alternateSolution = GridHelper.getGridFromSolution(cells, solutions[h]);
+                                this.setState({alternateSolution: alternateSolution});
+                                return;
+                            }
+                        }
+                    }
+                }
             } else {
                 alert('solution is unique');
             }
         });
+    }
+
+    switchSolution() {
+        this.setState({cells: this.state.alternateSolution, alternateSolution: this.state.cells});
     }
 
     render() {
@@ -344,6 +365,10 @@ export default class GridDesigner extends React.Component {
                         newGrid={this.newGrid}
                         createMode={true}
                         checkSolution={this.checkSolution}
+                    />
+                    <SolutionSwitcher
+                        solution={this.state.alternateSolution}
+                        showAlternate={this.switchSolution}
                     />
                 </div>
             </div>

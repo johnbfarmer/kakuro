@@ -33,7 +33,7 @@ class KakuroUniquenessTester extends KakuroReducer
         $this->gridObj = $this->getGrid();
         $this->cells = $this->gridObj->getCells();
         $this->gridObj->calculateStrips();
-        $this->stripsNew = $this->gridObj->getStrips();
+        $this->allStrips = $this->gridObj->getStrips();
         if (!empty($this->cells)) {
             foreach ($this->cells as $cell) {
                 if ($cell->isDataCell()) {
@@ -47,7 +47,7 @@ class KakuroUniquenessTester extends KakuroReducer
             }
         }
 
-        if (!$this->reduce($this->stripsNew, 5)) {
+        if (!$this->reduce($this->allStrips, 5)) {
             $this->fails = true;
         }
 
