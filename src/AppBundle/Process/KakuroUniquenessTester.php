@@ -20,7 +20,6 @@ class KakuroUniquenessTester extends KakuroReducer
     public function __construct($parameters = [], $em = [])
     {
         parent::__construct($parameters, $em);
-        // $this->cells = $this->parameters['uiChoices'];
         $this->height = $this->parameters['height'];
         $this->width = $this->parameters['width'];
     }

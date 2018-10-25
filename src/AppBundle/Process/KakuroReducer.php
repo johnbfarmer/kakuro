@@ -159,6 +159,14 @@ $this->log('removing '.$choice. ' from '.$idx);
             }
         }
 
+        if (true) {
+            foreach ($savedChoiceArray as $idx => $choices) {
+                if (count($choices) === 4) {
+                    $ret[] = $idx;
+                }
+            }
+        }
+
         return $ret;
     }
 
@@ -298,6 +306,9 @@ $this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newCh
 
     protected function getCellsForStrip($strip)
     {
+        if (empty($strip)) {
+            return [];
+        }
         $dir = $strip->getDir();
         $len = $strip->getLen();
         $cells = [];
