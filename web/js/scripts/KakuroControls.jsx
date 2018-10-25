@@ -52,7 +52,10 @@ console.log(props);
 
     processDropdownOptions(data) {
         var arr = [];
-        arr.push(<option key="topChoice" value={0}>--select--</option>);
+        arr.push(<option key="topChoice" value={-1}>--select--</option>);
+        if (this.props.createMode) {
+            arr.push(<option key="newGrid" value={0}>new grid</option>);
+        }
         for (var i = 0; i < data.length; i++) {
             var option = data[i];
             var label = 'label' in option ? option.label : option.name;

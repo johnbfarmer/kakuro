@@ -485,6 +485,7 @@ ctr: 0,
             if (i < w || !(i % w)) {
                 c.push({choices: [], is_editable: false, is_data: false, idx: i});
             } else {
+                // c.push({choices: [], is_editable: false, is_data: false, idx: i});
                 c.push({choices: [1,2,3,4,5,6,7,8,9], is_editable: true, is_data: true, idx: i});
             }
         }

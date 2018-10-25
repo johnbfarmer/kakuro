@@ -48,6 +48,12 @@ export default class GridDesigner extends React.Component {
         }
     }
 
+    loadGridUrl(id) {
+        var arg = id > 0 ? '/' + id : '';
+        var url = 'http://kak.uro/app_dev.php/grid/design' + arg;
+        window.location.href = url;
+    }
+
     getGrid(id) {
         return $.getJSON(
             "http://kak.uro/app_dev.php/api/solution/" + id
@@ -103,6 +109,7 @@ export default class GridDesigner extends React.Component {
 
     handleKey(e) {
         var keyCode = e.keyCode;
+
         if (keyCode === 38) { // up
             this.moveActive(-1,0);
         }
@@ -361,7 +368,7 @@ export default class GridDesigner extends React.Component {
                         selectedGrid={this.state.gridId}
                         save={this.saveGame}
                         grids={this.state.grids}
-                        getGrid={this.getGrid}
+                        getGrid={this.loadGridUrl}
                         newGrid={this.newGrid}
                         createMode={true}
                         checkSolution={this.checkSolution}

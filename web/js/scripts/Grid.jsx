@@ -61,6 +61,10 @@ export default class Grid extends React.Component {
         });
     }
 
+    loadGridUrl(id) {
+        window.location.href = 'http://kak.uro/app_dev.php/grid/' + id;
+    }
+
     getGrid(id) {
         return $.getJSON(
             "http://kak.uro/app_dev.php/api/grid/" + id
@@ -379,7 +383,7 @@ console.log(this.strips);
                         gridName={this.state.name}
                         save={this.saveChoices}
                         grids={this.state.grids}
-                        getGrid={this.getGrid}
+                        getGrid={this.loadGridUrl}
                     />
                 </div>
                 <div className="status-box">
