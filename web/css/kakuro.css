@@ -107,3 +107,7 @@ body {
   font-size: xx-large;
   color: slateblue;
 }
+
+.standout {
+  color: red;
+}

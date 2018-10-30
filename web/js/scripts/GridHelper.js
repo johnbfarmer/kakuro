@@ -16,6 +16,7 @@ ctr: 0,
     getGridFromSolution(cells, solution) {
         cells.forEach(cell => {
             if (cell.is_data) {
+                cell.standout = cell.choices[0] != solution[cell.idx][0];
                 cell.choices[0] = solution[cell.idx][0];
             }
         });

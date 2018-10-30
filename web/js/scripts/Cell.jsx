@@ -63,6 +63,10 @@ export default class Cell extends React.Component {
             classes = classes + " error";
         }
 
+        if (this.props.cell.standout) {
+            classes = classes + " standout";
+        }
+
         if (this.state.sum_box && !this.props.cell.semiactive) {
             classes = classes + " sum-box";
         } else {
