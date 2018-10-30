@@ -6,6 +6,9 @@ class KakuroSolution extends BaseGrid
 {
     protected
         $gridId,
+        $libraryIndex,
+        $height,
+        $width,
         $result = [];
 
     public function __construct($parameters = [], $em = [])
@@ -15,6 +18,31 @@ class KakuroSolution extends BaseGrid
         if (!empty($this->parameters['id'])) {
             $this->gridId = $this->parameters['id'];
         }
+
+        if (!empty($this->parameters['libraryIndex'])) {
+            $this->libraryIndex = $this->parameters['libraryIndex'];
+        }
+
+        if (!empty($this->parameters['height'])) {
+            $this->height = $this->parameters['height'];
+        }
+
+        if (!empty($this->parameters['width'])) {
+            $this->width = $this->parameters['width'];
+        }
+    }
+
+    public function getGridIdByLibrarayIndex() {
+        $sql = '
+        select id
+        from grids
+        WHERE library_index = ' . $this->libraryIndex . '
+        AND height = ' . $this->height . '
+        AND width = ' . $this->width;
+
+        $record = $this->fetch($sql, true);
+
+        return $record['id'];
     }
 
     public function getResult() {
@@ -23,6 +51,10 @@ class KakuroSolution extends BaseGrid
 
     protected function execute()
     {
+        if ($this->libraryIndex) {
+            $this->gridId = $this->getGridIdByLibrarayIndex();
+        }
+
         $sql = '
         select height, width, name
         from grids

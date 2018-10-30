@@ -26,9 +26,6 @@ class KakuroUniquenessTester extends KakuroReducer
 
     protected function execute()
     {
-        $this->table_builder = new BuildTables(
-            ['number_set' => $this->number_set,], $this->em
-        );
         $this->gridObj = $this->getGrid();
         $this->cells = $this->gridObj->getCells();
         $this->gridObj->calculateStrips();
@@ -81,6 +78,7 @@ class KakuroUniquenessTester extends KakuroReducer
         $ret = [
             'grid' => $this->cells,
             'hasUniqueSolution' => $this->hasUniqueSolution,
+            'reachedProbeLimit' => $this->reachedProbeLimit,
             'hasError' => $this->hasError,
         ];
 

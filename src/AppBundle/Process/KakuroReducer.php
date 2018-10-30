@@ -24,6 +24,7 @@ class KakuroReducer extends BaseKakuro
         $hasUniqueSolution = true,
         $solutions = [],
         $maxNestingLevelForProbing = 1,
+        $reachedProbeLimit = false,
         $fails = false;
 
     public function __construct($parameters = [], $em = [])
@@ -77,7 +78,8 @@ class KakuroReducer extends BaseKakuro
     protected function reduceByProbe($previousSavedChoiceArray = [], $nestingLevel = 0)
     {
         if ($nestingLevel > $this->maxNestingLevelForProbing) {
-$this->log('nesting > '.$this->maxNestingLevelForProbing);
+$this->log('nesting > '.$this->maxNestingLevelForProbing); // handle better?
+            $this->reachedProbeLimit = true;
             return true;
         }
         // no more than 2 solutions for now thanks
@@ -88,35 +90,28 @@ $this->log('nesting > '.$this->maxNestingLevelForProbing);
         // back up so we can restore; we are probing
         $savedChoiceArray = !empty($previousSavedChoiceArray) ? $previousSavedChoiceArray : $this->buildSavedChoicesArray();
         $idxs = $this->getIdxsForProbe($savedChoiceArray);
-$this->log('idxs '.json_encode($idxs));
         $solutionFound = false;
         $solution = [];
         while (!empty($idxs)) {
-            // $idx = array_pop($idxs); // FIX
             $idx = array_shift($idxs);
             $cell = $this->cells[$idx];
             $choices = $cell->getChoices();
             foreach ($choices as $choice) {
                 $cell->setChoices([$choice]);
                 $strips = $cell->getStripObjects();
-$this->log($idx.' probe '.$choice. ' nesting level '.$nestingLevel);
                 if ($this->reduce($strips, 4)) {
-$this->log('probe reduced');
                     if ($this->finished()) {
-$this->log('probe completed');
                         $solutionFound = true;
                         $solution = $this->buildSavedChoicesArray();
                         $this->solutions[md5(serialize($solution))] = $solution;
-$this->log('solution '.md5(serialize($solution)));
                         $this->hasUniqueSolution = count($this->solutions) < 2;
                         if (!$this->hasUniqueSolution) {
-$this->log('prior solution found tho');
                             $this->restoreSavedChoices($savedChoiceArray);
+                            $this->reachedProbeLimit = false;
                             return true; // multiple solutions
                         }
                     } else {
                     // if the probe did not fail nor complete, recurse:
-$this->log('recursing');
                         if (!$this->reduceByProbe($this->buildSavedChoicesArray(), $nestingLevel + 1)) {
 $this->log('recursion failed');
                         }
@@ -127,7 +122,6 @@ $this->log('recursion failed');
                     // standard reduction failed; if not nesting, remove from choices
                     if (!$nestingLevel) {
                         $this->removeChoicesNew($cell, [$choice]);
-$this->log('removing '.$choice. ' from '.$idx);
                     }
                 }
                 $this->failedStrip = [];
@@ -151,7 +145,7 @@ $this->log('removing '.$choice. ' from '.$idx);
             }
         }
 
-        if (true) {
+        if (true) { // tbi use levels instead of "true"
             foreach ($savedChoiceArray as $idx => $choices) {
                 if (count($choices) === 3) {
                     $ret[] = $idx;
@@ -162,6 +156,46 @@ $this->log('removing '.$choice. ' from '.$idx);
         if (true) {
             foreach ($savedChoiceArray as $idx => $choices) {
                 if (count($choices) === 4) {
+                    $ret[] = $idx;
+                }
+            }
+        }
+
+        if (true) {
+            foreach ($savedChoiceArray as $idx => $choices) {
+                if (count($choices) === 5) {
+                    $ret[] = $idx;
+                }
+            }
+        }
+
+        if (true) {
+            foreach ($savedChoiceArray as $idx => $choices) {
+                if (count($choices) === 6) {
+                    $ret[] = $idx;
+                }
+            }
+        }
+
+        if (true) {
+            foreach ($savedChoiceArray as $idx => $choices) {
+                if (count($choices) === 7) {
+                    $ret[] = $idx;
+                }
+            }
+        }
+
+        if (true) {
+            foreach ($savedChoiceArray as $idx => $choices) {
+                if (count($choices) === 8) {
+                    $ret[] = $idx;
+                }
+            }
+        }
+
+        if (true) {
+            foreach ($savedChoiceArray as $idx => $choices) {
+                if (count($choices) === 9) {
                     $ret[] = $idx;
                 }
             }
@@ -185,9 +219,6 @@ $this->log('removing '.$choice. ' from '.$idx);
 
     protected function restoreSavedChoices($savedChoiceArray)
     {
-$this->log('saved '.json_encode($savedChoiceArray));
-// $this->log('1'.json_encode($this->cells[1]));
-// $this->log('2'.json_encode($savedChoiceArray[1]));
         foreach ($savedChoiceArray as $idx => $choices) {
             if ($idx) {
                 $this->cells[$idx]->setChoices($choices);
@@ -211,8 +242,6 @@ $this->log('saved '.json_encode($savedChoiceArray));
                 $sum += current($cell->getChoices());
             }
             if ($sum != $total) {
-$this->log('sum '.$sum.' total: '.$total);
-$this->log($strip->dump());
                 return false;
             }
         }
@@ -231,11 +260,9 @@ $this->log($strip->dump());
 
                 $cells = $this->getCellsForStrip($strip);
                 $pv = $this->getPossibleValuesForStrip($strip, $cells)['values'];
-$this->log('current strip '.$strip->getIdx().' pv '.json_encode($pv));
                 foreach ($cells as $cell) {
                     if (!in_array($cell->getIdx(), $this->indexesNotToProcess)) {
                         $choices = $cell->getChoices();
-$this->log($cell->coords(). ' has choices '.json_encode($choices));
                         if (count($choices) === 1) {
                             continue;
                         }
@@ -245,14 +272,12 @@ $this->log($cell->coords(). ' has choices '.json_encode($choices));
                             $changed = true;
                         }
                         $newChoices = array_values(array_intersect($pv, $choices));
-$this->log($cell->coords(). ' has new choices '.json_encode($newChoices));
                         if (empty($newChoices)) {
                             $this->failedStrip = $strip->getId();
                             $this->failReason = "No choices for cell " . $cell->dump() . ", strip " . $strip->dump();
                             return false;
                         }
                         if ($changed || count($newChoices) < count($choices)) {
-$this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newChoices));
                             $cell->setChoices($newChoices);
                             $this->addCellsStripsToChanged($cell);
                             if (count($newChoices) === 1) {
@@ -631,6 +656,8 @@ $this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newCh
     public function display($padding = 10, $frameOnly = false)
     {
         $str = "\n\n" . $this->displayChoicesHeader();
+        $this->log($str, true);
+        $str = '';
         foreach ($this->cells as $idx => $cell) {
             if ($idx === "") {$this->log($cell->dump(), true);continue;}
             if ($this->isBlank($idx, true)) {
@@ -640,11 +667,12 @@ $this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newCh
                 // $c = $cell->getRow() . $cell->getCol();
             }
             if ($cell->getCol() < 1) {
-                $str .= "\n";
+                $this->log($str, true);
+                $str = "";
             }
             $str .= str_pad($c, $padding, ' ');
         }
-        $str .= "\n";
+        // $str .= "\n";
         $this->log($str, true);
     }
 
@@ -669,7 +697,13 @@ $this->log($cell->coords(). ' '.json_encode($choices). ' -> '.json_encode($newCh
             $cells = $this->uiChoices;
         }
 
-        $grid = ['cells' => $cells, 'error' => false, 'hasUniqueSolution' => $this->hasUniqueSolution];
+        $grid = [
+            'cells' => $cells, 
+            'error' => false, 
+            'hasUniqueSolution' => $this->hasUniqueSolution, 
+            'reachedProbeLimit' => $this->reachedProbeLimit,
+        ];
+
         if (!empty($this->failedStrip)) {
             $grid['error'] = true;
             $grid['message'] = 'problem reducing (' . $this->failReason . ')';

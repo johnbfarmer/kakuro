@@ -7,7 +7,10 @@ class SaveDesign extends BaseGrid
     protected
         $name,
         $id,
-        $asCopy;
+        $asCopy,
+        // 0, 1, 2 (not uq, uq, unk)
+        $isUnique = 0,
+        $libraryIndex = 0;
 
     public function __construct($parameters = [], $em = [])
     {
@@ -29,6 +32,12 @@ class SaveDesign extends BaseGrid
             $this->width = $this->parameters['width'];
         }
         $this->asCopy = !empty($this->parameters['asCopy']);
+        if (!empty($this->parameters['isUnique'])) {
+            $this->isUnique = $this->parameters['isUnique'];
+        }
+        if (!empty($this->parameters['libraryIndex'])) {
+            $this->libraryIndex = $this->parameters['libraryIndex'];
+        }
     }
 
     protected function execute()
@@ -38,17 +47,28 @@ class SaveDesign extends BaseGrid
         }
 
         $id = $this->id ?: 'null';
+        $uqVal = (int)$this->isUnique;
         $timestamp = date('Y-m-d H:i:s');
 
         $sql = '
         INSERT INTO grids
-        (id, name, height, width, updated_at, created_at)
+        (id, name, height, width, is_unique, library_index, updated_at, created_at)
         VALUES
-        (' . $id . ', "' . $this->name . '", ' . $this->height . ', ' . $this->width . ', "' . $timestamp . '", "' . $timestamp  . '")
+        (' . $id 
+            . ', "' . $this->name 
+            . '", ' . $this->height 
+            . ', ' . $this->width 
+            . ', ' . $uqVal 
+            . ', ' . $this->libraryIndex 
+            . ', "' . $timestamp 
+            . '", "' . $timestamp  
+            . '")
         ON DUPLICATE KEY UPDATE
         name = VALUES(name),
         height = VALUES(height),
         width = VALUES(width),
+        is_unique = VALUES(is_unique),
+        library_index = VALUES(library_index),
         updated_at = VALUES(updated_at)';
 
         $this->exec($sql);

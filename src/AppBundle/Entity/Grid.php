@@ -40,6 +40,16 @@ class Grid
      * @ORM\Column(type="integer", options={"unsigned"=true})
      */
     private $difficulty = 5;
+    
+    /**
+     * @ORM\Column(type="integer", options={"unsigned"=true})
+     */
+    private $libraryIndex = 0;
+    
+    /**
+     * @ORM\Column(type="integer", options={"unsigned"=true})
+     */
+    private $show = 0;
 
     /**
      * @ORM\OneToMany(targetEntity="Cell", mappedBy="grid", orphanRemoval=true, cascade={"persist"})
@@ -115,6 +125,28 @@ class Grid
     public function getDifficulty()
     {
         return $this->difficulty;
+    }
+
+    public function setShow($show)
+    {
+        $this->show = $show;
+        return $this;
+    }
+
+    public function getShow()
+    {
+        return $this->show;
+    }
+
+    public function setLibraryIndex($libraryIndex)
+    {
+        $this->libraryIndex = $libraryIndex;
+        return $this;
+    }
+
+    public function getLibraryIndex()
+    {
+        return $this->libraryIndex;
     }
 
     public function getCells()
