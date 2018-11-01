@@ -494,6 +494,27 @@ ctr: 0,
         return c;
     },
 
+    randomlyAssignNonDataCells(cells, pct, h, w) {
+        cells.forEach((cell, k) => {
+            cell.col = cell.idx % w;
+            cell.row = Math.floor(cell.idx / w);
+            if (cell.row <= cell.col) { // only do half since for now we are enforcing diag symmetry
+                if (Math.random() < pct) {
+                    cells[k].is_data = false;
+                    cells[k].is_editable = false;
+                    cells[k].choices = [];
+                    // and the mirror:
+                    var m = cell.col * w + cell.row;
+                    cells[m].is_data = false;
+                    cells[m].is_editable = false;
+                    cells[m].choices = [];
+                }
+            }
+        });
+
+        return cells;
+    },
+
     removeRow: (r, cells, h, w) => {
         h = h - 1;
         var c = [];

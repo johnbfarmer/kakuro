@@ -360,14 +360,15 @@ console.log(this.strips);
     render() {
         var cells = this.state.cells.map(function(cell, index) {
             cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
-            return 
-                    <Cell 
-                        cell={cell}
-                        solved={this.state.solved}
-                        key={index}
-                        onClick={() => this.setActive(cell.row, cell.col)}
-                        onChange={this.handleChangedCell}
-                    />;
+            return (
+                <Cell 
+                    cell={cell}
+                    solved={this.state.solved}
+                    key={index}
+                    onClick={() => this.setActive(cell.row, cell.col)}
+                    onChange={this.handleChangedCell}
+                />
+            );
         }, this);
         var classes = "kakuro-grid col-md-8";
         if (this.state.solved) {

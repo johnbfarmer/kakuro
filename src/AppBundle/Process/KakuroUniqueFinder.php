@@ -107,9 +107,10 @@ class KakuroUniqueFinder extends BaseKakuro
             }
             $i++;
         }
+
         // col 1 must be ordered
         $i = $this->width + 1;
-        while ($i < $this->height * ($this->width - 1)) {
+        while ($i <= ($this->height - 1) * ($this->width)) {
             if ($this->grid[$i]['choices'][0] >= $this->grid[$i + $this->width]['choices'][0]) {
                 return false;
             }

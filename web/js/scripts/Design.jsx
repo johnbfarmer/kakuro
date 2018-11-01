@@ -68,6 +68,7 @@ export default class GridDesigner extends React.Component {
 
     newGrid(h, w) {
         var c = GridHelper.getCellArray(h, w);
+        c = GridHelper.randomlyAssignNonDataCells(c, .2, h, w);
         var processed = GridHelper.processData(c, h, w, this.state.active_row, this.state.active_col);
         var cells = processed.cells;
         this.strips = processed.strips;
