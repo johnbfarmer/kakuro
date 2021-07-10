@@ -24,7 +24,7 @@ ctr: 0,
         return cells;
     },
 
-    processData(cells, h, w, r, c) { // r = activeRow, c = acticeCol
+    processData(cells, h, w, r, c) { // r = activeRow, c = acticeCol -- unused?
         cells.forEach((cell, idx) => {
             cell.idx = cell.idx || idx
             cell.col = cell.col || idx % w;
@@ -95,9 +95,11 @@ ctr: 0,
             });
         });
 
+console.log(strips);
         strips.forEach((strip, k) => {
             labelCell = this.getLabelCell(strip, cells);
             displayPos = strip.idx.split('_')[2] === 'h' ? 1 : 0;
+console.log(labelCell);
             sum = labelCell.display[displayPos];
             strips[k].sum = sum;
         });
@@ -168,7 +170,9 @@ ctr: 0,
             i += w;
         }
         nbrs.push(strip);
-
+if (idx === 35) {
+    // console.log(strip);
+}
         // walk left to nearest non-data
         i = idx - 1;
         strip = [];

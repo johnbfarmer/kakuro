@@ -20,6 +20,10 @@ body {
   background-color: yellow;
 }
 
+.selected-cell {
+  background-color: lightsalmon;
+}
+
 .semiactive {
   background-color: lightyellow;
 }

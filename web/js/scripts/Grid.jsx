@@ -72,7 +72,6 @@ export default class Grid extends React.Component {
             var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
             var cells = processed.cells;
             this.strips = processed.strips;
-console.log(this.strips);
             this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id});
             this.saveState();
         });
@@ -365,7 +364,7 @@ console.log(this.strips);
                     cell={cell}
                     solved={this.state.solved}
                     key={index}
-                    onClick={() => this.setActive(cell.row, cell.col)}
+                    setActive={this.setActive}
                     onChange={this.handleChangedCell}
                 />
             );

@@ -23,6 +23,8 @@ export default class GridDesigner extends React.Component {
         };
 
         this.strips = [];
+        this.selectionStart = [];
+        this.selectionStop = [];
 
         this.getGrid = this.getGrid.bind(this);
         this.saveGame = this.saveGame.bind(this);
@@ -38,6 +40,8 @@ export default class GridDesigner extends React.Component {
         this.removeCol = this.removeCol.bind(this);
         this.addCol = this.addCol.bind(this);
         this.switchSolution = this.switchSolution.bind(this);
+        this.startSelect = this.startSelect.bind(this);
+        this.endSelect = this.endSelect.bind(this);
         
     }
 
@@ -94,7 +98,11 @@ export default class GridDesigner extends React.Component {
                 asCopy: ~~asCopy,
             },
             function(resp) {
-                this.setState({gridName: resp.name, gridId: parseInt(resp.id)});
+                if (asCopy) {
+                    this.loadGridUrl(parseInt(resp.id));
+                } else {
+                    this.setState({gridName: resp.name, gridId: parseInt(resp.id)});
+                }
             }.bind(this),
             'json'
         );
@@ -146,22 +154,58 @@ export default class GridDesigner extends React.Component {
         }
     }
 
+    startSelect(r,c) {
+// console.log('down',r,c);
+        this.selectionStart = [r,c];
+    }
+
+    endSelect(r,c) {
+// console.log('up',r,c);
+        this.selectionStop = [r,c];
+        var cells = this.state.cells;
+        var minRow = Math.min(this.selectionStart[0], this.selectionStop[0]);
+        var minCol = Math.min(this.selectionStart[1], this.selectionStop[1]);
+        var maxRow = Math.max(this.selectionStart[0], this.selectionStop[0]);
+        var maxCol = Math.max(this.selectionStart[1], this.selectionStop[1]);
+        this.state.cells.forEach((cell, idx) => {
+            cells[idx].selected = false;
+            cells[idx].active = false;
+            if (
+                cell.row >= minRow
+                && cell.row <= maxRow
+                && cell.col >= minCol
+                && cell.col <= maxCol
+            ) {
+                console.log(cell.idx);
+                cells[idx].selected = true;
+            }
+        });
+
+        this.setState({cells: cells, active_row: -1, active_col: -1});
+    }
+
     setActiveCellVal(val) {
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         var cells = this.state.cells;
 
-        if (!GridHelper.valAllowed(val, idx, cells, this.state.height, this.state.width)) {
-            return;
-        }
+        // if (!GridHelper.valAllowed(val, idx, cells, this.state.height, this.state.width)) {
+        //     return;
+        // }
 
         switch(val) {
             case 'x':
-                if (cells[idx].col == 0 || cells[idx].row == 0) {
-                    return;
-                }
+                cells.forEach((v, k) => {
+                    if (v.col == 0 || v.row == 0) {
+                        return;
+                    }
 
-                cells[idx].is_data = !cells[idx].is_data;
-                cells[idx].choices = [];
+                    if (v.selected) {
+                        cells[k].is_data = !v.is_data;
+                        cells[k].choices = [];
+console.log(cells[k]);
+                    }
+                });
+
                 this.strips = GridHelper.allStripsLite(cells, this.state.height, this.state.width);
                 break;
             case 'y':
@@ -174,7 +218,7 @@ export default class GridDesigner extends React.Component {
         // adjust other cells based on this action:
         // adjust labels
         cells = GridHelper.setLabels(cells, this.strips);
-
+        this.setState({cells: cells});
         // adjust possible values
         // cells = getChoices(cells).then(resp => {
         //     console.log('hi');
@@ -183,20 +227,20 @@ export default class GridDesigner extends React.Component {
         // });
 
         // cells = this.reduce(idx, cells, this.state.height, this.state.width);
-        $.post(
-            "http://kak.uro/app_dev.php/api/design/choices",
-            {
-                height: this.state.height,
-                width: this.state.width,
-                cells: JSON.stringify(cells),
-            },
-            function(resp) {
-                cells = resp;
-            },
-            'json'
-        ).then(cells => {
-            this.setState({cells: cells});
-        });
+        // $.post(
+        //     "http://kak.uro/app_dev.php/api/design/choices",
+        //     {
+        //         height: this.state.height,
+        //         width: this.state.width,
+        //         cells: JSON.stringify(cells),
+        //     },
+        //     function(resp) {
+        //         cells = resp;
+        //     },
+        //     'json'
+        // ).then(cells => {
+        //     this.setState({cells: cells});
+        // });
 
         // GridHelper.checkSwap(idx, cells, this.state.height, this.state.width);
 
@@ -264,8 +308,10 @@ export default class GridDesigner extends React.Component {
         var cells = this.state.cells;
         cells.forEach((v,k) => {
             cells[k].active=false;
+            cells[k].selected=false;
         });
         cells[idx].active = true;
+        cells[idx].selected = true;
         this.setState({cells: cells, active_row: row, active_col: col});
     }
 
@@ -348,17 +394,22 @@ export default class GridDesigner extends React.Component {
             cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
             cell.semiactive = cell.row == this.state.active_row || cell.col == this.state.active_col;
             return <Cell 
-                    cell={cell}
-                    solved={false}
-                    key={index}
-                    onClick={() => this.setActive(cell.row, cell.col)}
-                    onChange={this.handleChangedCell}
+                        cell={cell}
+                        solved={false}
+                        key={index}
+                        setActive={this.setActive}
+                        mouseDown={this.startSelect}
+                        mouseUp={this.endSelect}
                    />;
         }, this);
 
         return (
             <div>
-                <div className="kakuro-grid col-md-8" tabIndex="0" onKeyDown={this.handleKey}>
+                <div
+                    className="kakuro-grid col-md-8"
+                    tabIndex="0"
+                    onKeyDown={this.handleKey}
+                >
                    {cells}
                 </div>
                 <div className="col-md-4">

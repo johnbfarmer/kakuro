@@ -9,6 +9,8 @@ export default class Cell extends React.Component {
         this.loadVals = this.loadVals.bind(this);
         this.getClasses = this.getClasses.bind(this);
         this.setActive = this.setActive.bind(this);
+        this.mouseDown = this.mouseDown.bind(this);
+        this.mouseUp = this.mouseUp.bind(this);
     }
 
     componentDidUpdate(props) {
@@ -55,65 +57,90 @@ export default class Cell extends React.Component {
 
     getClasses() {
         var classes = "kakuro-cell";
-        if (!this.props.cell.semiactive && !this.state.is_data) {
-            classes = classes + " blnk";
+
+        if (this.state.col === 0) {
+            classes = classes + " clr";
         }
 
-        if (this.props.cell.error) {
-            classes = classes + " error";
+        if (this.props.cell.choices.length === 1) {
+            classes = classes + " large-num";
         }
 
-        if (this.props.cell.standout) {
-            classes = classes + " standout";
+        if (this.props.cell.active) {
+            return classes + " actv";
         }
 
-        if (this.state.sum_box && !this.props.cell.semiactive) {
-            classes = classes + " sum-box";
-        } else {
-            if (this.props.cell.choices.length === 1) {
-                classes = classes + " large-num";
-            }
-            if (this.props.solved) {
-                classes = classes + " cell-solved";
-            }
-            if (this.props.cell.active) {
-                classes = classes + " actv";
-            }
-            if (!this.props.cell.active && 'semiactive' in this.props.cell && this.props.cell.semiactive) {
-                if (this.state.is_data) {
-                    classes = classes + " semiactive";
+        if (this.props.cell.selected) {
+            return classes + " selected-cell";
+        }
+
+        if (!this.state.is_data) {
+            if (this.props.cell.semiactive) {
+                if (this.state.sum_box) {
+                    return classes + " semiactive-sum-box";
                 } else {
-                    if (this.state.sum_box) {
-                        classes = classes + " semiactive-sum-box";
-                    } else {
-                        classes = classes + " semiactive-blnk";
-                    }
+                    return classes + " semiactive-blnk";
+                }
+            } else {
+                if (this.state.sum_box) {
+                    return classes + " sum-box";
+                } else {
+                    return classes + " blnk";
                 }
             }
         }
-        if (this.state.col === 0) {
-            classes = classes + " clr";
+
+        if (this.props.cell.error) {
+            return classes + " error";
+        }
+
+        if (this.props.cell.standout) {
+            return classes + " standout";
+        }
+
+        if (this.props.solved) {
+            return classes + " cell-solved";
+        }
+
+        if (!this.props.cell.active && 'semiactive' in this.props.cell && this.props.cell.semiactive) {
+            return classes + " semiactive";
         }
         
         return classes;
     }
 
     setActive() {
-        // if (this.state.editable) {
-            this.props.onClick();
-        // }
+        this.props.setActive(this.props.cell.row, this.props.cell.col);
+    }
+
+    mouseDown() {
+        this.props.mouseDown(this.props.cell.row, this.props.cell.col);
+    }
+
+    mouseUp() {
+        this.props.mouseUp(this.props.cell.row, this.props.cell.col);
     }
 
     render() {
         if (this.state.is_data) {
             return (
-                <div className={this.getClasses()} onClick={() => this.setActive()}>
+                <div
+                    className={this.getClasses()}
+                    onClick={() => this.setActive()}
+                    onMouseDown={this.mouseDown}
+                    onMouseUp={this.mouseUp}
+                >
                     <span className='choice-box'>{this.props.cell.choices.join('')}</span>
                 </div>
             );
         }
         return (
-            <div className={this.getClasses()} onClick={() => this.setActive()}>
+            <div
+                className={this.getClasses()}
+                onClick={() => this.setActive()}
+                onMouseDown={this.mouseDown}
+                onMouseUp={this.mouseUp}
+            >
                 <div className='label-v'>{this.state.label_v}</div><div className='label-h'>{this.state.label_h}</div>
             </div>
         );
