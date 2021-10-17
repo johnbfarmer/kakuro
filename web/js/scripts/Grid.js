@@ -1,6 +1,6 @@
 import React from 'react';
-import Cell from './Cell.jsx';
-import KakuroControls from './KakuroControls.jsx';
+import Cell from './Cell.js';
+import KakuroControls from './KakuroControls.js';
 import {GridHelper} from './GridHelper.js';
 
 var gridId = document.getElementById("content").dataset.id;
