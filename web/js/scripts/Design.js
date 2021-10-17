@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Cell from './Cell.jsx';
-import KakuroControls from './KakuroControls.jsx';
-import SolutionSwitcher from './SolutionSwitcher.jsx';
+import Cell from './Cell.js';
+import KakuroControls from './KakuroControls.js';
+import SolutionSwitcher from './SolutionSwitcher.js';
 import {GridHelper} from './GridHelper.js';
 
 var gridId = document.getElementById("content").dataset.id;

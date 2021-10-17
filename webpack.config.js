@@ -6,8 +6,8 @@ var APP_DIR = path.resolve(__dirname, 'web/js/scripts');
 
 var config = {
   entry: {
-    main: APP_DIR + '/Main.jsx',
-    design: APP_DIR + '/Design.jsx',
+    main: APP_DIR + '/Main.js',
+    design: APP_DIR + '/Design.js',
   },
   output: {
     path: BUILD_DIR,
