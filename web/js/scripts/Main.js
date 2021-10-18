@@ -1,5 +1,5 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import Grid from './Grid.js';
+import App from './App'
 
-ReactDOM.render(<Grid grid_name="medium1" />, document.getElementById("content"));
+ReactDOM.render(<App />, document.getElementById('content'))

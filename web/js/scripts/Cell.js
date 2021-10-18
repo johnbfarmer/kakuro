@@ -1,6 +1,7 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
-export default class Cell extends React.Component {
+class Cell extends React.Component {
     constructor(props) {
         super(props);
         this.state = {};
@@ -146,3 +147,15 @@ export default class Cell extends React.Component {
         );
     }
 }
+
+Cell.propTypes = {
+    mouseUp: PropTypes.func,
+    mouseDown: PropTypes.func,
+}
+
+Cell.defaultProps = {
+    mouseUp: () => {},
+    mouseDown: () => {},
+}
+
+export default Cell;

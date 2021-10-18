@@ -232,6 +232,7 @@ class Grid
         return [
             'height' => $height,
             'width' => $width,
+            'name' => $this->name,
             'cells' => array_values($cells),
         ];
     }

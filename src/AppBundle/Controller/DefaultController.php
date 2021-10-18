@@ -25,7 +25,7 @@ class DefaultController extends Controller
      */
     public function designGridAction($id)
     {
-        return $this->render('default/design_grid.html.twig', ['gridId' => $id]);
+        return $this->render('default/grid.html.twig', ['gridId' => $id]);
     }
 
     /**

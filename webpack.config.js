@@ -7,7 +7,6 @@ var APP_DIR = path.resolve(__dirname, 'web/js/scripts');
 var config = {
   entry: {
     main: APP_DIR + '/Main.js',
-    design: APP_DIR + '/Design.js',
   },
   output: {
     path: BUILD_DIR,
@@ -16,7 +15,6 @@ var config = {
   module: {
     rules: [
       { test: /\.js$/, loader: 'babel-loader', include: APP_DIR },
-      { test: /\.jsx$/, loader: 'babel-loader', include: APP_DIR }
     ]
   }
 };

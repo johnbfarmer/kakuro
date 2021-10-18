@@ -7,7 +7,7 @@ import {GridHelper} from './GridHelper.js';
 
 var gridId = document.getElementById("content").dataset.id;
 
-export default class GridDesigner extends React.Component {
+export default class Design extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -424,6 +424,9 @@ console.log(cells[k]);
                         newGrid={this.newGrid}
                         createMode={true}
                         checkSolution={this.checkSolution}
+                        showSave={true}
+                        showDesign={false}
+                        showPlay={true}
                     />
                     <SolutionSwitcher
                         solution={this.state.alternateSolution}
@@ -435,4 +438,3 @@ console.log(cells[k]);
     }
 }
 
-ReactDOM.render(<GridDesigner />, document.getElementById("content"));

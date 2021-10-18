@@ -4,7 +4,7 @@ import { ButtonGroup, Button, Glyphicon } from 'react-bootstrap';
 export default class KakuroControls extends React.Component {
     constructor(props) {
         super(props);
-console.log(props);
+
         this.state = {
             savedGameName: '',
             grids: [],
@@ -21,6 +21,8 @@ console.log(props);
         this.saveCopy = this.saveCopy.bind(this);
         this.updateNewAttributes = this.updateNewAttributes.bind(this);
         this.newGrid = this.newGrid.bind(this);
+        this.getSaveRow = this.getSaveRow.bind(this);
+        this.designButton = this.designButton.bind(this);
     }
 
     componentDidMount() {}
@@ -30,7 +32,7 @@ console.log(props);
     }
 
     loadVals(props) {
-        this.state.savedGameName = props.savedGameName;
+        this.state.savedGameName = props.savedGameName.length > 0 ? props.savedGameName : props.gridName;
         this.state.height = props.height;
         this.state.width = props.width;
         this.state.grids = this.processDropdownOptions(props.grids);
@@ -123,9 +125,50 @@ console.log(props);
         );
     }
 
+    getSaveRow() {
+        return (
+            <div className="row">
+                <input value={this.state.savedGameName} onChange={this.updateSavedGameName} />
+                <ButtonGroup>
+                    <Button onClick={this.save} title="save">
+                        <Glyphicon glyph="floppy-disk" />
+                    </Button>
+                    <Button onClick={this.saveCopy} title="save copy">
+                        <Glyphicon glyph="duplicate" />
+                    </Button>
+                </ButtonGroup>
+            </div>
+        );
+    }
+
+    designButton(id) {
+        var url = 'http://kak.uro/app_dev.php/grid/design/' + id;
+        return (
+            <div className="row">
+                <a href={url}>
+                    <Glyphicon glyph="edit" />
+                </a>
+            </div>
+        );
+    }
+
+    playButton(id) {
+        var url = 'http://kak.uro/app_dev.php/grid/' + id;
+        return (
+            <div className="row">
+                <a href={url}>
+                    <Glyphicon glyph="play" />
+                </a>
+            </div>
+        );
+    }
+
     render() {
         var newGridAttributes = this.getNewGridAttributes();
         var checkSolutionButtonGroup = this.getCheckSolutionButtonGroup();
+        var saveRow = this.props.showSave ? this.getSaveRow() : '';
+        var designRow = this.props.showDesign ? this.designButton(this.props.selectedGrid) : '';
+        var playRow = this.props.showPlay ? this.playButton(this.props.selectedGrid) : '';
         return (
             <div>
                 <div className="row">
@@ -135,17 +178,9 @@ console.log(props);
                 </div>
                 {newGridAttributes}
                 {checkSolutionButtonGroup}
-                <div className="row">
-                    <input value={this.state.savedGameName} onChange={this.updateSavedGameName} />
-                    <ButtonGroup>
-                        <Button onClick={this.save} title="save">
-                            <Glyphicon glyph="floppy-disk" />
-                        </Button>
-                        <Button onClick={this.saveCopy} title="save copy">
-                            <Glyphicon glyph="duplicate" />
-                        </Button>
-                    </ButtonGroup>
-                </div>
+                {saveRow}
+                {designRow}
+                {playRow}
             </div>
         );
     }
