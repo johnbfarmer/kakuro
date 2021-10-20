@@ -21,4 +21,15 @@ class GridRepository extends EntityRepository
         $num = (int)substr($name, 2) + 1;
         return 'uq' . $num;
     }
+
+    public function deleteGrid($id)
+    {
+        $sql = '
+        DELETE FROM grids 
+        WHERE `id` = ?';
+
+        $conn = $this->getEntityManager()->getConnection();
+        $stmt = $conn->prepare($sql);
+        return $stmt->execute([$id]);
+    }
 }

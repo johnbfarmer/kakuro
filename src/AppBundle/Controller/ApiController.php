@@ -195,4 +195,13 @@ class ApiController extends Controller
         $tester = KakuroUniquenessTester::autoExecute($parameters, null); // build grid from cells, call KakuroReducer wirh advanced = true
         return new JsonResponse($tester->getApiResponse()); // and this will need true|false and some info about alternate solutions
     }
+
+    /**
+     * @Route("api/delete-game/{id}", name="delete_game")
+     */
+    public function deleteGameAction(Request $request, $id)
+    {
+        $bool = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->deleteGrid($id);
+        return new JsonResponse(['success' => $bool]);
+    }
 }

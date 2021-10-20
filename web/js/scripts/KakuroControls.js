@@ -1,7 +1,9 @@
 import React from 'react';
 import { ButtonGroup, Button, Glyphicon } from 'react-bootstrap';
+// import { Grid } from 'semantic-ui-react';
+import PropTypes from 'prop-types';
 
-export default class KakuroControls extends React.Component {
+class KakuroControls extends React.Component {
     constructor(props) {
         super(props);
 
@@ -19,6 +21,7 @@ export default class KakuroControls extends React.Component {
         this.changeGrid = this.changeGrid.bind(this);
         this.save = this.save.bind(this);
         this.saveCopy = this.saveCopy.bind(this);
+        this.delete = this.delete.bind(this);
         this.updateNewAttributes = this.updateNewAttributes.bind(this);
         this.newGrid = this.newGrid.bind(this);
         this.getSaveRow = this.getSaveRow.bind(this);
@@ -50,6 +53,10 @@ export default class KakuroControls extends React.Component {
 
     saveCopy() {
         this.props.save(this.state.savedGameName, true);
+    }
+
+    delete() {
+        this.props.delete();
     }
 
     processDropdownOptions(data) {
@@ -136,6 +143,9 @@ export default class KakuroControls extends React.Component {
                     <Button onClick={this.saveCopy} title="save copy">
                         <Glyphicon glyph="duplicate" />
                     </Button>
+                    <Button onClick={this.delete} title="delete game">
+                        <Glyphicon glyph="remove" />
+                    </Button>
                 </ButtonGroup>
             </div>
         );
@@ -186,3 +196,38 @@ export default class KakuroControls extends React.Component {
     }
 }
 
+KakuroControls.propTypes = {
+    savedGameName: PropTypes.string,
+    height: PropTypes.number,
+    width: PropTypes.number,
+    selectedGrid: PropTypes.node,
+    save: PropTypes.func,
+    grids: PropTypes.array,
+    getGrid: PropTypes.func,
+    newGrid: PropTypes.func,
+    delete: PropTypes.func,
+    createMode: PropTypes.bool,
+    checkSolution: PropTypes.func,
+    showSave: PropTypes.bool,
+    showDesign: PropTypes.bool,
+    showPlay: PropTypes.bool,
+}
+
+KakuroControls.defaultProps = {
+    savedGameName: '',
+    height: 0,
+    width: 0,
+    selectedGrid: 0,
+    save: () => {},
+    grids: [],
+    getGrid: () => {},
+    newGrid: () => {},
+    delete: () => {},
+    createMode: false,
+    checkSolution: () => {},
+    showSave: false,
+    showDesign: false,
+    showPlay: false,
+}
+
+export default KakuroControls;

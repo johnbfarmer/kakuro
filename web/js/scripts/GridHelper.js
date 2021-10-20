@@ -1,6 +1,7 @@
 export const GridHelper = {
     message: 'test',
-ctr: 0,
+    ctr: 0,
+
     peers(idx, cells, h, w) {
         var strips = this.strips(idx, cells, h, w);
         var p = [];
@@ -95,11 +96,9 @@ ctr: 0,
             });
         });
 
-console.log(strips);
         strips.forEach((strip, k) => {
             labelCell = this.getLabelCell(strip, cells);
             displayPos = strip.idx.split('_')[2] === 'h' ? 1 : 0;
-console.log(labelCell);
             sum = labelCell.display[displayPos];
             strips[k].sum = sum;
         });
@@ -170,9 +169,7 @@ console.log(labelCell);
             i += w;
         }
         nbrs.push(strip);
-if (idx === 35) {
-    // console.log(strip);
-}
+
         // walk left to nearest non-data
         i = idx - 1;
         strip = [];

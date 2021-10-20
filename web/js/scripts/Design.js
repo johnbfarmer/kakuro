@@ -28,6 +28,7 @@ export default class Design extends React.Component {
 
         this.getGrid = this.getGrid.bind(this);
         this.saveGame = this.saveGame.bind(this);
+        this.deleteGame = this.deleteGame.bind(this);
         this.getGames = this.getGames.bind(this);
         this.setActive = this.setActive.bind(this);
         this.moveActive = this.moveActive.bind(this);
@@ -106,6 +107,14 @@ export default class Design extends React.Component {
             }.bind(this),
             'json'
         );
+    }
+
+    deleteGame() {
+        return $.getJSON(
+            "http://kak.uro/app_dev.php/api/delete-game/" + this.state.gridId
+        ).then(data => {
+            this.setState({grids: data.games});
+        });
     }
 
     getGames() {
@@ -419,6 +428,7 @@ console.log(cells[k]);
                         width={this.state.width}
                         selectedGrid={this.state.gridId}
                         save={this.saveGame}
+                        delete={this.deleteGame}
                         grids={this.state.grids}
                         getGrid={this.loadGridUrl}
                         newGrid={this.newGrid}
