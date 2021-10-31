@@ -115,3 +115,7 @@ body {
 .standout {
   color: red;
 }
+
+.kak-srch-result {
+  cursor:  pointer;
+}

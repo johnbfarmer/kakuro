@@ -89,11 +89,12 @@ class SavedGrid
     {
         $grid = $this->grid->getForApi();
         foreach ($this->choices as $savedChoice) {
-            $idx = $savedChoice->getRow() * ($this->grid->getWidth() + 1) + $savedChoice->getCol();
+            $idx = $savedChoice->getRow() * ($this->grid->getWidth() + 0) + $savedChoice->getCol();
             $grid['cells'][$idx]['choices'] = explode(',', $savedChoice->getChoices());
         }
 
         $grid['name'] = $this->name;
+\AppBundle\Helper\GridHelper::log($grid);
 
         return $grid;
     }

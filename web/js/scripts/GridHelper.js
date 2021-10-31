@@ -206,6 +206,7 @@ export const GridHelper = {
     },
 
     checkStrips(cells, strips) {
+console.log('check strips', cells, strips);
         var cell, filled, sum, allFilled = true, allCorrect = true;
         cells.forEach((cell, k) => {
             cells[k].error = false;

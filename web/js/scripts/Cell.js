@@ -29,6 +29,7 @@ class Cell extends React.Component {
     }
 
     loadVals(props) {
+console.log('load cell', props)
         var cell = props.cell;
         var editable = 'is_editable' in cell ? cell.is_editable : cell.is_data;
         var display = cell.choices.join('');

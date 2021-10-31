@@ -1,14 +1,15 @@
 import React from 'react';
-import { ButtonGroup, Button, Glyphicon } from 'react-bootstrap';
-// import { Grid } from 'semantic-ui-react';
+import { ButtonGroup, Glyphicon } from 'react-bootstrap';
+import { Grid, Button } from 'semantic-ui-react';
 import PropTypes from 'prop-types';
+import SearchControl from './SearchControl';
 
 class KakuroControls extends React.Component {
     constructor(props) {
         super(props);
 
         this.state = {
-            savedGameName: '',
+            savedGameName: props.selectedGridName,
             grids: [],
             createMode: false,
             height: 4,
@@ -61,22 +62,16 @@ class KakuroControls extends React.Component {
 
     processDropdownOptions(data) {
         var arr = [];
-        arr.push(<option key="topChoice" value={-1}>--select--</option>);
-        if (this.props.createMode) {
-            arr.push(<option key="newGrid" value={0}>new grid</option>);
-        }
         for (var i = 0; i < data.length; i++) {
             var option = data[i];
-            var label = 'label' in option ? option.label : option.name;
-            var val = option.name;
-            arr.push(<option key={i} value={val}>{label}</option>);
-          }
+            arr.push({value: option.val, title: option.label});
+        }
 
         return arr;
     }
 
-    changeGrid(e) {
-        this.props.getGrid(e.target.value);
+    changeGrid(id) {
+        this.props.getGrid(id);
     }
 
     updateNewAttributes(e) {
@@ -181,11 +176,7 @@ class KakuroControls extends React.Component {
         var playRow = this.props.showPlay ? this.playButton(this.props.selectedGrid) : '';
         return (
             <div>
-                <div className="row">
-                    <select onChange={this.changeGrid} value={this.props.selectedGrid}>
-                        {this.state.grids}
-                    </select>
-                </div>
+                <SearchControl onChange={this.changeGrid} selected={this.props.selectedGridName} grids={this.state.grids} />
                 {newGridAttributes}
                 {checkSolutionButtonGroup}
                 {saveRow}
@@ -201,6 +192,7 @@ KakuroControls.propTypes = {
     height: PropTypes.number,
     width: PropTypes.number,
     selectedGrid: PropTypes.node,
+    selectedGridName: PropTypes.string,
     save: PropTypes.func,
     grids: PropTypes.array,
     getGrid: PropTypes.func,
@@ -218,6 +210,7 @@ KakuroControls.defaultProps = {
     height: 0,
     width: 0,
     selectedGrid: 0,
+    selectedGridName: '',
     save: () => {},
     grids: [],
     getGrid: () => {},

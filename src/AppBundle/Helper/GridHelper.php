@@ -962,9 +962,9 @@ self::log('choice '.json_encode($choice));
 
     public static function log($str, $level = 'notice')
     {
-        if (!is_string($str))
+        if (is_array($str))
         {
-            $str = print_r($str, TRUE);
+            $str = json_encode($str);
         }
         $accepted_levels = array(
             'emergency',

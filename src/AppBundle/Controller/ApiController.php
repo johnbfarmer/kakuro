@@ -38,7 +38,7 @@ class ApiController extends Controller
         $games = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->findBy(['show' => 1], ['name' => 'asc']);
         $arr = [];
         foreach ($games as $game) {
-            $arr[] = ['name' => $game->getId(), 'label' => $game->getName()];
+            $arr[] = ['val' => $game->getId(), 'label' => $game->getName()];
         }
         return new JsonResponse(['games' => $arr]);
     }

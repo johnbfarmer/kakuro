@@ -122,7 +122,7 @@ export default class Kakuro extends React.Component {
         return $.post(
             "http://kak.uro/app_dev.php/api/load-choices",
             {
-                saved_grid_id: 6
+                saved_grid_id: 18
             },
             function(resp) {
                 if (resp.error) {
@@ -131,11 +131,12 @@ export default class Kakuro extends React.Component {
             },
             'json'
         ).then(data => {
-            var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
-            cells = processed.cells;
-            this.strips = processed.strips;
-            this.setState({ cells: cells, height: data.height, width: data.width, savedGameName: data.name });
-            this.saveState();
+            this.updateChoices(data.cells);
+            // var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
+            // cells = processed.cells;
+            // this.strips = processed.strips;
+            // this.setState({ cells: cells, height: data.height, width: data.width, savedGameName: data.name });
+            // this.saveState();
         });
     }
 
@@ -386,6 +387,7 @@ export default class Kakuro extends React.Component {
                         grids={this.state.grids}
                         getGrid={this.loadGridUrl}
                         selectedGrid={gridId}
+                        selectedGridName={this.state.name}
                         showSave={false}
                         showDesign={true}
                     />
