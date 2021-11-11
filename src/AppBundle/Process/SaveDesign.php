@@ -8,8 +8,8 @@ class SaveDesign extends BaseGrid
         $name,
         $id,
         $asCopy,
-        // 0, 1, 2 (not uq, uq, unk)
-        $isUnique = 0,
+        $saveStructure = true,
+        $isUnique = 2, // 0, 1, 2 (not uq, uq, unk)
         $libraryIndex = 0;
 
     public function __construct($parameters = [], $em = [])
@@ -38,72 +38,80 @@ class SaveDesign extends BaseGrid
         if (!empty($this->parameters['libraryIndex'])) {
             $this->libraryIndex = $this->parameters['libraryIndex'];
         }
+        if (empty($this->height) || empty($this->width)) {
+            $this->saveStructure = false;
+        }
     }
 
     protected function execute()
     {
-        if ($this->asCopy) {
-            $this->handleCopy();
-        }
+        
+        if ($this->saveStructure) {
+            if ($this->asCopy) {
+                $this->handleCopy();
+            }
 
-        $id = $this->id ?: 'null';
-        $uqVal = (int)$this->isUnique;
-        $timestamp = date('Y-m-d H:i:s');
+            $id = $this->id ?: 'null';
+            $uqVal = (int)$this->isUnique;
+            $timestamp = date('Y-m-d H:i:s');
 
-        $sql = '
-        INSERT INTO grids
-        (id, name, height, width, is_unique, library_index, updated_at, created_at)
-        VALUES
-        (' . $id 
-            . ', "' . $this->name 
-            . '", ' . $this->height 
-            . ', ' . $this->width 
-            . ', ' . $uqVal 
-            . ', ' . $this->libraryIndex 
-            . ', "' . $timestamp 
-            . '", "' . $timestamp  
-            . '")
-        ON DUPLICATE KEY UPDATE
-        name = VALUES(name),
-        height = VALUES(height),
-        width = VALUES(width),
-        is_unique = VALUES(is_unique),
-        library_index = VALUES(library_index),
-        updated_at = VALUES(updated_at)';
+            $sql = '
+            INSERT INTO grids
+            (id, name, height, width, is_unique, library_index, updated_at, created_at)
+            VALUES
+            (' . $id 
+                . ', "' . $this->name 
+                . '", ' . $this->height 
+                . ', ' . $this->width 
+                . ', ' . $uqVal 
+                . ', ' . $this->libraryIndex 
+                . ', "' . $timestamp 
+                . '", "' . $timestamp  
+                . '")
+            ON DUPLICATE KEY UPDATE
+            name = VALUES(name),
+            height = VALUES(height),
+            width = VALUES(width),
+            is_unique = VALUES(is_unique),
+            library_index = VALUES(library_index),
+            updated_at = VALUES(updated_at)';
 
-        $this->exec($sql);
-        $id = $this->lastInsertId();
-        $this->id = $id;
-        if (empty($id)) {
-            throw new \Exception('Unable to get last id');
-        }
+            $this->exec($sql);
+            $id = $this->lastInsertId();
+            $this->id = $id;
+            if (empty($id)) {
+                throw new \Exception('Unable to get last id');
+            }
 
-        $sql = '
-        DELETE FROM cells
-        WHERE grid_id =' . $id;
+            $sql = '
+            DELETE FROM cells
+            WHERE grid_id =' . $id;
 
-        $this->exec($sql);
+            $this->exec($sql);
 
-        $insert = [];
-        foreach ($this->cells as $cell) {
-            if (empty($cell['is_data'])) {
-                if (!empty($cell['display'])) {
-                    $insert[] = '(' . $id . ',' . $cell['row'] . ',' . $cell['col'] . ',' . $cell['display'][1] . ',' . $cell['display'][0] . ')';
+            $insert = [];
+            foreach ($this->cells as $cell) {
+                if (empty($cell['is_data'])) {
+                    if (!empty($cell['display'])) {
+                        $insert[] = '(' . $id . ',' . $cell['row'] . ',' . $cell['col'] . ',' . $cell['display'][1] . ',' . $cell['display'][0] . ')';
+                    }
                 }
             }
+
+            $sql = '
+            INSERT INTO cells
+            (grid_id, row, col, label_h, label_v)
+            VALUES
+            ' . implode(',', $insert) .'
+            ON DUPLICATE KEY UPDATE
+            label_h = VALUES(label_h),
+            label_v = VALUES(label_v),
+            updated_at = VALUES(updated_at)';
+
+            $this->exec($sql);
+        } else {
+            $id = $this->id;
         }
-
-        $sql = '
-        INSERT INTO cells
-        (grid_id, row, col, label_h, label_v)
-        VALUES
-        ' . implode(',', $insert) .'
-        ON DUPLICATE KEY UPDATE
-        label_h = VALUES(label_h),
-        label_v = VALUES(label_v),
-        updated_at = VALUES(updated_at)';
-
-        $this->exec($sql);
 
         $sql = '
         INSERT IGNORE INTO solutions

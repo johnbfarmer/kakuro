@@ -1,12 +1,13 @@
 import React from 'react';
 import Cell from './Cell.js';
-import KakuroControls from './KakuroControls.js';
+import Design from './Design.js';
 import KakuroTitle from './KakuroTitle.js';
+import KakuroControls from './KakuroControls.js';
 import {GridHelper} from './GridHelper.js';
 
 var gridId = document.getElementById("content").dataset.id;
 
-export default class Kakuro extends React.Component {
+export default class KakuroDesignBySum extends Design {
     constructor(props) {
         super(props);
         this.state = {
@@ -17,11 +18,14 @@ export default class Kakuro extends React.Component {
             width: 0,
             active_row: -1,
             active_col: -1,
+            active_idx: -1,
             solved: false,
             saved_states: [],
-            grids: [{name: 0, label:""}, {name: 4, label:"shit"}, {name: 3, label:"more shit"}],
+            grids: [{name: 0, label:""}, {name: 4, label:"stuff"}, {name: 3, label:"more stuff"}],
             gridId: 0,
             gridStatus: '', // success, error
+            editing: false,
+            editingIdx: 0, // which half of the display? 0|1
         };
 
         this.strips = [];
@@ -63,7 +67,7 @@ export default class Kakuro extends React.Component {
     }
 
     loadGridUrl(id) {
-        window.location.href = 'http://kak.uro/app_dev.php/grid/' + id;
+        window.location.href = 'http://kak.uro/app_dev.php/grid/design-by-sum/' + id;
     }
 
     getGrid(id) {
@@ -76,6 +80,35 @@ export default class Kakuro extends React.Component {
             this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id});
             this.saveState();
         });
+    }
+
+    saveGame(name, asCopy) {
+        if (!GridHelper.validGrid(this.state.cells, this.state.height, this.state.width)) {
+            console.error('invalid for saving');
+            console.error(GridHelper.message);
+        }
+
+        var cells = JSON.stringify(this.state.cells);
+        name = name || null;
+        return $.post(
+            "http://kak.uro/app_dev.php/api/save-design-by-sums",
+            {
+                grid_id: this.state.gridId,
+                height: this.state.height,
+                width: this.state.width,
+                name: name,
+                cells: cells,
+                asCopy: ~~asCopy,
+            },
+            function(resp) {
+                if (asCopy) {
+                    this.loadGridUrl(parseInt(resp.id));
+                } else {
+                    this.setState({gridName: resp.name, gridId: parseInt(resp.id)});
+                }
+            }.bind(this),
+            'json'
+        );
     }
 
     saveState() {
@@ -94,16 +127,17 @@ export default class Kakuro extends React.Component {
             if(cell.active) {
                 active_row = cell.row;
                 active_col = cell.col;
+                active_idx = cell.idx;
             }
         });
-        this.setState({cells: cells, active_row: active_row, active_col: active_col});
+        this.setState({cells: cells, active_row: active_row, active_col: active_col, active_idx: active_idx});
     }
 
     saveChoices(name) {
         var cells = JSON.stringify(this.state.cells);
         name = name || null;
         return $.post(
-            "http://kak.uro/app_dev.php/api/save-design",
+            "http://kak.uro/app_dev.php/api/save-choices",
             {
                 grid_id: this.state.gridId,
                 saved_grid_name: name,
@@ -193,14 +227,11 @@ export default class Kakuro extends React.Component {
     }
 
     updateChoices(cells) {
-        var processed = GridHelper.checkStrips(cells, this.strips);
-        let solved = this.state.solved;
-        this.strips = processed.strips;
-        cells = processed.cells;
-        if (processed.status === 'success') {
-            solved = true;
-        }
-        this.setState({cells: cells, gridStatus: processed.status, solved});
+        // var processed = GridHelper.checkStrips(cells, this.strips);
+        // var msg = '';
+        // this.strips = processed.strips;
+        // cells = processed.cells;
+        this.setState({cells: cells});
         // this.setState({cells: cells}, async () => {console.log('123');});
     }
 
@@ -227,13 +258,15 @@ export default class Kakuro extends React.Component {
         var cells = this.state.cells;
         if (fidx >= 0) {
             cells[fidx].active = false;
+            cells[fidx].editing = false;
         }
         cells[idx].active = true;
+        cells[idx].editing = this.state.editing; // does nothing?
         this.saveState();
-        this.setState({cells: cells, active_row: row, active_col: col});
+        this.setState({cells: cells, active_row: row, active_col: col, editing: false, editingIdx: 0, active_idx: idx});
     }
 
-    moveActive(v,h, row, col) {
+    moveActive(v, h, row, col) {
         if (typeof row === 'undefined') {
             row = this.state.active_row;
         }
@@ -255,11 +288,7 @@ export default class Kakuro extends React.Component {
             active_col =  this.state.width - 1;
         }
 
-        if (!this.state.cells[active_row * this.state.width + active_col].is_data) {
-            this.moveActive(v,h, active_row, active_col);
-        } else {
-            this.setActive(active_row, active_col);
-        }
+        this.setActive(active_row, active_col);
     }
 
     handleChangedCell(row, col, val) {
@@ -274,18 +303,20 @@ export default class Kakuro extends React.Component {
         var idx = this.state.active_row * this.state.width + this.state.active_col;
         var cells = this.state.cells;
         var cell = cells[idx];
-        if (key > 0) {
-            var arr_pos = cell.choices.indexOf(key);
-            if (arr_pos > -1) {
-                cell.choices.splice(arr_pos, 1);
-            } else {
-                cell.choices.push(key);
+        if (key >= 0) {
+            if (cell.is_data) {
+                return;
             }
-            cell.choices.sort();
-            cell.display = cell.choices.join('');
-            cells[idx] = cell;
-            this.checkAnswer(cells);
-            this.updateChoices(cells);
+            if (this.state.editing) {
+                console.log(key, 'ok!', cell);
+                let dsp = cell.display[this.state.editingIdx];
+                console.log(dsp);
+                dsp = dsp + key;
+                console.log(dsp);
+                cell.display[this.state.editingIdx] = dsp;
+                cells[idx] = cell;
+                this.setState({cells: cells}, () => {console.log(this.state.cells[idx].display)});
+            }
         } else {
             var keyCode = event.keyCode;
             this.handleKey(keyCode);
@@ -293,6 +324,7 @@ export default class Kakuro extends React.Component {
     }
 
     handleKey(keyCode) {
+console.log('keyCode', keyCode);
         if (keyCode === 38) { // up
             this.moveActive(-1,0);
         }
@@ -305,33 +337,42 @@ export default class Kakuro extends React.Component {
         if (keyCode === 39) {
             this.moveActive(0,1);
         }
-        if (keyCode === 80) { // p
-            this.reduce(2);
+        if (keyCode === 69) { // e
+            this.editCell(0);
         }
-        if (keyCode === 82) { // r
-            this.reduce(3);
-        }
-        if (keyCode === 65) { // a
-            this.reduce(4);
-        }
-        if (keyCode === 72) { // h -- hint (one step)
-            this.reduce(1);
+        if (keyCode === 191 || keyCode === 220) { // slash or backslash
+            this.editCell(1);
         }
         if (keyCode === 88) { // x
-            this.clearChoices();
+            this.setActiveCellVal('x');
         }
-        if (keyCode === 67) { // c
-            this.clearAllChoices();
+    }
+
+    editCell(displayIdx) {
+        let cells = this.state.cells;
+        cells[this.state.active_idx].display[displayIdx] = '';
+        this.setState({ editing: true, editingIdx: displayIdx, cells })
+    }
+
+    setActiveCellVal(val) {
+        var idx = this.state.active_idx;
+        var cells = this.state.cells;
+        let cell = cells[idx];
+
+        switch(val) {
+            case 'x':
+                cell.is_data = !cell.is_data;
+                if (!cell.is_data) {
+                    cell.display = [0,0];
+                }
+                break;
+            default:
+                break;
         }
-        if (keyCode === 85) { // u
-            this.restoreSavedState();
-        }
-        if (keyCode === 83) { // s
-            this.saveChoices();
-        }
-        if (keyCode === 76) { // l
-            this.loadSavedGame();
-        }
+
+        cells[idx] = cell;
+
+        this.setState({ cells })
     }
 
     checkAnswer(cells) {
@@ -364,10 +405,12 @@ export default class Kakuro extends React.Component {
     render() {
         var cells = this.state.cells.map(function(cell, index) {
             cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
+            cell.editing = this.state.editing && cell.active;
+            cell.editing_right = this.state.editing && cell.active && this.state.editingIdx === 1;
             return (
                 <Cell 
                     cell={cell}
-                    solved={this.state.solved}
+                    solved={false}
                     key={index}
                     setActive={this.setActive}
                     onChange={this.handleChangedCell}
@@ -386,16 +429,22 @@ export default class Kakuro extends React.Component {
                 </div>
                 <div className="col-md-4">
                     <KakuroControls
-                        savedGameName={this.state.savedGameName}
-                        gridName={this.state.name}
-                        save={this.saveChoices}
+                        savedGameName={this.state.gridName}
+                        height={this.state.height}
+                        width={this.state.width}
+                        selectedGrid={this.state.gridId}
+                        save={this.saveGame}
+                        delete={this.deleteGame}
                         grids={this.state.grids}
                         getGrid={this.loadGridUrl}
-                        selectedGrid={gridId}
+                        newGrid={this.newGrid}
                         selectedGridName={this.state.name}
-                        showSave={this.state.solved}
+                        createMode={true}
+                        checkSolution={this.checkSolution}
+                        showSave={true}
                         showDesign={true}
-                        showDesignBySum={true}
+                        showPlay={true}
+                        showDesignBySum={false}
                     />
                 </div>
                 <div className="status-box">

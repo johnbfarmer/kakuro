@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import Cell from './Cell.js';
 import KakuroControls from './KakuroControls.js';
+import KakuroTitle from './KakuroTitle.js';
 import SolutionSwitcher from './SolutionSwitcher.js';
 import {GridHelper} from './GridHelper.js';
 
@@ -82,8 +83,8 @@ export default class Design extends React.Component {
 
     saveGame(name, asCopy) {
         if (!GridHelper.validGrid(this.state.cells, this.state.height, this.state.width)) {
-            console.log('invalid for saving');
-            console.log(GridHelper.message);
+            console.error('invalid for saving');
+            console.error(GridHelper.message);
         }
 
         var cells = JSON.stringify(this.state.cells);
@@ -227,7 +228,8 @@ console.log(cells[k]);
         // adjust other cells based on this action:
         // adjust labels
         cells = GridHelper.setLabels(cells, this.strips);
-        this.setState({cells: cells});
+        cells = GridHelper.reduceAll(cells, this.strips, this.state.height, this.state.width);
+        this.setState({cells: cells}, () => {console.log(this.state.cells[idx])});
         // adjust possible values
         // cells = getChoices(cells).then(resp => {
         //     console.log('hi');
@@ -292,7 +294,7 @@ console.log(cells[k]);
         cells = GridHelper.insertRow(active_row, cells, height, width);
         this.strips = GridHelper.allStripsLite(cells, this.state.height + 1, this.state.width);
         cells = GridHelper.setLabels(cells, this.strips);
-        // console.log(cells);
+        cells = GridHelper.reduceAll(cells, this.strips, this.state.height, this.state.width);
         this.setState({cells: cells, height: height + 1});
     }
 
@@ -304,7 +306,7 @@ console.log(cells[k]);
         cells = GridHelper.insertCol(active_col, cells, height, width);
         this.strips = GridHelper.allStripsLite(cells, this.state.height, this.state.width + 1);
         cells = GridHelper.setLabels(cells, this.strips);
-        // console.log(cells);
+        cells = GridHelper.reduceAll(cells, this.strips, this.state.height, this.state.width);
         this.setState({cells: cells, width: width + 1});
     }
 
@@ -352,6 +354,7 @@ console.log(cells[k]);
     checkSolution() {
         var cellsStr = JSON.stringify(this.state.cells);
         var cells = JSON.parse(cellsStr); // deep copy solution
+console.log('posting...');
         return $.post(
             "http://kak.uro/app_dev.php/api/check-uniqueness",
             {
@@ -366,6 +369,7 @@ console.log(cells[k]);
             },
             'json'
         ).then(data => {
+console.log('got data...', data);
             if (data.hasError) {
                 alert('error');
                 return;
@@ -414,6 +418,7 @@ console.log(cells[k]);
 
         return (
             <div>
+                <KakuroTitle title={this.state.gridName} editable={true} />
                 <div
                     className="kakuro-grid col-md-8"
                     tabIndex="0"
@@ -432,11 +437,13 @@ console.log(cells[k]);
                         grids={this.state.grids}
                         getGrid={this.loadGridUrl}
                         newGrid={this.newGrid}
+                        selectedGridName={this.state.name}
                         createMode={true}
                         checkSolution={this.checkSolution}
                         showSave={true}
                         showDesign={false}
                         showPlay={true}
+                        showDesignBySum={true}
                     />
                     <SolutionSwitcher
                         solution={this.state.alternateSolution}

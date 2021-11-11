@@ -78,17 +78,17 @@ export const GridHelper = {
     allStrips(cells, h, w) { //strips include cells
         var nbrStrips, strips = [], stripIdxs = [], idx, sum, labelCell, displayPos;
         cells.forEach(cell => {
-            if (cell.row === 0 || cell.col === 0) {
+            if (!cell.is_data) {
                 return;
             }
             nbrStrips = this.strips(cell.idx, cells, h, w);
-            nbrStrips.forEach(strip => {
+            nbrStrips.forEach((strip, j) => {
                 if (!strip.length) {
                     return;
                 }
 
                 // strip idx is row_col_orientation like 1_1_h
-                idx = this.stripIndex(strip);
+                idx = this.stripIndex(strip, j%2 !== 0);
                 if (stripIdxs.indexOf(idx) < 0) {
                     stripIdxs.push(idx);
                     strips.push({cells: strip, idx: idx});
@@ -106,8 +106,8 @@ export const GridHelper = {
         return strips;
     },
 
-    stripIndex(strip) {
-        var isHorizontal = true, minRow = null, minCol = null, prevRow = null;
+    stripIndex(strip, isHorizontal = true) {
+        var minRow = null, minCol = null, prevRow = null;
         strip.forEach(cell => {
             if (minRow === null || cell.row < minRow) {
                 minRow = cell.row;
@@ -140,6 +140,7 @@ export const GridHelper = {
         // walk up to nearest non-data
         var strip = [];
         var i = idx - w;
+
         while (i > 0) {
             if (!(cells[i].is_data)) {
                 var topNonDataNbrIdx = i;
@@ -206,7 +207,6 @@ export const GridHelper = {
     },
 
     checkStrips(cells, strips) {
-console.log('check strips', cells, strips);
         var cell, filled, sum, allFilled = true, allCorrect = true;
         cells.forEach((cell, k) => {
             cells[k].error = false;
@@ -620,6 +620,17 @@ console.log('check strips', cells, strips);
         return this.sortCells(c);
     },
 
+    reduceAll(cells, strips, h, w) {
+        cells.forEach((c, idx) => {
+            console.log('reduceAllc',c,idx);
+            if (c.is_data && c.choices.length > 1) {
+                cells[idx] = this.reduceCell(c, cells, h, w)
+            }
+        });
+
+        return cells;
+    },
+
     reduce(idx, cells, h, w) {
         var p = this.peers(idx, cells, h, w);
         p.forEach((cell) => {
@@ -633,7 +644,7 @@ console.log('check strips', cells, strips);
     reduceCell(cell, cells, h, w) {
         if (cell.is_data && cell.choices.length !== 1) {
             var peers = this.peers(cell.row * w + cell.col, cells, h, w);
-            var available = [1,2,3,4,5,6,7,8,9];
+            var available = cell.choices.length > 1 ? cell.choices : [1,2,3,4,5,6,7,8,9];
             peers.forEach((peer) => {
                 if (peer.choices.length === 1) {
                     var choice = peer.choices[0];
@@ -652,13 +663,12 @@ console.log('check strips', cells, strips);
     },
 
     validGrid(cells, h, w) {
-console.log('vg');
         if (!this.validFrame(cells, h, w)) {
-console.log('frame not good');
+            console.error('frame not good');
             return false;
         }
         if (!this.validValues(cells, h, w)) {
-console.log('values not good');
+            console.error('values not good');
             return false;
         }
 

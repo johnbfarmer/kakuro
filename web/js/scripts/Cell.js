@@ -29,7 +29,6 @@ class Cell extends React.Component {
     }
 
     loadVals(props) {
-console.log('load cell', props)
         var cell = props.cell;
         var editable = 'is_editable' in cell ? cell.is_editable : cell.is_data;
         var display = cell.choices.join('');
@@ -68,8 +67,8 @@ console.log('load cell', props)
             classes = classes + " large-num";
         }
 
-        if (this.props.cell.active) {
-            return classes + " actv";
+        if (this.props.cell.active && this.state.is_data) {
+            return classes + " aktv";
         }
 
         if (this.props.cell.selected) {
@@ -84,7 +83,16 @@ console.log('load cell', props)
                     return classes + " semiactive-blnk";
                 }
             } else {
+                if (this.props.cell.active) {
+                    classes = classes + " aktv";
+                }
                 if (this.state.sum_box) {
+                    if (this.props.cell.editing_right) {
+                        return classes + " sum-box edit-right";
+                    }
+                    if (this.props.cell.editing) {
+                        return classes + " sum-box edit-left";
+                    }
                     return classes + " sum-box";
                 } else {
                     return classes + " blnk";

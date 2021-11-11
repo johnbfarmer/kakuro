@@ -46,27 +46,27 @@ class BaseProcess
         }
     }
 
-    protected function exec($sql, $log = true)
+    protected function exec($sql, $log = true, $params = [])
     {
         if ($log) {
             $this->log($sql);
         }
         $connection = $this->connection;
         $stmt = $connection->prepare($sql);
-        $stmt->execute();
+        $stmt->execute($params);
         return $stmt;
     }
 
-    protected function fetch($sql, $log = false)
+    protected function fetch($sql, $log = false, $params = [])
     {
-        $stmt = $this->exec($sql, $log);
+        $stmt = $this->exec($sql, $log, $params);
         $records = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $records;
     }
 
-    protected function fetchAll($sql, $log = false)
+    protected function fetchAll($sql, $log = false, $params = [])
     {
-        $stmt = $this->exec($sql, $log);
+        $stmt = $this->exec($sql, $log, $params);
         $records = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         return $records;
     }

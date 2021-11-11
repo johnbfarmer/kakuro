@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Link, Redirect } from 'react-router-dom';
 import Kakuro from './Kakuro';
 import Design from './Design';
+import KakuroDesignBySum from './KakuroDesignBySum';
 
 class App extends React.Component {
     render() {
@@ -11,8 +12,10 @@ class App extends React.Component {
               <Router>
                   <div>
                     <Route path="/grid/design/:id" exact render={(props) => {return <Design {...props} />}} />
+                    <Route path="/grid/design-by-sum/:id" exact render={(props) => {return <KakuroDesignBySum {...props} />}} />
                     <Route path="/grid/:id" exact render={(props) => {return <Kakuro {...props} />}} />
                     <Route path="/app_dev.php/grid/design/:id" exact render={(props) => {return <Design {...props} />}} />
+                    <Route path="/app_dev.php/grid/design-by-sum/:id" exact render={(props) => {return <KakuroDesignBySum {...props} />}} />
                     <Route path="/app_dev.php/grid/:id" exact render={(props) => {return <Kakuro {...props} />}} />
                   </div>
               </Router>

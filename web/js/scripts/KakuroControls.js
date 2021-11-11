@@ -36,7 +36,7 @@ class KakuroControls extends React.Component {
     }
 
     loadVals(props) {
-        this.state.savedGameName = props.savedGameName.length > 0 ? props.savedGameName : props.gridName;
+        this.state.savedGameName = props.savedGameName.length > 0 ? props.savedGameName : props.selectedGridName;
         this.state.height = props.height;
         this.state.width = props.width;
         this.state.grids = this.processDropdownOptions(props.grids);
@@ -157,6 +157,17 @@ class KakuroControls extends React.Component {
         );
     }
 
+    designBySumsButton(id) {
+        var url2 = 'http://kak.uro/app_dev.php/grid/design-by-sum/' + id;
+        return (
+            <div className="row">
+                <a href={url2}>
+                    design-by-sums
+                </a>
+            </div>
+        );
+    }
+
     playButton(id) {
         var url = 'http://kak.uro/app_dev.php/grid/' + id;
         return (
@@ -174,6 +185,7 @@ class KakuroControls extends React.Component {
         var saveRow = this.props.showSave ? this.getSaveRow() : '';
         var designRow = this.props.showDesign ? this.designButton(this.props.selectedGrid) : '';
         var playRow = this.props.showPlay ? this.playButton(this.props.selectedGrid) : '';
+        var designBySumRow = this.props.showDesignBySum ? this.designBySumsButton(this.props.selectedGrid) : '';
         return (
             <div>
                 <SearchControl onChange={this.changeGrid} selected={this.props.selectedGridName} grids={this.state.grids} />
@@ -182,6 +194,7 @@ class KakuroControls extends React.Component {
                 {saveRow}
                 {designRow}
                 {playRow}
+                {designBySumRow}
             </div>
         );
     }
@@ -203,6 +216,7 @@ KakuroControls.propTypes = {
     showSave: PropTypes.bool,
     showDesign: PropTypes.bool,
     showPlay: PropTypes.bool,
+    showDesignBySum: PropTypes.bool,
 }
 
 KakuroControls.defaultProps = {
@@ -221,6 +235,7 @@ KakuroControls.defaultProps = {
     showSave: false,
     showDesign: false,
     showPlay: false,
+    showDesignBySum: false,
 }
 
 export default KakuroControls;

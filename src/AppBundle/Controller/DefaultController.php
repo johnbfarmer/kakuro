@@ -29,6 +29,14 @@ class DefaultController extends Controller
     }
 
     /**
+     * @Route("/grid/design-by-sum/{id}", name="design_grid_by_sum", defaults={"id" = 0})
+     */
+    public function designGridBySumAction($id)
+    {
+        return $this->render('default/grid.html.twig', ['gridId' => $id]);
+    }
+
+    /**
      * @Route("/grid/{id}", name="grid", defaults={"id" = 0})
      */
     public function gridAction($id)

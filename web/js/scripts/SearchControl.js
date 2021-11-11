@@ -59,6 +59,7 @@ class SearchControl extends React.Component {
                     value={this.state.value}
                     resultRenderer={this.resultRenderer}
                     showNoResults={false}
+                    icon='search'
                 />
             </div>
         )

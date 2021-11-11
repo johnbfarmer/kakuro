@@ -28,7 +28,7 @@ class SolveKakuroCommand extends ContainerAwareCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $output->writeln('KAKURO TABLES SOLVER');
+        // $output->writeln('KAKURO TABLES SOLVER');
         $parameters = array_merge($input->getArguments(), $input->getOptions());
         $em = $this->getContainer()->get('doctrine')->getManager();
         $grid = $em->getRepository('AppBundle:Grid')->find($parameters['id']);
@@ -38,7 +38,9 @@ class SolveKakuroCommand extends ContainerAwareCommand
             'simpleReduction' => false,
         ];
         $t = KakuroSolver::autoExecute($parameters, null);
-        $output->writeln($t->getResult());
+        $r = $t->getResult();
+        $u = $t === 'nonunique' ? 0 : 1;
+        print $grid->getId() . ', ' . $u . ',' . $r;
     }
 }
 

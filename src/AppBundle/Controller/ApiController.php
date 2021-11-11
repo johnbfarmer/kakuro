@@ -14,8 +14,10 @@ use AppBundle\Process\KakuroReducer;
 use AppBundle\Process\KakuroUniquenessTester;
 use AppBundle\Process\SaveGrid;
 use AppBundle\Process\SaveDesign;
+use AppBundle\Process\SaveDesignBySums;
 use AppBundle\Process\LoadSavedGrid;
 use AppBundle\Process\KakuroSolution;
+use AppBundle\Process\FetchGrid;
 use AppBundle\Helper\GridHelper;
 use AppBundle\Entity\Grid;
 
@@ -26,8 +28,10 @@ class ApiController extends Controller
      */
     public function gridAction(Request $request, $id)
     {
-        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($id);
-        return new JsonResponse($grid->getForApi());
+        // $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($id);
+        $grid = FetchGrid::autoExecute(['id' => $id]);
+        // return new JsonResponse($grid->getForApi());
+        return new JsonResponse($grid->getResponse());
     }
 
     /**
@@ -153,6 +157,25 @@ class ApiController extends Controller
             : 'kakuro_' . time();
         $parameters = ['id' => $id, 'name' => $name, 'cells' => $cells, 'height' => $height, 'width' => $width, 'asCopy' => $asCopy];
         $processor = SaveDesign::autoExecute($parameters, null);
+        $response = $processor->getResponse();
+        return new JsonResponse($response);
+    }
+
+    /**
+     * @Route("api/save-design-by-sums", name="grid_save_design_by_sums")
+     */
+    public function saveDesignBySumsAction(Request $request)
+    {
+        $cells = json_decode($request->request->get('cells'), true);
+        $id = $request->request->has('grid_id') ? $request->request->get('grid_id') : null;
+        $height = $request->request->get('height');
+        $width = $request->request->get('width');
+        $asCopy = $request->request->has('asCopy') ? (int)$request->request->get('asCopy') : 0;
+        $name = $request->request->has('name') && !empty($request->request->get('name')) 
+            ? $request->request->get('name') 
+            : 'kakuro_' . time();
+        $parameters = ['id' => $id, 'name' => $name, 'cells' => $cells, 'height' => $height, 'width' => $width, 'asCopy' => $asCopy];
+        $processor = SaveDesignBySums::autoExecute($parameters, null);
         $response = $processor->getResponse();
         return new JsonResponse($response);
     }

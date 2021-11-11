@@ -22,7 +22,7 @@ class Grid
     private $id;
     
     /**
-     * @ORM\Column(type="string", length=4)
+     * @ORM\Column(type="string", length=50)
      */
     private $name;
     
@@ -50,6 +50,21 @@ class Grid
      * @ORM\Column(type="integer", options={"unsigned"=true})
      */
     private $show = 0;
+    
+    /**
+     * @ORM\Column(type="integer", options={"unsigned"=true})
+     */
+    private $isUnique = 2;
+    
+    /**
+     * @ORM\Column(type="string", length=3000)
+     */
+    private $cellKey = '';
+    
+    /**
+     * @ORM\Column(type="string", length=2000)
+     */
+    private $solutionKey = '';
 
     /**
      * @ORM\OneToMany(targetEntity="Cell", mappedBy="grid", orphanRemoval=true, cascade={"persist"})
@@ -136,6 +151,39 @@ class Grid
     public function getShow()
     {
         return $this->show;
+    }
+
+    public function setIsUnique($isUnique)
+    {
+        $this->isUnique = $isUnique;
+        return $this;
+    }
+
+    public function getIsUnique()
+    {
+        return $this->isUnique;
+    }
+
+    public function setCellKey($cellKey)
+    {
+        $this->cellKey = $cellKey;
+        return $this;
+    }
+
+    public function getCellKey()
+    {
+        return $this->cellKey;
+    }
+
+    public function setSolutionKey($solutionKey)
+    {
+        $this->solutionKey = $solutionKey;
+        return $this;
+    }
+
+    public function getSolutionKey()
+    {
+        return $this->solutionKey;
     }
 
     public function setLibraryIndex($libraryIndex)

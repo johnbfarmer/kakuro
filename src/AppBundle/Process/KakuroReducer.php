@@ -23,7 +23,8 @@ class KakuroReducer extends BaseKakuro
         $hint = "Sorry, no hint...",
         $hasUniqueSolution = true,
         $solutions = [],
-        $maxNestingLevelForProbing = 1,
+        $maxNestingLevelForProbing = 2,
+        $maxChoicesForProbing = 3,
         $reachedProbeLimit = false,
         $fails = false;
 
@@ -139,65 +140,11 @@ $this->log('recursion failed');
     protected function getIdxsForProbe($savedChoiceArray)
     {
         $ret = [];
+
         foreach ($savedChoiceArray as $idx => $choices) {
-            if (count($choices) === 2) {
+            $ct = count($choices);
+            if ($ct > 1 && $ct <= $this->maxChoicesForProbing) {
                 $ret[] = $idx;
-            }
-        }
-
-        if (true) { // tbi use levels instead of "true"
-            foreach ($savedChoiceArray as $idx => $choices) {
-                if (count($choices) === 3) {
-                    $ret[] = $idx;
-                }
-            }
-        }
-
-        if (true) {
-            foreach ($savedChoiceArray as $idx => $choices) {
-                if (count($choices) === 4) {
-                    $ret[] = $idx;
-                }
-            }
-        }
-
-        if (true) {
-            foreach ($savedChoiceArray as $idx => $choices) {
-                if (count($choices) === 5) {
-                    $ret[] = $idx;
-                }
-            }
-        }
-
-        if (true) {
-            foreach ($savedChoiceArray as $idx => $choices) {
-                if (count($choices) === 6) {
-                    $ret[] = $idx;
-                }
-            }
-        }
-
-        if (true) {
-            foreach ($savedChoiceArray as $idx => $choices) {
-                if (count($choices) === 7) {
-                    $ret[] = $idx;
-                }
-            }
-        }
-
-        if (true) {
-            foreach ($savedChoiceArray as $idx => $choices) {
-                if (count($choices) === 8) {
-                    $ret[] = $idx;
-                }
-            }
-        }
-
-        if (true) {
-            foreach ($savedChoiceArray as $idx => $choices) {
-                if (count($choices) === 9) {
-                    $ret[] = $idx;
-                }
             }
         }
 

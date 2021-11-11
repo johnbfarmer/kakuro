@@ -15,9 +15,13 @@ body {
   background-color: lightblue;
 }
 
-.actv {
+.aktv {
   color: red;
   background-color: yellow;
+}
+
+.aktv.blnk {
+  background-color: orange;
 }
 
 .selected-cell {
@@ -44,6 +48,36 @@ body {
      rgba(0,0,0,1) 50%,
      lightblue calc(50% + 0.8px),
      lightblue 100%);
+}
+
+.sum-box.aktv {
+  background: 
+   linear-gradient(to top right,
+     yellow 0%,
+     yellow calc(50% - 0.8px),
+     rgba(0,0,0,1) 50%,
+     yellow calc(50% + 0.8px),
+     yellow 100%);
+}
+
+.sum-box.edit-left {
+  background: 
+   linear-gradient(to top right,
+     white 0%,
+     white calc(50% - 0.8px),
+     rgba(0,0,0,1) 50%,
+     lightblue calc(50% + 0.8px),
+     lightblue 100%);
+}
+
+.sum-box.edit-right {
+  background: 
+   linear-gradient(to top right,
+     lightblue 0%,
+     lightblue calc(50% - 0.8px),
+     rgba(0,0,0,1) 50%,
+     white calc(50% + 0.8px),
+     white 100%);
 }
 
 .semiactive-sum-box {
@@ -118,4 +152,11 @@ body {
 
 .kak-srch-result {
   cursor:  pointer;
+}
+
+.kak-title {
+  padding: 0 20px;
+  margin: 0;
+  font-size:  22px;
+  text-transform: uppercase;
 }
