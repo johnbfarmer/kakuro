@@ -53,8 +53,8 @@ class ApiController extends Controller
     public function getChoicesAction(Request $request)
     {
         $cells = json_decode($request->request->get('cells'), true);
-        // $advanced_reduction = $request->request->has('advanced') && $request->request->get('advanced');
         $grid_id = $request->request->get('grid_id');
+        $activeCellIdx = $request->request->get('active_cell_idx');
         $level = $request->request->get('level');
         $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($grid_id);
         $parameters = [
@@ -62,6 +62,7 @@ class ApiController extends Controller
             'cells' => $grid->getForProcessing(),
             'uiChoices' => $cells,
             'level' => $level,
+            'activeCellIdx' => $activeCellIdx,
         ];
         $reducer = KakuroReducer::autoExecute($parameters, null);
         return new JsonResponse($reducer->getApiResponse());
@@ -78,26 +79,6 @@ class ApiController extends Controller
         // $x = SolveGrid::autoExecute($parameters, null);
         // $grid = $x->getApiResponse();
         return new JsonResponse(['isSolution' => true]);
-    }
-
-    /**
-     * @Route("api/get-hint", name="grid_get_hint")
-     */
-    public function getHintAction(Request $request)
-    {
-        $cells = json_decode($request->request->get('cells'), true);
-        $grid_id = $request->request->get('grid_id');
-        $grid = $this->getDoctrine()->getManager()->getRepository('AppBundle:Grid')->find($grid_id);
-        $parameters = [
-            'grid' => $grid,
-            'cells' => $grid->getForProcessing(),
-            'uiChoices' => $cells,
-            'oneStep' => true,
-            // 'hintOnly' => true,
-        ];
-        $reducer = KakuroReducer::autoExecute($parameters, null);
-        return new JsonResponse($reducer->getApiResponse());
-        // return new JsonResponse($reducer->getHint());
     }
 
     /**

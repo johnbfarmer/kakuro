@@ -409,6 +409,7 @@ class Grid
 
     public function getPossibleValues($target, $size, $used = [])
     {
+        // $this->pvFinder->dumpTable();
         return $this->pvFinder->findValues($target, $size, $used);
     }
 

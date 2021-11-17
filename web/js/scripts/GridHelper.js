@@ -52,7 +52,8 @@ export const GridHelper = {
             dir = strip.idx.split('_')[2];
             strip.cells.forEach(cell => {
                 liteStrip.cells.push(cell.idx);
-                cells[cell.idx].strips[dir] = strip.idx;
+                cells[cell.idx].strips[dir] = '';
+                // cells[cell.idx].strips[dir] = strip.idx;
             });
             stripsLite.push(liteStrip);
         });

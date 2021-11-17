@@ -12,6 +12,8 @@ class BuildTables extends BaseProcess
         $known = [],
         $temp = [];
 
+    protected static $numberSet  = [1,2,3,4,5,6,7,8,9];
+
     public function __construct($parameters = [], $em = [])
     {
         parent::__construct($parameters, $em);
@@ -130,8 +132,32 @@ class BuildTables extends BaseProcess
         return $this->temp;
     }
 
+    public function constructTable()
+    {
+        $minSum = $this->number_set[0] + $this->number_set[1];
+        $maxSum = 0;
+        $j = 2;
+        $ret = [2=>[]];
+        foreach ($this->number_set as $v) {
+            $maxSum += $v;
+        }
+        for ($i = $minSum; $i <= $maxSum; $i++) {
+            $x = $this->findChoices($i,$j, $this->number_set, []);
+            var_dump($i);
+            var_dump($j);
+            var_dump($x);
+            if (!empty($x)) {
+                $ret[$j][$i] = $x;
+            }
+        }
+
+        $this->temp = $ret;
+    }
+
     public function dumpTable()
     {
+        $this->log("--TABLE--");
+        $this->log($this->known);
         // $k = [];
         // foreach ($this->known as $target => $a) {
         //     foreach ($a as $size => $b) {
@@ -145,5 +171,13 @@ class BuildTables extends BaseProcess
         // $this->log($sql);
         // $this->log($this->known);
         // $this->exec($sql);
+    }
+
+    public static function constructFullTable($parameters, $em = null)
+    {
+        $class = get_called_class();
+        $me = new $class($parameters, $em);
+        $me->constructTable();
+        return $me;
     }
 }

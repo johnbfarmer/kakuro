@@ -11,19 +11,20 @@ class KakuroReducer extends BaseKakuro
     protected 
         $changedStrips,
         $failedStrip = [],
+        $failedCell = '',
         $failReason,
         $reductionLevel = 0,
         $gridObj,
         $cells,
         $uiChoices,
+        $activeCellIdx = 0,
         $allStrips,
         $indexesNotToProcess = [],
         $hintOnly = false,
-        $oneStep = false,
         $hint = "Sorry, no hint...",
         $hasUniqueSolution = true,
         $solutions = [],
-        $maxNestingLevelForProbing = 2,
+        $maxNestingLevelForProbing = 1,
         $maxChoicesForProbing = 3,
         $reachedProbeLimit = false,
         $fails = false;
@@ -38,12 +39,12 @@ class KakuroReducer extends BaseKakuro
             $this->gridObj = $this->parameters['grid'];
         }
 
+        $this->activeCellIdx = !empty($this->parameters['activeCellIdx']) ? (int)$this->parameters['activeCellIdx'] : 0;
         $this->reductionLevel = !empty($this->parameters['level']) ? (int)$this->parameters['level'] : 0;
         if (isset($this->parameters['simpleReduction'])) {
             $this->reductionLevel = !empty($this->parameters['simpleReduction']) ? 4 : 3;
         }
-        $this->oneStep = $this->reductionLevel == 1;
-        $this->hintOnly = !empty($this->parameters['hintOnly']); // not used currently
+        $this->hintOnly = $this->reductionLevel == 1;
         $this->changedStrips = new ArrayCollection();
     }
 
@@ -67,29 +68,28 @@ class KakuroReducer extends BaseKakuro
             }
         }
 
-        if ($this->reductionLevel === 2) {
-            return true;
-        }
-
-        if (!$this->reduce($this->allStrips, 1 + $this->reductionLevel)) { // 1 + because I want to probe...
+        if (!$this->reduce($this->allStrips, $this->reductionLevel)) {
             $this->fails = true;
         }
     }
 
     protected function reduceByProbe($previousSavedChoiceArray = [], $nestingLevel = 0)
     {
+$this->log('reduce by probe -- entering '.json_encode($previousSavedChoiceArray));
         if ($nestingLevel > $this->maxNestingLevelForProbing) {
-$this->log('nesting > '.$this->maxNestingLevelForProbing); // handle better?
+            $this->log('nesting > '.$this->maxNestingLevelForProbing); // handle better?
             $this->reachedProbeLimit = true;
             return true;
         }
         // no more than 2 solutions for now thanks
         if (!$this->hasUniqueSolution) {
+$this->log('reduce by probe -- enough solutions');
             return true;
         }
         // find one or more values to probe, pref with few choices
         // back up so we can restore; we are probing
         $savedChoiceArray = !empty($previousSavedChoiceArray) ? $previousSavedChoiceArray : $this->buildSavedChoicesArray();
+$this->log("savedChoiceArray ".json_encode($savedChoiceArray));
         $idxs = $this->getIdxsForProbe($savedChoiceArray);
         $solutionFound = false;
         $solution = [];
@@ -97,14 +97,19 @@ $this->log('nesting > '.$this->maxNestingLevelForProbing); // handle better?
             $idx = array_shift($idxs);
             $cell = $this->cells[$idx];
             $choices = $cell->getChoices();
-            foreach ($choices as $choice) {
+            foreach ($choices as $choiceIdx => $choice) {
+                // if ()
+$this->log("reduce by probe ($nestingLevel) try $choice in ".$cell->coords());
+                $allChoicesFailed = true;
                 $cell->setChoices([$choice]);
+$this->log("savedChoiceArray ".json_encode($savedChoiceArray));
                 $strips = $cell->getStripObjects();
                 if ($this->reduce($strips, 4)) {
                     if ($this->finished()) {
                         $solutionFound = true;
                         $solution = $this->buildSavedChoicesArray();
                         $this->solutions[md5(serialize($solution))] = $solution;
+$this->log("probe produces solution found for  ".$cell->coords().' '.json_encode($solution));
                         $this->hasUniqueSolution = count($this->solutions) < 2;
                         if (!$this->hasUniqueSolution) {
                             $this->restoreSavedChoices($savedChoiceArray);
@@ -112,21 +117,31 @@ $this->log('nesting > '.$this->maxNestingLevelForProbing); // handle better?
                             return true; // multiple solutions
                         }
                     } else {
-                    // if the probe did not fail nor complete, recurse:
+                        // if the probe did not fail nor complete, recurse:
                         if (!$this->reduceByProbe($this->buildSavedChoicesArray(), $nestingLevel + 1)) {
-$this->log('recursion failed');
+$this->log('probe recursion failed');
                         }
                     }
                     // continue 2; // reduction did not fail or complete, next idx
 // for now, if reduction does not finish everything, try another cell to probe
                 } else {
                     // standard reduction failed; if not nesting, remove from choices
-                    if (!$nestingLevel) {
-                        $this->removeChoicesNew($cell, [$choice]);
+                    if (!$nestingLevel) { // necessary?
+$this->log("reduce fails for $choice; removing " . $cell->coords());
+                        if (!$this->removeChoicesNew($cell, [$choice])) {
+$this->log("reduce fails for $choice; no more choices " . $cell->coords());
+                            // continue;
+                        }
+                        // continue;
                     }
+$this->log("reduce fails for $choice " . $cell->coords().' choices now '.json_encode($cell->getChoices()));
                 }
+                $allChoicesFailed = false;
                 $this->failedStrip = [];
                 $this->restoreSavedChoices($savedChoiceArray); // choice not valid; need to restore based on idx
+            }
+            if ($allChoicesFailed) {
+                return false;
             }
             if ($solutionFound) {
                 $this->restoreSavedChoices($solution);
@@ -166,6 +181,8 @@ $this->log('recursion failed');
 
     protected function restoreSavedChoices($savedChoiceArray)
     {
+$this->log('restoreSavedChoices');
+$this->log($savedChoiceArray);
         foreach ($savedChoiceArray as $idx => $choices) {
             if ($idx) {
                 $this->cells[$idx]->setChoices($choices);
@@ -204,15 +221,19 @@ $this->log('recursion failed');
                 if (empty($strip)) {
                     continue;
                 }
+$this->log('considering strip '.$strip->getId());
 
                 $cells = $this->getCellsForStrip($strip);
                 $pv = $this->getPossibleValuesForStrip($strip, $cells)['values'];
+                $allCellsAreSingleChoice = true;
                 foreach ($cells as $cell) {
                     if (!in_array($cell->getIdx(), $this->indexesNotToProcess)) {
                         $choices = $cell->getChoices();
+$this->log('considering cell '.$cell->coords().' '.json_encode($choices).' pv: '.json_encode($pv));
                         if (count($choices) === 1) {
                             continue;
                         }
+                        $allCellsAreSingleChoice = false;
                         $changed = false;
                         if (empty($choices)) {
                             $choices = $pv;
@@ -221,7 +242,8 @@ $this->log('recursion failed');
                         $newChoices = array_values(array_intersect($pv, $choices));
                         if (empty($newChoices)) {
                             $this->failedStrip = $strip->getId();
-                            $this->failReason = "No choices for cell " . $cell->dump() . ", strip " . $strip->dump();
+                            $this->failedCell = $cell->getIdx();
+                            $this->failReason = "No choices for cell " . $cell->dump() . ", " . $strip->dump();
                             return false;
                         }
                         if ($changed || count($newChoices) < count($choices)) {
@@ -231,17 +253,24 @@ $this->log('recursion failed');
                                 $this->removeMyChoiceFromNeighbors($cell);
                             }
                             $this->cells[$cell->getIdx()] = $cell; // not needed?
-                            if ($this->oneStep) {
+                            if ($this->hintOnly) {
                                 return true;
                             }
                         }
                     }
                 }
 
-                if ($level > 3) {
+                if ($allCellsAreSingleChoice) {
+                    continue;
+                }
+
+                if ($level > 2) {
                     if (!$this->adv($strip, $cells)) {
+$this->log('adv fails');
                         $this->failedStrip = $strip->getId();
-                        $this->failReason .= ", strip " . $strip->dump();
+                        $this->failReason .= ", " . $strip->dump();
+$this->log($this->failedStrip);
+$this->log($this->failReason);
                         return false;
                     }
                 }
@@ -250,7 +279,7 @@ $this->log('recursion failed');
             $strips = clone $this->changedStrips;
         }
 
-        if ($level > 4) { 
+        if ($level > 3) { 
             return $this->reduceByProbe();
         }
 
@@ -271,6 +300,17 @@ $this->log('recursion failed');
                 $used[] = $num;
                 $sum -= $num;
             }
+        }
+        $unusedCount = count($cells)-count($used);
+$this->log('advanced strip #'.$strip->getId()." $sum over ".$unusedCount.' '.json_encode($used));
+        if ($sum < 0) {
+            return false;
+        }
+        if ($sum === 0) {
+            return $unusedCount === 0;
+        }
+        if ($unusedCount === 0) {
+            return $sum === 0;
         }
 
         return $this->advancedStripReduction($undecided, $sum, $used);
@@ -333,6 +373,10 @@ $this->log('recursion failed');
 
     protected function advancedStripReduction($cells, $sum, $used)
     {
+        // if (!$this->reduceByTooExtreme($cells, $sum, $used)) {
+        //     return false;
+        // }
+
         if (!$this->reduceByComplement($cells, $sum, $used)) {
             return false;
         }
@@ -342,8 +386,14 @@ $this->log('recursion failed');
 
     protected function reduceByComplement($cells, $sum, $used)
     {
+$this->log("reduceByComplement $sum ".json_encode($used));
         if (count($cells) < 2) {
-            return true;
+if (in_array($sum, $used)) {
+    $this->log("fail");
+} else {
+    $this->log("no prob");
+}
+            return (!in_array($sum, $used));
         }
 
         // each value in each cell -- is the complement possible?
@@ -352,16 +402,58 @@ $this->log('recursion failed');
             unset($complement[$indx]);
             $choices = $cell->getChoices();
             foreach ($choices as $idx => $v) {
-                if (!$this->isPossible($complement, $sum - $v, array_merge($used, [$v]))) {
+$this->log("choice $v in ".$cell->coords()  . " possible?");
+$this->log("choices: ".json_encode($choices));
+                if (!$this->isPossible(array_values($complement), $sum - $v, array_merge($used, [$v]))) {
                     unset($choices[$idx]);
+$this->log("removing choice $v from temporary set");
                     if (empty($choices)) {
                         $this->failReason = "No choices reducing by complement cell ".$cell->dump();
+$this->failedCell = $cell->getIdx();
+$this->log($this->failReason);
                         return false;
                     }
                     if ($this->hintOnly) {
                         $this->hint = $cell->dump() . " cannot have " . $v;
+$this->log($this->hint);
                         return false;
                     }
+                    $cell->setChoices($choices);
+                    $arr_idx = $cell->getRow() * $this->width + $cell->getCol();
+                    $this->cells[$arr_idx] = $cell;
+                    $this->addCellsStripsToChanged($cell);
+                }
+$this->log("choice $v in ".$cell->coords()  . " ok");
+            }
+$this->log($cell->coords().' choices ' . json_encode($cell->getChoices()));
+        }
+
+        return true;
+    }
+
+    protected function reduceByTooExtreme($cells, $sum, $used)
+    {
+        // inspired by example sum = 20, choices = [24567],[2456789],[123],[13]
+        // no way the 1st or 2nd choice set can include 2 or 4, for example
+        foreach ($cells as $indx => $cell) {
+            $complement = $cells;
+            unset($complement[$indx]);
+            $cmax = 0;
+            $cmin = 0;
+            foreach ($complement as $c) {
+                $choices = $c->getChoices();
+                if (empty($choices)) {
+                    $this->failedCell = $cell->getIdx();
+                    $this->failReason = "No choices reducing by \"too extreme\"  ".$cell->dump();
+                    return false;
+                }
+                $cmax += max($choices);
+                $cmin += min($choices);
+            }
+            $choices = $cell->getChoices();
+            foreach ($choices as $idx => $v) {
+                if ($v + $cmin > $sum || $v + $cmax < $sum) {
+                    unset($choices[$idx]);
                     $cell->setChoices($choices);
                     $arr_idx = $cell->getRow() * $this->width + $cell->getCol();
                     $this->cells[$arr_idx] = $cell;
@@ -378,6 +470,7 @@ $this->log('recursion failed');
         // each cell, my choices C; separate cells into groups Y and N based on criteria:
         // 'do you have nothing outside of C' if count(Y) == count(C) remove C from N; fail if count(Y) > count(C)
         // example cells Q->12 R->12 S->123; relative to Q, C=12, Y=[R], N=[S]. After reduction S->3.
+$this->log('pigeonhole');
         $disjointGroups = [];
         $disjointGroupValues = [];
         foreach ($cells as $cell) {
@@ -399,11 +492,13 @@ $this->log('recursion failed');
                 continue;
             }
             if (count($y) > count($c)) {
+                $this->failedCell = $cell->getIdx();
                 $this->failReason = "Y>C cell ".$cell->dump();
                 return false;
             }
 
             if (!$this->removeChoicesFromCells($n, $c)) {
+                $this->failedCell = $cell->getIdx();
                 $this->failReason = "Unable to remove choices from cell ".$cell->dump();
                 return false;
             }
@@ -449,6 +544,7 @@ $this->log('recursion failed');
             $choices = $cell->getChoices();
             $newChoices = array_values(array_intersect($choices, $pv));
             if (empty($newChoices)) {
+                $this->failedCell = $cell->getIdx();
                 $this->failReason = "choices empty reducing by disjoint groups cell ".$cell->dump();
                 return false;
             }
@@ -462,19 +558,6 @@ $this->log('recursion failed');
         return true;
     }
 
-    protected function reduceDuplet($sum, $cell, $other)
-    {
-        $choices = $cell->getChoices();
-        $pv = [];
-        foreach($choices as $idx => $choice) {
-            if (in_array($sum - $choice, $other->getChoices())) {
-                $pv[] = $choice;
-            }
-        }
-
-        return $pv;
-    }
-
     protected function addCellsStripsToChanged($cell)
     {
         foreach ($cell->getStripObjects() as $strip) {
@@ -486,6 +569,17 @@ $this->log('recursion failed');
 
     protected function isPossible($cells, $sum, $used)
     {
+        if (empty($cells)) {
+            return $sum === 0;
+        }
+$coll = [];
+foreach ($cells as $c) {
+    $coll[] = $c->getChoices();
+}        
+$this->log("Can I make $sum from ".json_encode($coll)." without using " .json_encode($used) ."?");
+        if (count($cells) === 1) {
+            return !in_array($sum, $used) && in_array($sum, $cells[0]->getChoices());
+        }
         // if there are 2 in the set, just  test for complement: BUT TAKE USED INTO ACCT
         if (count($cells) === 2) {
             $cells = array_values($cells);
@@ -495,34 +589,40 @@ $this->log('recursion failed');
                     continue;
                 }
                 $complement = $sum - $choice;
-                if (in_array($complement, $used)) {
+                if (in_array($complement, $used) || $choice !== $complement) {
                     continue;
                 }
                 if (in_array($complement, $cells[1]->getChoices())) {
+$this->log("YES I Can make $sum from ".json_encode($coll)."!");
                     return true;
                 }
             }
-
-            return false;
+$this->log("NO I Can't make $sum from ".json_encode($coll)." without using " .json_encode($used) . "!");
+            // return false;
         }
 
         $pv = $this->gridObj->getPossibleValues($sum, count($cells), $used);
-
-        foreach ($cells as $idx => $cell) {
-            $new_choices = array_values(array_intersect($cell->getChoices(), $pv));
-            if (empty($new_choices)) {
-                return false;
-            }
-            if (count($new_choices) === 1) {
-                $v = current($new_choices);
-                $complement = $cells;
-                unset($complement[$idx]);
-                if (!$this->isPossible($complement, $sum - $v, array_merge($used, [$v]))) {
-                    return false;
-                }
-            }
+// $this->log('pv:'.json_encode($pv));
+        // foreach ($cells as $idx => $cell) {
+        $cell = array_pop($cells);
+        $new_choices = array_values(array_intersect($cell->getChoices(), $pv)); 
+            // // not good enough. should fail for 
+                // a set like C![1,2,3,4,5,6,7,8,9],C2[1,2,3],C3[1,3], sum 19
+                // need to select one from each group
+                // so call recursively
+        if (empty($new_choices)) {
+$this->log("NO I Can't make $sum from ".json_encode($coll)."!");            
+            return false;
         }
+        foreach ($new_choices as $v) {
+            if (!$this->isPossible(array_values($cells), $sum - $v, array_merge($used, [$v]))) {
+                continue;
+            }
 
+            return true;
+        }
+        // }
+$this->log("YES I Can make $sum from ".json_encode($coll)."!");
         return true;
     }
 
@@ -550,8 +650,7 @@ $this->log('recursion failed');
     {
         $nbrs = $this->getMyNeighbors($cell);
         $choices = $cell->getChoices();
-// $this->log('nbrs '.json_encode($nbrs));return true;
-// $this->log('choices '.json_encode($choices));return true;
+$this->log('cell '.$cell->coords().' removing my choice from nbrs'.json_encode($cell->getChoices()));
         foreach ($nbrs as $cellIdx) {
             if (!$this->removeChoicesNew($this->cells[$cellIdx], $choices)) {
                 return false;
@@ -585,14 +684,17 @@ $this->log('recursion failed');
         $choices = $cell->getChoices();
         $new_choices = array_values(array_diff($choices, $choices_to_remove));
 
+$this->log('removeChoicesNew '.$cell->coords().' '.json_encode($new_choices));
         if (count($choices) <= count($new_choices)) {
+$this->log('removeChoicesNew free pass'.$cell->coords().' '.json_encode($choices).' '.json_encode($new_choices));
             return true;
         }
 
         if (empty($new_choices)) {
+$this->log('removeChoicesNew fail'.$cell->coords().' '.json_encode($new_choices));
             return false;
         }
-
+$this->log('removeChoicesNew '.$cell->coords().' '.json_encode($new_choices));
         $cell->setChoices($new_choices);
         $arr_idx = $cell->getRow() * $this->width + $cell->getCol();
         $this->cells[$arr_idx] = $cell;
@@ -629,10 +731,17 @@ $this->log('recursion failed');
 
     public function getGridForResponse()
     {
-        if (!$this->fails) {
+        if (true) {
+        // if (!$this->fails) {
             $cells = [];
             foreach ($this->uiChoices as $idx => $cell) {
                 if ($this->cells[$idx]->isDataCell()) {
+                    if ($this->hintOnly) {
+                        if ($idx !== $this->activeCellIdx) {
+                            $cells[] = $cell;
+                            continue;
+                        }
+                    }
                     $choices = array_values($this->cells[$idx]->getChoices());
                     sort($choices);
                     $cell['choices'] = $choices;
@@ -650,12 +759,14 @@ $this->log('recursion failed');
             'hasUniqueSolution' => $this->hasUniqueSolution, 
             'reachedProbeLimit' => $this->reachedProbeLimit,
         ];
-
-        if (!empty($this->failedStrip)) {
+$this->log('failedStrip:');
+$this->log($this->failedStrip);
+        if (!empty($this->fails)) {
             $grid['error'] = true;
             $grid['message'] = 'problem reducing (' . $this->failReason . ')';
             $grid['failedStripId'] = $this->failedStrip;
             $grid['failReason'] = $this->failReason;
+            $grid['failedCell'] = $this->failedCell;
         }
 
         if (!$this->hasUniqueSolution) {

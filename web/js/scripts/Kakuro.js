@@ -3,6 +3,7 @@ import Cell from './Cell.js';
 import KakuroControls from './KakuroControls.js';
 import KakuroTitle from './KakuroTitle.js';
 import {GridHelper} from './GridHelper.js';
+import {Reducer} from './Reducer.js';
 
 var gridId = document.getElementById("content").dataset.id;
 
@@ -19,12 +20,13 @@ export default class Kakuro extends React.Component {
             active_col: -1,
             solved: false,
             saved_states: [],
-            grids: [{name: 0, label:""}, {name: 4, label:"shit"}, {name: 3, label:"more shit"}],
+            grids: [],
             gridId: 0,
             gridStatus: '', // success, error
         };
 
-        this.strips = [];
+        this.strips = {};
+        // this.strips = [];
 
         this.getGames = this.getGames.bind(this);
         this.getGrid = this.getGrid.bind(this);
@@ -32,9 +34,6 @@ export default class Kakuro extends React.Component {
         this.restoreSavedState = this.restoreSavedState.bind(this);
         this.saveChoices = this.saveChoices.bind(this);
         this.loadSavedGame = this.loadSavedGame.bind(this);
-        this.simpleReduce = this.simpleReduce.bind(this);
-        this.advancedReduce = this.advancedReduce.bind(this);
-        this.giveHint = this.giveHint.bind(this);
         this.clearChoices = this.clearChoices.bind(this);
         this.updateChoices = this.updateChoices.bind(this);
         this.clearAllChoices = this.clearAllChoices.bind(this);
@@ -48,6 +47,10 @@ export default class Kakuro extends React.Component {
     }
 
     componentDidMount() {
+// console.log(Reducer.possibleValues(26,4,[2]));
+// console.log(Reducer.possibleValues(37,7,[5]));
+console.log(Reducer.possibleValues(7,3));
+// console.log(Reducer.possibleValues(3,1,[3]));
         this.getGames();
         if (gridId > 0) {
             this.getGrid(gridId);
@@ -72,7 +75,7 @@ export default class Kakuro extends React.Component {
         ).then(data => {
             var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
             var cells = processed.cells;
-            this.strips = processed.strips;
+            // this.strips = processed.strips;
             this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id});
             this.saveState();
         });
@@ -141,6 +144,14 @@ export default class Kakuro extends React.Component {
         });
     }
 
+    reduce2(level) {
+        let idx = this.state.active_row * this.state.width + this.state.active_col;
+        let { cells, strips } = Reducer.reduce(level, this.state.cells, idx, this.strips, this.state.height, this.state.width);
+        this.strips = strips;
+console.log('reduce2', this.state.width, cells[idx], strips);        
+        this.setState({ cells: cells });
+    }
+
     reduce(level) {
         var cells = JSON.stringify(this.state.cells);
         return $.post(
@@ -148,6 +159,7 @@ export default class Kakuro extends React.Component {
             {
                 grid_id: this.state.gridId,
                 cells: cells,
+                active_cell_idx: this.state.active_row * this.state.width + this.state.active_col,
                 level: level,
             },
             function(resp) {
@@ -162,33 +174,6 @@ export default class Kakuro extends React.Component {
                 console.log(data.solutions);
             }
             this.updateChoices(data.cells);
-        });
-    }
-
-    simpleReduce(fullRoutine) {
-        this.reduce(false);
-    }
-
-    advancedReduce() {
-        this.reduce(true);
-    }
-
-    giveHint() {
-        var cells = JSON.stringify(this.state.cells);
-        return $.post(
-            "http://kak.uro/app_dev.php/api/get-hint",
-            {
-                grid_id: this.state.gridId,
-                cells: cells,
-            },
-            function(resp) {
-                if (resp.hint) {
-                    alert(resp.hint);
-                }
-            },
-            'json'
-        ).then(data => {
-            this.setState({ cells: data.cells });
         });
     }
 
@@ -305,17 +290,20 @@ export default class Kakuro extends React.Component {
         if (keyCode === 39) {
             this.moveActive(0,1);
         }
+        if (keyCode === 72) { // h -- hint (one step)
+            this.reduce2(1);
+        }
         if (keyCode === 80) { // p
-            this.reduce(2);
+            this.reduce2(2);
         }
         if (keyCode === 82) { // r
-            this.reduce(3);
+            this.reduce2(3);
         }
         if (keyCode === 65) { // a
-            this.reduce(4);
+            this.reduce2(4);
         }
-        if (keyCode === 72) { // h -- hint (one step)
-            this.reduce(1);
+        if (keyCode === 66) { // b
+            this.reduce(5);
         }
         if (keyCode === 88) { // x
             this.clearChoices();
@@ -362,6 +350,7 @@ export default class Kakuro extends React.Component {
     }
 
     render() {
+console.log('render, this.strips', this.strips)
         var cells = this.state.cells.map(function(cell, index) {
             cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
             return (

@@ -129,7 +129,7 @@ class Strip
 
     public function dump()
     {
-        return 'strip len ' . $this->len . ' sum ' . $this->total .
+        return 'strip ' . $this->id .': len ' . $this->len . ' sum ' . $this->total .
              ' (' . $this->startRow . ', ' . $this->startCol . ') - ' .
              ' (' . $this->stopRow . ', ' . $this->stopCol . ')';             
     }

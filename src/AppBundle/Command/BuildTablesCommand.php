@@ -21,13 +21,13 @@ class BuildTablesCommand extends Command
             ->setDescription('x')
             ->setHelp('y')
             ->addOption(
-                'target', null, InputOption::VALUE_REQUIRED, 'sum of set'
+                'target', 't', InputOption::VALUE_REQUIRED, 'sum of set'
             )
             ->addOption(
-                'size', null, InputOption::VALUE_REQUIRED, 'size of set'
+                'size', 's', InputOption::VALUE_REQUIRED, 'size of set'
             )
             ->addOption(
-                'number_set', null, InputOption::VALUE_REQUIRED, '1,2,3,...'
+                'number_set', 'j', InputOption::VALUE_REQUIRED, '1,2,3,...'
             );
     }
 
