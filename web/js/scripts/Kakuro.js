@@ -2,6 +2,7 @@ import React from 'react';
 import Cell from './Cell.js';
 import KakuroControls from './KakuroControls.js';
 import KakuroTitle from './KakuroTitle.js';
+import KakuroMessages from './KakuroMessages.js';
 import {GridHelper} from './GridHelper.js';
 import {Reducer} from './Reducer.js';
 
@@ -23,6 +24,7 @@ export default class Kakuro extends React.Component {
             grids: [],
             gridId: 0,
             gridStatus: '', // success, error
+            messages: [],
         };
 
         this.strips = {};
@@ -49,8 +51,19 @@ export default class Kakuro extends React.Component {
     componentDidMount() {
 // console.log(Reducer.possibleValues(26,4,[2]));
 // console.log(Reducer.possibleValues(37,7,[5]));
-console.log(Reducer.possibleValues(7,3));
+// console.log(Reducer.possibleValues(7,3));
+// console.log(Reducer.possibleValues(27,5,[2,9]));
 // console.log(Reducer.possibleValues(3,1,[3]));
+// console.log(Reducer.intersection([[3,1],[3]]));
+// console.log(Reducer.sortByLength([[3,1],[4,5,6],[3],[9]]));
+// console.log(Reducer.isPossible(3,[[2,1],[1]],[[1,2]]));
+// console.log(Reducer.isPossible(5,[[2,1,3,4],[1]],[[1,4],[2,3]]));
+// console.log(Reducer.isPossible(23,[[6,8,9],[6,8],[6]],[[6,8,9]]));
+// console.log(Reducer.isPossible(23,[[6,8,7],[6,8],[6]],[[6,8,9]]));
+// console.log(Reducer.isPossible(18,[[1,2,3],[1,2,4],[3,7,8],[6,8],[1,2,4]],[[1,2,3,4,8],[1,2,3,5,7],[1,2,4,5,6]]));
+// console.log(Reducer.isPossible(18,[[1,2,3],[1,2,4],[3,7,8],[8],[1,2,4]],[[1,2,3,4,8],[1,2,3,5,7],[1,2,4,5,6]]));
+// console.log(Reducer.isPossible(18,[[1,2,3],[1,2,4],[3,7,8],[6],[1,2,4]],[[1,2,3,4,8],[1,2,3,5,7],[1,2,4,5,6]]));
+// console.log(Reducer.isPossible(27,[[4,5],[8,9],[1,2,3],[1,2,4],[7,8,9]],[[1,2,7,8,9],[1,3,6,8,9],[1,4,5,8,9],[1,4,6,7,9],[1,5,6,7,8],[2,3,5,8,9],[2,3,6,7,9],[2,4,5,7,9],[2,4,6,7,8],[3,4,5,6,9],[3,4,5,7,8]]));
         this.getGames();
         if (gridId > 0) {
             this.getGrid(gridId);
@@ -146,10 +159,10 @@ console.log(Reducer.possibleValues(7,3));
 
     reduce2(level) {
         let idx = this.state.active_row * this.state.width + this.state.active_col;
-        let { cells, strips } = Reducer.reduce(level, this.state.cells, idx, this.strips, this.state.height, this.state.width);
+        let { cells, strips, msg } = Reducer.reduce(level, this.state.cells, idx, this.strips, this.state.height, this.state.width);
         this.strips = strips;
 console.log('reduce2', this.state.width, cells[idx], strips);        
-        this.setState({ cells: cells });
+        this.setState({ cells: cells, messages: msg });
     }
 
     reduce(level) {
@@ -291,19 +304,19 @@ console.log('reduce2', this.state.width, cells[idx], strips);
             this.moveActive(0,1);
         }
         if (keyCode === 72) { // h -- hint (one step)
-            this.reduce2(1);
+            this.reduce2(10);
         }
         if (keyCode === 80) { // p
-            this.reduce2(2);
+            this.reduce2(20);
         }
         if (keyCode === 82) { // r
-            this.reduce2(3);
+            this.reduce2(30);
         }
         if (keyCode === 65) { // a
-            this.reduce2(4);
+            this.reduce2(40);
         }
         if (keyCode === 66) { // b
-            this.reduce(5);
+            this.reduce2(50);
         }
         if (keyCode === 88) { // x
             this.clearChoices();
@@ -350,7 +363,7 @@ console.log('reduce2', this.state.width, cells[idx], strips);
     }
 
     render() {
-console.log('render, this.strips', this.strips)
+// console.log('render, this.strips', this.strips)
         var cells = this.state.cells.map(function(cell, index) {
             cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
             return (
@@ -390,6 +403,7 @@ console.log('render, this.strips', this.strips)
                 <div className="status-box">
                     {this.state.gridStatus}
                 </div>
+                <KakuroMessages messages={this.state.messages} />
             </div>
         );
     }

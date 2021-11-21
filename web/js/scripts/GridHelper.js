@@ -40,7 +40,7 @@ export const GridHelper = {
                 cell.is_data = true;
             }
             cell.active = cell.row === r && cell.col === c;
-            cell.strips = {};
+            cell.strips = ['',''];
             cells[idx] = cell;
         });
         var strips = this.allStrips(cells, h, w);
