@@ -4,23 +4,33 @@ export const Reducer = {
 	messages: [''],
 
 	reduce(level, c, i, s, h, w) {
+
 		let vals = { cells: c, strips: s};
-		if (level > 20) {
+		if (level === 10) {
+			vals = this.reductionStepOne(level, vals.cells, i, vals.strips, h, w);
+		}
+
+		if (level >= 20) {
 			c.forEach(cell => {
 				if (cell.is_data) {
 					vals = this.reductionStepOne(level, vals.cells, cell.idx, vals.strips, h, w);
 				}
 			});
-		} else {
-			vals = this.reductionStepOne(level, vals.cells, i, vals.strips, h, w);
 		}
 
-		if (level > 30) {
+		if (level === 30) {
 			vals = this.reductionByElimination(level, vals.cells, vals.strips);
 		}
-		if (level > 40) {
-this.messages = [''];			
+
+		if (level === 40) {
+			vals = this.reductionByElimination(level, vals.cells, vals.strips);
+		}
+		if (level === 50) {
+			this.messages = [''];
 			vals = this.reductionByIsComplementPossible(level, vals.cells, i, vals.strips);
+		}
+		if (level === 60) {
+			vals = this.reduceAllByIsComplementPossible(level, vals.cells, vals.strips);
 		}
 
 		return { cells: vals.cells, strips: vals.strips, msg: this.messages };
@@ -36,13 +46,13 @@ this.messages = [''];
 	},
 
 	reductionByElimination(level, cells, strips) {
+		// if any cell has a single value, remove that from the others and recalculate their choices
 		let noChanges = true;
 		for (let stripIdx in strips) {
 			let s = strips[stripIdx];
 			if (!s.changed) {
 				continue;
 			}
-			this.messages.push('processing strip ' + stripIdx);
 			let hasChanges = false;
 			s.cells.forEach(i => {
 				let cell = cells[i];
@@ -65,6 +75,7 @@ this.messages = [''];
 							let choices = cells[idx].choices;
 							if (idxsUsed.indexOf(idx) < 0) {
 								let newChoices = this.intersect(this.union(pv), choices);
+console.log('newChoices, idx',JSON.stringify(newChoices),idx);
 if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' + JSON.stringify(pv) + ' ' + JSON.stringify(choices))}
 								cells[idx].choices = newChoices;
 								if (choices.length !== newChoices.length) {
@@ -77,10 +88,23 @@ if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' 
 					});
 				}
 			});
+console.log(stripIdx + ' 3_8_h',JSON.stringify(strips['3_8_h']));
 			s.changed = hasChanges;
 		};
 
-		return noChanges ? { cells, strips } : this.reductionByElimination(level, cells, strips)	;
+		return level < 40 || noChanges ? { cells, strips } : this.reductionByElimination(level, cells, strips)	;
+	},
+
+	reduceAllByIsComplementPossible(level, cells, strips) {
+		cells.forEach((c, idx) => {
+			if (c.is_data) {
+				let d = this.reductionByIsComplementPossible(level, cells, idx, strips);
+				cells = d.cells;
+				strips = d.strips;
+			}
+		});
+
+		return { cells, strips };
 	},
 
 	reductionByIsComplementPossible(level, cells, thisCellIdx, strips) {
@@ -88,26 +112,29 @@ if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' 
 		let valueIsPossible = true;
 		let newValues = [];
 		cell.choices.forEach(choice => {
-			valueIsPossible = true;
-			cell.strips.every(stripIdx => {
+			valueIsPossible = cell.strips.every(stripIdx => {
 				let strip = strips[stripIdx];
-				let used = [choice];
+// console.log('jbf',stripIdx, strip, thisCellIdx, strips, cell)
+this.messages.push('possible collections: ' + JSON.stringify(strip.possibleSets));
+				let vals = [[choice]];
+				let sum = strip.sum;
 				strip.cells.forEach(cellIdx => {
-					if (cellIdx !== thisCellIdx && cells[cellIdx].choices.length === 1) {
-						used.push(cells[cellIdx].choices[0]);
+					if (cellIdx !== thisCellIdx) {
+						vals.push(JSON.parse(JSON.stringify(cells[cellIdx].choices)));
+// console.log('jbf vals',JSON.stringify(vals));
+this.messages.push('building vals... ' + this.coords(cell) + ': ' + JSON.stringify(vals));
 					}
 				});
-				let pv = this.possibleValues(strip.sum, strip.cells.length, used);
-				if (!pv.length) {
-					valueIsPossible = true;
-this.messages.push(this.coords(cell) + ' choice ' + choice + ' NOT ok');					
+				if (!this.isPossible(strip.sum, JSON.parse(JSON.stringify(vals)), JSON.parse(JSON.stringify(strip.possibleSets)))) {
+this.messages.push(this.coords(cell) + ' choice ' + choice + ' NOT ok. Cannot make sum ' + strip.sum + ' with vals ' + JSON.stringify(vals) + ' and possible sets ' + JSON.stringify(strip.possibleSets));					
 					return false;
 				}
-				if (valueIsPossible) {
 this.messages.push(this.coords(cell) + ' choice ' + choice + ' ok');					
-					newValues.push(choice);
-				}
+				return true;
 			});
+			if (valueIsPossible) {
+				newValues.push(choice);
+			}
 		});
 		cells[thisCellIdx].choices = newValues;
 
@@ -118,39 +145,45 @@ this.messages.push(this.coords(cell) + ' choice ' + choice + ' ok');
 		// example sum=3, vals=[[2,3],[1]], com=[[1,2]] => sum=2, vals=[[2,3]], com=[[2]] => true
 		// example sum=3, vals=[[2,3],[1,2]], com=[[1,2]] => sum=1, vals=[[1,2]], com=[[1]] => true
 let indent = ''; if (nestingLevel) {for (let i=1;i<=nestingLevel;i++){indent = indent + '  '}}
-console.log(indent + 'isPossible', sum, JSON.stringify(vals), JSON.stringify(combinations), taken, nestingLevel);
-		if (nestingLevel > 8) {
+console.log(indent + 'isPossible', sum, JSON.stringify(vals), JSON.stringify(combinations));
+		if (sum < 0) {
+			return false;
+		}
+		if (++nestingLevel > 8) {
 			// console.log(indent + 'nesting level too deep');
 			return false;
 		}
 		if (vals.length === 1) {
-// console.log(indent + 'len is 1',vals[0].indexOf(sum) >= 0, combinations.length === 1, combinations[0].length === 1, combinations[0][0] === sum);
+console.log(indent + 'len is 1',vals[0].indexOf(sum) >= 0, combinations.length === 1, combinations[0].length === 1, combinations[0][0] === sum);
 			return vals[0].indexOf(sum) >= 0 && combinations.length === 1 && combinations[0].length === 1 && combinations[0][0] === sum;
 		}
-		nestingLevel++;
-		vals = this.sortByLength(vals); // avoid AMAP
+		vals = this.sortByLength(vals); // avoid AMAP -- apply before sending here
 		let intersectionCombos = this.intersection(JSON.parse(JSON.stringify(combinations))); // anything in the intersection must be in the union 
 		let unionChoices = this.union(JSON.parse(JSON.stringify(vals)));
-		let takenCopy = this.union(JSON.parse(JSON.stringify(taken)));
-// console.log(indent + "vals, intersectionCombos, unionChoices", JSON.stringify(vals), JSON.stringify(intersectionCombos), JSON.stringify(unionChoices));
+		let unionCombos = this.union(JSON.parse(JSON.stringify(combinations)));
+console.log(indent + "vals, intersectionCombos, unionChoices", JSON.stringify(vals), JSON.stringify(intersectionCombos), JSON.stringify(unionChoices));
 		if (this.diff(intersectionCombos, unionChoices).length > 0) {
 			return false;
 		}
 		return vals.some((v,i) => {
-// console.log(indent + 'val', v);
+console.log(indent + 'val', v);
 			let otherVals = [];
 			vals.forEach((vv, ii) => {
 				if (ii!==i) {
 					if (vv && vv.length) {
-						otherVals[ii] = vv;
+						otherVals.push(vv);
 					}
 				}
 			}); // [[2,3]] [[1,2]]
-// console.log(indent + 'otherVals(1)', JSON.stringify(otherVals));
+console.log(indent + 'otherVals(1)', JSON.stringify(otherVals));
 			return v.some(choice => {
-				takenCopy.push(choice);
+				if (unionCombos.indexOf(choice) < 0) {
+console.log(indent + 'choice ' + choice + ' not in ' + JSON.stringify(unionCombos));
+					return false;
+				}
+				taken.push(choice);
 				let combos = [];
-				takenCopy.forEach(ch => {
+				taken.forEach(ch => {
 					otherVals.forEach((vv,ii) => {
 						let idx = vv.indexOf(ch);
 						if (idx >= 0) {
@@ -162,9 +195,9 @@ console.log(indent + 'isPossible', sum, JSON.stringify(vals), JSON.stringify(com
 					});
 				});
 				if (!otherVals.length || (otherVals.length === 1 && !otherVals[0].length)) {
-// console.log(indent + 'otherVals is empty', sum, choice);
+console.log(indent + 'otherVals is empty', sum, choice);
 					// return sum === choice;
-					return true;
+					return false;
 				}
 				combinations.forEach((c) => {
 					if (c.indexOf(choice) >= 0) {
@@ -173,10 +206,10 @@ console.log(indent + 'isPossible', sum, JSON.stringify(vals), JSON.stringify(com
 						combos.push(elts);
 					}
 				});
-// console.log(indent + 'recurse on choice, otherVals, combos, takenCopy', choice, JSON.stringify(otherVals), JSON.stringify(combos), JSON.stringify(takenCopy));
-// console.log(indent + 'otherVals(2)', JSON.stringify(otherVals));
+// console.log(indent + 'recurse on choice, otherVals, combos, taken', choice, JSON.stringify(otherVals), JSON.stringify(combos), JSON.stringify(taken));
+console.log(indent + 'otherVals(2)', JSON.stringify(otherVals));
 // console.log(indent + 'vals, combinations, taken, nestingLevel', JSON.stringify(vals), JSON.stringify(combinations), JSON.stringify(taken), nestingLevel);
-				return this.isPossible(sum - choice, otherVals, combos, takenCopy, nestingLevel);
+				return this.isPossible(sum - choice, otherVals, combos, taken, nestingLevel);
 			});
 		});
 
@@ -189,13 +222,16 @@ console.log(indent + 'isPossible', sum, JSON.stringify(vals), JSON.stringify(com
 
 	fillPossibleValues(cells, strips, idx, orientation, level) {
 		let strip = strips[cells[idx].strips[orientation]];
+		if (!strip.changed) {
+			return { cells, strips };
+		}
 		let i = -1;
 		if (level < 20) {
 			i = idx;
 		}
-		let choices = this.getChoices(cells, strip, i);
-		cells = choices.cells;
-		strips[cells[idx].strips[orientation]] = choices.strip;
+		let vals = this.getChoices(cells, strip, i);
+		cells = vals.cells;
+		strips[cells[idx].strips[orientation]] = vals.strip;
 		return { cells, strips };
 	},
 
@@ -227,7 +263,7 @@ this.messages.push(sum + ' over ' + howMany + ' without ' + JSON.stringify(used)
 			}
 			return [];
 		}
-		let returnSet = this.pv[sum][howMany];
+		let returnSet = JSON.parse(JSON.stringify(this.pv[sum][howMany]));
 		if (!used.length) {
 			return returnSet;
 		}
@@ -253,7 +289,9 @@ this.messages.push(sum + ' over ' + howMany + ' without ' + JSON.stringify(used)
 		strip.cells.forEach(i => {
 			if (idx < 0 || idx === i) {
 				let pv = this.union(strip.possibleSets);
+// console.log('before', JSON.stringify(pv), idx, i, JSON.stringify(strip));
 				cells[i].choices = cells[i].choices.length > 0 ? this.intersect(cells[i].choices, pv) : pv;
+// console.log('after', JSON.stringify(pv),JSON.stringify(cells[i].choices));
 				this.messages.push(this.coords(cells[i]) + ' set to ' + JSON.stringify(cells[i].choices));
 			}
 		});
@@ -375,12 +413,6 @@ this.messages.push(sum + ' over ' + howMany + ' without ' + JSON.stringify(used)
 	},	
 
 	intersect(a, b) {
-	    let t;
-	    if (b.length > a.length) {
-	    	// we want a to be the longer to minimize indexOf
-	    	t = b, b = a, a = t;
-	    }
-
 	    return a.filter(e => {
 	        return b.indexOf(e) > -1;
 	    });

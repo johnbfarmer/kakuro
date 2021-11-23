@@ -64,6 +64,11 @@ export default class Kakuro extends React.Component {
 // console.log(Reducer.isPossible(18,[[1,2,3],[1,2,4],[3,7,8],[8],[1,2,4]],[[1,2,3,4,8],[1,2,3,5,7],[1,2,4,5,6]]));
 // console.log(Reducer.isPossible(18,[[1,2,3],[1,2,4],[3,7,8],[6],[1,2,4]],[[1,2,3,4,8],[1,2,3,5,7],[1,2,4,5,6]]));
 // console.log(Reducer.isPossible(27,[[4,5],[8,9],[1,2,3],[1,2,4],[7,8,9]],[[1,2,7,8,9],[1,3,6,8,9],[1,4,5,8,9],[1,4,6,7,9],[1,5,6,7,8],[2,3,5,8,9],[2,3,6,7,9],[2,4,5,7,9],[2,4,6,7,8],[3,4,5,6,9],[3,4,5,7,8]]));
+// console.log(Reducer.isPossible(34, [[3],[1,2],[6,8,9],[1,3,4,5,6,8,9],[8,9],[7]], [[1,3,6,7,8,9],[1,4,5,7,8,9],[2,3,5,7,8,9],[2,4,5,6,8,9],[3,4,5,6,7,9]]));
+// console.log(Reducer.isPossible(34, [[1],[1,2],[6,8,9],[1,3,4,5,6,8,9],[8,9],[7]], [[1,3,6,7,8,9],[1,4,5,7,8,9],[2,3,5,7,8,9],[2,4,5,6,8,9],[3,4,5,6,7,9]]));
+// console.log(Reducer.isPossible(33, [[3],[3,4,5,6,8,9],[3,4,5,6,7,8,9],[7,8,9],[3,4,5,6,7,8,9]], [[3,6,7,8,9],[4,5,7,8,9]]));
+// console.log(Reducer.isPossible(15, [[7],[7,9]], [[6,9],[7,8]]));
+// var a = [1,2,3],b=[2,3,4],c=Reducer.intersect(a,b);console.log(a,b,c);
         this.getGames();
         if (gridId > 0) {
             this.getGrid(gridId);
@@ -161,7 +166,6 @@ export default class Kakuro extends React.Component {
         let idx = this.state.active_row * this.state.width + this.state.active_col;
         let { cells, strips, msg } = Reducer.reduce(level, this.state.cells, idx, this.strips, this.state.height, this.state.width);
         this.strips = strips;
-console.log('reduce2', this.state.width, cells[idx], strips);        
         this.setState({ cells: cells, messages: msg });
     }
 
@@ -214,6 +218,11 @@ console.log('reduce2', this.state.width, cells[idx], strips);
         var cells = this.state.cells;
         cells.forEach((cell, idx) => {
             cell.choices = [];
+            cell.strips.forEach(stripIdx => {
+                if (stripIdx in this.strips && 'changed' in this.strips[stripIdx]) {
+                    this.strips[stripIdx].changed = true;
+                }
+            });
         });
 
         this.updateChoices(cells);
@@ -318,6 +327,9 @@ console.log('reduce2', this.state.width, cells[idx], strips);
         if (keyCode === 66) { // b
             this.reduce2(50);
         }
+        if (keyCode === 90) { // z
+            this.reduce2(60);
+        }
         if (keyCode === 88) { // x
             this.clearChoices();
         }
@@ -363,7 +375,6 @@ console.log('reduce2', this.state.width, cells[idx], strips);
     }
 
     render() {
-// console.log('render, this.strips', this.strips)
         var cells = this.state.cells.map(function(cell, index) {
             cell.active = cell.row == this.state.active_row && cell.col == this.state.active_col;
             return (

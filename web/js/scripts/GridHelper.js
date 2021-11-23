@@ -212,9 +212,11 @@ export const GridHelper = {
         cells.forEach((cell, k) => {
             cells[k].error = false;
         });
-        strips.forEach((strip, k) => {
+        // strips.forEach((strip, k) => {
+        for (let k in strips) {
             filled = true;
             sum = 0;
+            let strip = strips[k];
             strip.cells.some(cellIdx => {
                 cell = cells[cellIdx];
                 if (cell.choices.length !== 1) {
@@ -240,7 +242,7 @@ export const GridHelper = {
                     });
                 }
             }
-        });
+        }
 
         var status = allFilled ? (allCorrect ? 'success' :  'error') : '';
 
