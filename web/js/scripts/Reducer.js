@@ -2,52 +2,126 @@ export const Reducer = {
 	universe: [1,2,3,4,5,6,7,8,9],
 	pv: {3:{2:[[1,2]],3:[],4:[],5:[],6:[],7:[],8:[],9:[]},4:{2:[[1,3]],3:[],4:[],5:[],6:[],7:[],8:[],9:[]},5:{2:[[1,4],[2,3]],3:[],4:[],5:[],6:[],7:[],8:[],9:[]},6:{2:[[1,5],[2,4]],3:[[1,2,3]],4:[],5:[],6:[],7:[],8:[],9:[]},7:{2:[[1,6],[2,5],[3,4]],3:[[1,2,4]],4:[],5:[],6:[],7:[],8:[],9:[]},8:{2:[[1,7],[2,6],[3,5]],3:[[1,2,5],[1,3,4]],4:[],5:[],6:[],7:[],8:[],9:[]},9:{2:[[1,8],[2,7],[3,6],[4,5]],3:[[1,2,6],[1,3,5],[2,3,4]],4:[],5:[],6:[],7:[],8:[],9:[]},10:{2:[[1,9],[2,8],[3,7],[4,6]],3:[[1,2,7],[1,3,6],[1,4,5],[2,3,5]],4:[[1,2,3,4]],5:[],6:[],7:[],8:[],9:[]},11:{2:[[2,9],[3,8],[4,7],[5,6]],3:[[1,2,8],[1,3,7],[1,4,6],[2,3,6],[2,4,5]],4:[[1,2,3,5]],5:[],6:[],7:[],8:[],9:[]},12:{2:[[3,9],[4,8],[5,7]],3:[[1,2,9],[1,3,8],[1,4,7],[1,5,6],[2,3,7],[2,4,6],[3,4,5]],4:[[1,2,3,6],[1,2,4,5]],5:[],6:[],7:[],8:[],9:[]},13:{2:[[4,9],[5,8],[6,7]],3:[[1,3,9],[1,4,8],[1,5,7],[2,3,8],[2,4,7],[2,5,6],[3,4,6]],4:[[1,2,3,7],[1,2,4,6],[1,3,4,5]],5:[],6:[],7:[],8:[],9:[]},14:{2:[[5,9],[6,8]],3:[[1,4,9],[1,5,8],[1,6,7],[2,3,9],[2,4,8],[2,5,7],[3,4,7],[3,5,6]],4:[[1,2,3,8],[1,2,4,7],[1,2,5,6],[1,3,4,6],[2,3,4,5]],5:[],6:[],7:[],8:[],9:[]},15:{2:[[6,9],[7,8]],3:[[1,5,9],[1,6,8],[2,4,9],[2,5,8],[2,6,7],[3,4,8],[3,5,7],[4,5,6]],4:[[1,2,3,9],[1,2,4,8],[1,2,5,7],[1,3,4,7],[1,3,5,6],[2,3,4,6]],5:[[1,2,3,4,5]],6:[],7:[],8:[],9:[]},16:{2:[[7,9]],3:[[1,6,9],[1,7,8],[2,5,9],[2,6,8],[3,4,9],[3,5,8],[3,6,7],[4,5,7]],4:[[1,2,4,9],[1,2,5,8],[1,2,6,7],[1,3,4,8],[1,3,5,7],[1,4,5,6],[2,3,4,7],[2,3,5,6]],5:[[1,2,3,4,6]],6:[],7:[],8:[],9:[]},17:{2:[[8,9]],3:[[1,7,9],[2,6,9],[2,7,8],[3,5,9],[3,6,8],[4,5,8],[4,6,7]],4:[[1,2,5,9],[1,2,6,8],[1,3,4,9],[1,3,5,8],[1,3,6,7],[1,4,5,7],[2,3,4,8],[2,3,5,7],[2,4,5,6]],5:[[1,2,3,4,7],[1,2,3,5,6]],6:[],7:[],8:[],9:[]},18:{2:[],3:[[1,8,9],[2,7,9],[3,6,9],[3,7,8],[4,5,9],[4,6,8],[5,6,7]],4:[[1,2,6,9],[1,2,7,8],[1,3,5,9],[1,3,6,8],[1,4,5,8],[1,4,6,7],[2,3,4,9],[2,3,5,8],[2,3,6,7],[2,4,5,7],[3,4,5,6]],5:[[1,2,3,4,8],[1,2,3,5,7],[1,2,4,5,6]],6:[],7:[],8:[],9:[]},19:{2:[],3:[[2,8,9],[3,7,9],[4,6,9],[4,7,8],[5,6,8]],4:[[1,2,7,9],[1,3,6,9],[1,3,7,8],[1,4,5,9],[1,4,6,8],[1,5,6,7],[2,3,5,9],[2,3,6,8],[2,4,5,8],[2,4,6,7],[3,4,5,7]],5:[[1,2,3,4,9],[1,2,3,5,8],[1,2,3,6,7],[1,2,4,5,7],[1,3,4,5,6]],6:[],7:[],8:[],9:[]},20:{2:[],3:[[3,8,9],[4,7,9],[5,6,9],[5,7,8]],4:[[1,2,8,9],[1,3,7,9],[1,4,6,9],[1,4,7,8],[1,5,6,8],[2,3,6,9],[2,3,7,8],[2,4,5,9],[2,4,6,8],[2,5,6,7],[3,4,5,8],[3,4,6,7]],5:[[1,2,3,5,9],[1,2,3,6,8],[1,2,4,5,8],[1,2,4,6,7],[1,3,4,5,7],[2,3,4,5,6]],6:[],7:[],8:[],9:[]},21:{2:[],3:[[4,8,9],[5,7,9],[6,7,8]],4:[[1,3,8,9],[1,4,7,9],[1,5,6,9],[1,5,7,8],[2,3,7,9],[2,4,6,9],[2,4,7,8],[2,5,6,8],[3,4,5,9],[3,4,6,8],[3,5,6,7]],5:[[1,2,3,6,9],[1,2,3,7,8],[1,2,4,5,9],[1,2,4,6,8],[1,2,5,6,7],[1,3,4,5,8],[1,3,4,6,7],[2,3,4,5,7]],6:[[1,2,3,4,5,6]],7:[],8:[],9:[]},22:{2:[],3:[[5,8,9],[6,7,9]],4:[[1,4,8,9],[1,5,7,9],[1,6,7,8],[2,3,8,9],[2,4,7,9],[2,5,6,9],[2,5,7,8],[3,4,6,9],[3,4,7,8],[3,5,6,8],[4,5,6,7]],5:[[1,2,3,7,9],[1,2,4,6,9],[1,2,4,7,8],[1,2,5,6,8],[1,3,4,5,9],[1,3,4,6,8],[1,3,5,6,7],[2,3,4,5,8],[2,3,4,6,7]],6:[[1,2,3,4,5,7]],7:[],8:[],9:[]},23:{2:[],3:[[6,8,9]],4:[[1,5,8,9],[1,6,7,9],[2,4,8,9],[2,5,7,9],[2,6,7,8],[3,4,7,9],[3,5,6,9],[3,5,7,8],[4,5,6,8]],5:[[1,2,3,8,9],[1,2,4,7,9],[1,2,5,6,9],[1,2,5,7,8],[1,3,4,6,9],[1,3,4,7,8],[1,3,5,6,8],[1,4,5,6,7],[2,3,4,5,9],[2,3,4,6,8],[2,3,5,6,7]],6:[[1,2,3,4,5,8],[1,2,3,4,6,7]],7:[],8:[],9:[]},24:{2:[],3:[[7,8,9]],4:[[1,6,8,9],[2,5,8,9],[2,6,7,9],[3,4,8,9],[3,5,7,9],[3,6,7,8],[4,5,6,9],[4,5,7,8]],5:[[1,2,4,8,9],[1,2,5,7,9],[1,2,6,7,8],[1,3,4,7,9],[1,3,5,6,9],[1,3,5,7,8],[1,4,5,6,8],[2,3,4,6,9],[2,3,4,7,8],[2,3,5,6,8],[2,4,5,6,7]],6:[[1,2,3,4,5,9],[1,2,3,4,6,8],[1,2,3,5,6,7]],7:[],8:[],9:[]},25:{2:[],3:[],4:[[1,7,8,9],[2,6,8,9],[3,5,8,9],[3,6,7,9],[4,5,7,9],[4,6,7,8]],5:[[1,2,5,8,9],[1,2,6,7,9],[1,3,4,8,9],[1,3,5,7,9],[1,3,6,7,8],[1,4,5,6,9],[1,4,5,7,8],[2,3,4,7,9],[2,3,5,6,9],[2,3,5,7,8],[2,4,5,6,8],[3,4,5,6,7]],6:[[1,2,3,4,6,9],[1,2,3,4,7,8],[1,2,3,5,6,8],[1,2,4,5,6,7]],7:[],8:[],9:[]},26:{2:[],3:[],4:[[2,7,8,9],[3,6,8,9],[4,5,8,9],[4,6,7,9],[5,6,7,8]],5:[[1,2,6,8,9],[1,3,5,8,9],[1,3,6,7,9],[1,4,5,7,9],[1,4,6,7,8],[2,3,4,8,9],[2,3,5,7,9],[2,3,6,7,8],[2,4,5,6,9],[2,4,5,7,8],[3,4,5,6,8]],6:[[1,2,3,4,7,9],[1,2,3,5,6,9],[1,2,3,5,7,8],[1,2,4,5,6,8],[1,3,4,5,6,7]],7:[],8:[],9:[]},27:{2:[],3:[],4:[[3,7,8,9],[4,6,8,9],[5,6,7,9]],5:[[1,2,7,8,9],[1,3,6,8,9],[1,4,5,8,9],[1,4,6,7,9],[1,5,6,7,8],[2,3,5,8,9],[2,3,6,7,9],[2,4,5,7,9],[2,4,6,7,8],[3,4,5,6,9],[3,4,5,7,8]],6:[[1,2,3,4,8,9],[1,2,3,5,7,9],[1,2,3,6,7,8],[1,2,4,5,6,9],[1,2,4,5,7,8],[1,3,4,5,6,8],[2,3,4,5,6,7]],7:[],8:[],9:[]},28:{2:[],3:[],4:[[4,7,8,9],[5,6,8,9]],5:[[1,3,7,8,9],[1,4,6,8,9],[1,5,6,7,9],[2,3,6,8,9],[2,4,5,8,9],[2,4,6,7,9],[2,5,6,7,8],[3,4,5,7,9],[3,4,6,7,8]],6:[[1,2,3,5,8,9],[1,2,3,6,7,9],[1,2,4,5,7,9],[1,2,4,6,7,8],[1,3,4,5,6,9],[1,3,4,5,7,8],[2,3,4,5,6,8]],7:[[1,2,3,4,5,6,7]],8:[],9:[]},29:{2:[],3:[],4:[[5,7,8,9]],5:[[1,4,7,8,9],[1,5,6,8,9],[2,3,7,8,9],[2,4,6,8,9],[2,5,6,7,9],[3,4,5,8,9],[3,4,6,7,9],[3,5,6,7,8]],6:[[1,2,3,6,8,9],[1,2,4,5,8,9],[1,2,4,6,7,9],[1,2,5,6,7,8],[1,3,4,5,7,9],[1,3,4,6,7,8],[2,3,4,5,6,9],[2,3,4,5,7,8]],7:[[1,2,3,4,5,6,8]],8:[],9:[]},30:{2:[],3:[],4:[[6,7,8,9]],5:[[1,5,7,8,9],[2,4,7,8,9],[2,5,6,8,9],[3,4,6,8,9],[3,5,6,7,9],[4,5,6,7,8]],6:[[1,2,3,7,8,9],[1,2,4,6,8,9],[1,2,5,6,7,9],[1,3,4,5,8,9],[1,3,4,6,7,9],[1,3,5,6,7,8],[2,3,4,5,7,9],[2,3,4,6,7,8]],7:[[1,2,3,4,5,6,9],[1,2,3,4,5,7,8]],8:[],9:[]},31:{2:[],3:[],4:[],5:[[1,6,7,8,9],[2,5,7,8,9],[3,4,7,8,9],[3,5,6,8,9],[4,5,6,7,9]],6:[[1,2,4,7,8,9],[1,2,5,6,8,9],[1,3,4,6,8,9],[1,3,5,6,7,9],[1,4,5,6,7,8],[2,3,4,5,8,9],[2,3,4,6,7,9],[2,3,5,6,7,8]],7:[[1,2,3,4,5,7,9],[1,2,3,4,6,7,8]],8:[],9:[]},32:{2:[],3:[],4:[],5:[[2,6,7,8,9],[3,5,7,8,9],[4,5,6,8,9]],6:[[1,2,5,7,8,9],[1,3,4,7,8,9],[1,3,5,6,8,9],[1,4,5,6,7,9],[2,3,4,6,8,9],[2,3,5,6,7,9],[2,4,5,6,7,8]],7:[[1,2,3,4,5,8,9],[1,2,3,4,6,7,9],[1,2,3,5,6,7,8]],8:[],9:[]},33:{2:[],3:[],4:[],5:[[3,6,7,8,9],[4,5,7,8,9]],6:[[1,2,6,7,8,9],[1,3,5,7,8,9],[1,4,5,6,8,9],[2,3,4,7,8,9],[2,3,5,6,8,9],[2,4,5,6,7,9],[3,4,5,6,7,8]],7:[[1,2,3,4,6,8,9],[1,2,3,5,6,7,9],[1,2,4,5,6,7,8]],8:[],9:[]},34:{2:[],3:[],4:[],5:[[4,6,7,8,9]],6:[[1,3,6,7,8,9],[1,4,5,7,8,9],[2,3,5,7,8,9],[2,4,5,6,8,9],[3,4,5,6,7,9]],7:[[1,2,3,4,7,8,9],[1,2,3,5,6,8,9],[1,2,4,5,6,7,9],[1,3,4,5,6,7,8]],8:[],9:[]},35:{2:[],3:[],4:[],5:[[5,6,7,8,9]],6:[[1,4,6,7,8,9],[2,3,6,7,8,9],[2,4,5,7,8,9],[3,4,5,6,8,9]],7:[[1,2,3,5,7,8,9],[1,2,4,5,6,8,9],[1,3,4,5,6,7,9],[2,3,4,5,6,7,8]],8:[],9:[]},36:{2:[],3:[],4:[],5:[],6:[[1,5,6,7,8,9],[2,4,6,7,8,9],[3,4,5,7,8,9]],7:[[1,2,3,6,7,8,9],[1,2,4,5,7,8,9],[1,3,4,5,6,8,9],[2,3,4,5,6,7,9]],8:[[1,2,3,4,5,6,7,8]],9:[]},37:{2:[],3:[],4:[],5:[],6:[[2,5,6,7,8,9],[3,4,6,7,8,9]],7:[[1,2,4,6,7,8,9],[1,3,4,5,7,8,9],[2,3,4,5,6,8,9]],8:[[1,2,3,4,5,6,7,9]],9:[]},38:{2:[],3:[],4:[],5:[],6:[[3,5,6,7,8,9]],7:[[1,2,5,6,7,8,9],[1,3,4,6,7,8,9],[2,3,4,5,7,8,9]],8:[[1,2,3,4,5,6,8,9]],9:[]},39:{2:[],3:[],4:[],5:[],6:[[4,5,6,7,8,9]],7:[[1,3,5,6,7,8,9],[2,3,4,6,7,8,9]],8:[[1,2,3,4,5,7,8,9]],9:[]},40:{2:[],3:[],4:[],5:[],6:[],7:[[1,4,5,6,7,8,9],[2,3,5,6,7,8,9]],8:[[1,2,3,4,6,7,8,9]],9:[]},41:{2:[],3:[],4:[],5:[],6:[],7:[[2,4,5,6,7,8,9]],8:[[1,2,3,5,6,7,8,9]],9:[]},42:{2:[],3:[],4:[],5:[],6:[],7:[[3,4,5,6,7,8,9]],8:[[1,2,4,5,6,7,8,9]],9:[]},43:{2:[],3:[],4:[],5:[],6:[],7:[],8:[[1,3,4,5,6,7,8,9]],9:[]},44:{2:[],3:[],4:[],5:[],6:[],7:[],8:[[2,3,4,5,6,7,8,9]],9:[]},45:{2:[],3:[],4:[],5:[],6:[],7:[],8:[],9:[[1,2,3,4,5,6,7,8,9]]}},
 	messages: [''],
+	height: 0,
+	width: 0,
 
-	reduce(level, c, i, s, h, w) {
-
-		let vals = { cells: c, strips: s};
-		if (level === 10) {
-			vals = this.reductionStepOne(level, vals.cells, i, vals.strips, h, w);
+	reduce(level, c, i, cs, s, h, w) {
+	console.log('reduce line 9',level, c, i, cs, s, h, w) 
+		if (!h) {
+			h = this.height;
+		}
+		if (!w) {
+			w = this.width;
 		}
 
-		if (level >= 20) {
-			c.forEach(cell => {
-				if (cell.is_data) {
-					vals = this.reductionStepOne(level, vals.cells, cell.idx, vals.strips, h, w);
-				}
-			});
+		this.height = h;
+		this.width = w;
+
+		let vals = { cells: c, strips: s};
+		if (level === 0) {
+			vals = this.getAllStrips(c, s, h, w);
+			vals = this.reductionStepOne(0, vals.cells, [], i, vals.strips, h, w);
+			return { cells: vals.cells, strips: vals.strips, changedStrips: vals.changedStrips, level: 10, msg: this.messages}
+		}
+
+		if (level === 10) {
+console.log('line 27', i, cs);
+			vals = this.reductionStepOne(10, c, cs, i, s, h, w);
+			let changedStrips = vals.changedStrips.length ? vals.changedStrips : cs;
+			level = vals.changedStrips.length ? 10 : 20;
+			return { cells: vals.cells, strips: vals.strips, changedStrips, level, msg: this.messages}
+
+		}
+
+		if (level === 20) {
+			this.messages = [''];
+			for (let sidx in vals.strips) {vals.strips[sidx].changed = true;}
+			vals = this.reductionByElimination(level, vals.cells, vals.strips);
+			return { cells: vals.cells, strips: vals.strips, level: 30, changedStrips: vals.changedStrips, msg: this.messages };
 		}
 
 		if (level === 30) {
-			vals = this.reductionByElimination(level, vals.cells, vals.strips);
-		}
-
-		if (level === 40) {
-			vals = this.reductionByElimination(level, vals.cells, vals.strips);
-		}
-		if (level === 50) {
 			this.messages = [''];
-			vals = this.reductionByIsComplementPossible(level, vals.cells, i, vals.strips);
-		}
-		if (level === 60) {
-			vals = this.reduceAllByIsComplementPossible(level, vals.cells, vals.strips);
+			for (let sidx in vals.strips) {vals.strips[sidx].changed = true;}
+			vals = this.reduceAllByIsComplementPossible(level, cs, i, vals.cells, vals.strips);
+console.log('line 46', vals)
+			level = vals.changedStrips.length ? 30 : 40;
+			return { cells: vals.cells, strips: vals.strips, level, changedStrips: vals.changedStrips, msg: this.messages };
 		}
 
-		return { cells: vals.cells, strips: vals.strips, msg: this.messages };
 	},
 
-	reductionStepOne(level, c, i, s, h, w) {
-		let { cells, strips } = this.getMyStrips(c, i, s, h, w);
-		let vals = this.fillPossibleValues(cells, strips, i, 0, level);
-		vals = this.fillPossibleValues(vals.cells, vals.strips, i, 1, level);
-		cells = vals.cells;
-		strips = vals.strips;
-		return { cells, strips };
+	getAllStrips(c,s,h,w) {
+		let vals;
+		c.forEach((cell, idx) => {
+			vals = this.getMyStrips(c, idx, s, h, w);
+			c = vals.cells;
+			s = vals.strips;
+		});
+
+		return {cells: c, strips: s};
+	},
+
+	reductionStepOne(level, c, cs, i, s, h, w) {
+console.log('reductionStepOne',level, cs, i);
+		i = [i];
+		let vals = {cells: c, strips: s};
+		let changedStrips = [];
+		if (cs.length) {
+			i = [];
+			cs.some(changedStripIdx => {
+				let changedStrip = s[changedStripIdx];
+				if (!changedStrip.changed) {
+					return false;
+				}
+
+				return changedStrip.cells.some(cellIdx => {
+					if (i.indexOf(cellIdx) < 0) {
+						i.push(cellIdx);
+						return true;
+					}
+					return false;
+				});
+			});
+		}
+console.log('reductionStepOne i:', i);
+		if (!i.length) {
+			for (let sidx in s) {
+				let strip = s[sidx];
+				if (strip.changed) {
+					i.push(strip.cells[0]);
+					break;
+				}
+			}
+		}
+console.log('reductionStepOne ii:', i);
+		i.forEach(cellIdx => {
+			vals = this.fillPossibleValues(vals.cells, vals.strips, cellIdx, 0, level);
+console.log(vals.changedStrips);
+			vals.changedStrips.forEach(vcs => {
+				if (changedStrips.indexOf(vcs) < 0 && changedStrips.length < 1) {
+					changedStrips.push(vcs);
+				}
+			});
+			vals = this.fillPossibleValues(vals.cells, vals.strips, cellIdx, 1, level);
+console.log(vals.changedStrips);
+			vals.changedStrips.forEach(vcs => {
+				if (changedStrips.indexOf(vcs) < 0 && changedStrips.length < 2) {
+					changedStrips.push(vcs);
+				}
+			});
+		});
+		let cells = vals.cells;
+		let strips = vals.strips;
+console.log('reductionStepOne',changedStrips);
+
+
+		return { cells, strips, changedStrips };
 	},
 
 	reductionByElimination(level, cells, strips) {
 		// if any cell has a single value, remove that from the others and recalculate their choices
-		let noChanges = true;
+		let changedStrips = [];
 		for (let stripIdx in strips) {
 			let s = strips[stripIdx];
 			if (!s.changed) {
@@ -57,7 +131,7 @@ export const Reducer = {
 			s.cells.forEach(i => {
 				let cell = cells[i];
 				if (cell.choices.length === 1) {
-					this.messages.push('strip ' + stripIdx + ', cell ' + this.coords(cells[i]));
+					this.messages.push('looking at strip ' + stripIdx + ', cell ' + this.coords(cells[i]));
 					let choice = cell.choices[0];
 					let myStrips = cell.strips;
 					myStrips.forEach(cellStripIdx => {
@@ -75,54 +149,90 @@ export const Reducer = {
 							let choices = cells[idx].choices;
 							if (idxsUsed.indexOf(idx) < 0) {
 								let newChoices = this.intersect(this.union(pv), choices);
-console.log('newChoices, idx',JSON.stringify(newChoices),idx);
 if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' + JSON.stringify(pv) + ' ' + JSON.stringify(choices))}
 								cells[idx].choices = newChoices;
 								if (choices.length !== newChoices.length) {
 									hasChanges = true;
-									noChanges = false;
+									cells[idx].strips.forEach(sidx => {
+										changedStrips.push(sidx);
+										strips[sidx].changed = true;
+									});
+console.log('newChoices, coords, cs',JSON.stringify(newChoices),this.coords(cells[idx]),changedStrips);
 									this.messages.push(this.coords(cells[idx]) + ' choices changed from ' + JSON.stringify(choices) + ' to ' + JSON.stringify(newChoices) + ' ' + JSON.stringify(pv) + ' ' + JSON.stringify(cellStrip) + ' ' + JSON.stringify(used));
+								}
+								if (newChoices.length === 1) {
+									cells[idx].known = true;
+									cells[idx].strips.forEach(sidx => {
+										strips[sidx].unknown--;
+									});
 								}
 							}
 						});
 					});
 				}
 			});
-console.log(stripIdx + ' 3_8_h',JSON.stringify(strips['3_8_h']));
+
 			s.changed = hasChanges;
 		};
 
-		return level < 40 || noChanges ? { cells, strips } : this.reductionByElimination(level, cells, strips)	;
+		return !changedStrips.length ? { cells, strips, changedStrips } : this.reductionByElimination(level, cells, strips)	;
 	},
 
-	reduceAllByIsComplementPossible(level, cells, strips) {
-		cells.forEach((c, idx) => {
-			if (c.is_data) {
-				let d = this.reductionByIsComplementPossible(level, cells, idx, strips);
+	reduceAllByIsComplementPossible(level, cs, i, cells, strips) {
+console.log('line 154', JSON.stringify({ level, cs, i }));
+		let hasChanges = false;
+		if (!cs.length) {
+			cs = cells[i].strips;
+		}
+		let sidx;
+		while (sidx = cs.pop()) {
+			strips[sidx].cells.some(cidx => {
+				let oldChoices = cells[cidx].choices;
+				if (oldChoices.length === 1) {
+					return false;
+				}
+				let d = this.reductionByIsComplementPossible(level, cells, cidx, strips);
 				cells = d.cells;
 				strips = d.strips;
-			}
-		});
+				let newChoices = cells[cidx].choices;
+console.log('line 168', { strip: JSON.stringify(strips[sidx]), oldChoices: JSON.stringify(oldChoices), newChoices: JSON.stringify(newChoices) })
+				if (newChoices.length < 1) {oldChoices
+					console.log('no choices');
+					cs = [];
+					return true; // break some() loop
+				}
+				if (oldChoices.length !== newChoices.length) {
+					hasChanges = true;
+					cells[cidx].strips.forEach(changedStripIdx => {
+						cs.push(changedStripIdx);
+						strips[changedStripIdx].changed = true;
+					});
+					console.log(this.coords(cells[cidx]) + ' choices changed from ' + JSON.stringify(oldChoices) + ' to ' + JSON.stringify(newChoices));
+					this.messages.push(this.coords(cells[cidx]) + ' choices changed from ' + JSON.stringify(oldChoices) + ' to ' + JSON.stringify(newChoices));
+				}
+			});
+		};
 
-		return { cells, strips };
+		level = cs.length ? level : 100;
+console.log('line 180', { cells, strips, cs, level });
+		return { cells, strips, changedStrips: cs, level };
 	},
 
 	reductionByIsComplementPossible(level, cells, thisCellIdx, strips) {
+console.log('reductionByIsComplementPossible', this.coords(cells[thisCellIdx]));
 		let cell = cells[thisCellIdx];
 		let valueIsPossible = true;
-		let newValues = [];
-		cell.choices.forEach(choice => {
+		let newChoices = [];
+		let oldChoices = cell.choices;
+		oldChoices.forEach(choice => {
 			valueIsPossible = cell.strips.every(stripIdx => {
 				let strip = strips[stripIdx];
-// console.log('jbf',stripIdx, strip, thisCellIdx, strips, cell)
-this.messages.push('possible collections: ' + JSON.stringify(strip.possibleSets));
 				let vals = [[choice]];
 				let sum = strip.sum;
 				strip.cells.forEach(cellIdx => {
 					if (cellIdx !== thisCellIdx) {
 						vals.push(JSON.parse(JSON.stringify(cells[cellIdx].choices)));
-// console.log('jbf vals',JSON.stringify(vals));
-this.messages.push('building vals... ' + this.coords(cell) + ': ' + JSON.stringify(vals));
+console.log('other vals if ' + this.coords(cell) + ' has ' + choice + ': ' + JSON.stringify(vals));
 					}
 				});
 				if (!this.isPossible(strip.sum, JSON.parse(JSON.stringify(vals)), JSON.parse(JSON.stringify(strip.possibleSets)))) {
@@ -133,10 +243,19 @@ this.messages.push(this.coords(cell) + ' choice ' + choice + ' ok');
 				return true;
 			});
 			if (valueIsPossible) {
-				newValues.push(choice);
+				newChoices.push(choice);
 			}
 		});
-		cells[thisCellIdx].choices = newValues;
+		cells[thisCellIdx].choices = newChoices;
+		if (oldChoices.length != newChoices.length) {
+			this.messages.push(this.coords(cell) + ' choices now ' + JSON.stringify(newChoices));
+			if (newChoices.count === 1) {
+				cells[thisCellIdx].known = true;
+				cells[thisCellIdx].strips.forEach(sidx => {
+					strips[sidx].unknown--;
+				});
+			}
+		}
 
 		return { cells, strips }
 	},
@@ -222,17 +341,21 @@ console.log(indent + 'otherVals(2)', JSON.stringify(otherVals));
 
 	fillPossibleValues(cells, strips, idx, orientation, level) {
 		let strip = strips[cells[idx].strips[orientation]];
+		let changedStrips = [];
 		if (!strip.changed) {
-			return { cells, strips };
+			return { cells, strips, changedStrips };
 		}
 		let i = -1;
-		if (level < 20) {
-			i = idx;
-		}
-		let vals = this.getChoices(cells, strip, i);
+		// if (level < 20) {
+		// 	i = idx;
+		// }
+		let vals = this.getChoices(cells, strip, i, strips);
 		cells = vals.cells;
+		strips = vals.strips;
+		changedStrips = vals.changedStrips;
 		strips[cells[idx].strips[orientation]] = vals.strip;
-		return { cells, strips };
+console.log(changedStrips)
+		return { cells, strips, changedStrips };
 	},
 
 	possibleValues(sum, howMany, used = [], level = 0) {
@@ -284,19 +407,36 @@ this.messages.push(sum + ' over ' + howMany + ' without ' + JSON.stringify(used)
 		return returnSet;
 	},
 
-	getChoices(cells, strip, idx) {
-		strip.possibleSets = this.possibleValues(strip.sum, strip.cells.length);
+	getChoices(cells, strip, idx, strips) {
+		let changedStrips = [];
+		let choices, newChoices;
+		strips[strip.idx].possibleSets = this.possibleValues(strip.sum, strip.cells.length);
+		strips[strip.idx].changed = false;
 		strip.cells.forEach(i => {
 			if (idx < 0 || idx === i) {
+				choices = JSON.parse(JSON.stringify(cells[i].choices));
 				let pv = this.union(strip.possibleSets);
 // console.log('before', JSON.stringify(pv), idx, i, JSON.stringify(strip));
-				cells[i].choices = cells[i].choices.length > 0 ? this.intersect(cells[i].choices, pv) : pv;
+				newChoices = choices.length > 0 ? this.intersect(cells[i].choices, pv) : pv;
+				cells[i].choices = newChoices;
 // console.log('after', JSON.stringify(pv),JSON.stringify(cells[i].choices));
-				this.messages.push(this.coords(cells[i]) + ' set to ' + JSON.stringify(cells[i].choices));
+				if (choices.length !== newChoices.length) {
+					changedStrips.push(cells[i].strips[0]);
+					changedStrips.push(cells[i].strips[1]);
+this.messages.push('changedStrips for ' + i +': ' +  JSON.stringify(changedStrips));
+console.log('changedStrips for ' + i +': ' +  JSON.stringify(changedStrips));
+					this.messages.push(this.coords(cells[i]) + ' set to ' + JSON.stringify(cells[i].choices));
+				}
+				if (newChoices.length === 1) {
+					cells[i].known = true;
+					cells[i].strips.forEach(sidx => {
+						strips[sidx].unknown--;
+					});
+				}
 			}
 		});
 
-		return { cells, strip };
+		return { cells, strip, changedStrips, strips };
 	},
 
 	getMyStrips(cells, idx, strips, h, w) {
@@ -343,7 +483,9 @@ this.messages.push(sum + ' over ' + howMany + ' without ' + JSON.stringify(used)
         strips[strip.idx] = strip;
         strip.cells.forEach(c => {
         	cells[c].strips[0] = strip.idx;
+        	cells[c].known = false;
         })
+        strip.unknown = strip.cells.length;
 
         strip = {cells:[], changed: true};
 
@@ -379,7 +521,9 @@ this.messages.push(sum + ' over ' + howMany + ' without ' + JSON.stringify(used)
         strips[strip.idx] = strip;
         strip.cells.forEach(c => {
         	cells[c].strips[1] = strip.idx;
-        })
+        	cells[c].known = false;
+        });
+        strip.unknown = strip.cells.length;
 
         return { cells, strips };
 	},

@@ -5,92 +5,51 @@ class Cell extends React.Component {
     constructor(props) {
         super(props);
         this.state = {};
-        this.loadVals(props);
-
-        this.loadVals = this.loadVals.bind(this);
         this.getClasses = this.getClasses.bind(this);
         this.setActive = this.setActive.bind(this);
         this.mouseDown = this.mouseDown.bind(this);
         this.mouseUp = this.mouseUp.bind(this);
     }
 
-    componentDidUpdate(props) {
-        var cell = props.cell;
-        this.state.active = cell.active;
-        this.state.choices = cell.choices;
-        this.state.remove = [];
-        if (this.state.is_data) {
-            this.state.display = cell.choices.join('');
-        }
-    }
-
-    componentWillUpdate(props) {
-        this.loadVals(props);
-    }
-
-    loadVals(props) {
-        var cell = props.cell;
-        var editable = 'is_editable' in cell ? cell.is_editable : cell.is_data;
-        var display = cell.choices.join('');
-        var label_v = '';
-        var label_h = '';
-        var sum_box = false;
-        if (!cell.is_data) {
-            label_v = cell.display[0] ? cell.display[0].toString() : '';
-            label_h = cell.display[1] ? cell.display[1].toString() : '';
-            if (label_h.length > 0 || label_v.length > 0) {
-                sum_box = true;
-            }
-        }
-
-        this.state.display = display;
-        this.state.label_v = label_v;
-        this.state.label_h = label_h;
-        this.state.sum_box = sum_box;
-        this.state.choices = cell.choices;
-        this.state.is_data = cell.is_data;
-        this.state.editable = editable;
-        this.state.active = cell.active;
-        this.state.row = cell.row;
-        this.state.col = cell.col;
-        this.state.remove = [];
-    }
-
     getClasses() {
         var classes = "kakuro-cell";
+        let cell = this.props.cell;
 
-        if (this.state.col === 0) {
+        if (cell.col === 0) {
             classes = classes + " clr";
         }
 
-        if (this.props.cell.choices.length === 1) {
+        if (cell.choices.length === 1) {
             classes = classes + " large-num";
         }
 
-        if (this.props.cell.active && this.state.is_data) {
+        if (cell.active && cell.is_data) {
             return classes + " aktv";
         }
 
-        if (this.props.cell.selected) {
+        if (cell.selected) {
             return classes + " selected-cell";
         }
 
-        if (!this.state.is_data) {
+        if (!cell.is_data) {
+            let label_v = cell.display[0] ? cell.display[0].toString() : '';
+            let label_h = cell.display[1] ? cell.display[1].toString() : '';
+            let sum_box = label_h.length > 0 || label_v.length > 0;
             if (this.props.cell.semiactive) {
-                if (this.state.sum_box) {
+                if (sum_box) {
                     return classes + " semiactive-sum-box";
                 } else {
                     return classes + " semiactive-blnk";
                 }
             } else {
-                if (this.props.cell.active) {
+                if (cell.active) {
                     classes = classes + " aktv";
                 }
-                if (this.state.sum_box) {
-                    if (this.props.cell.editing_right) {
+                if (sum_box) {
+                    if (cell.editing_right) {
                         return classes + " sum-box edit-right";
                     }
-                    if (this.props.cell.editing) {
+                    if (cell.editing) {
                         return classes + " sum-box edit-left";
                     }
                     return classes + " sum-box";
@@ -100,11 +59,11 @@ class Cell extends React.Component {
             }
         }
 
-        if (this.props.cell.error) {
+        if (cell.error) {
             return classes + " error";
         }
 
-        if (this.props.cell.standout) {
+        if (cell.standout) {
             return classes + " standout";
         }
 
@@ -112,7 +71,7 @@ class Cell extends React.Component {
             return classes + " cell-solved";
         }
 
-        if (!this.props.cell.active && 'semiactive' in this.props.cell && this.props.cell.semiactive) {
+        if (!cell.active && 'semiactive' in cell && cell.semiactive) {
             return classes + " semiactive";
         }
         
@@ -132,7 +91,7 @@ class Cell extends React.Component {
     }
 
     render() {
-        if (this.state.is_data) {
+        if (this.props.cell.is_data) {
             return (
                 <div
                     className={this.getClasses()}
@@ -144,6 +103,8 @@ class Cell extends React.Component {
                 </div>
             );
         }
+        let label_v = this.props.cell.display[0] ? this.props.cell.display[0].toString() : '';
+        let label_h = this.props.cell.display[1] ? this.props.cell.display[1].toString() : '';
         return (
             <div
                 className={this.getClasses()}
@@ -151,7 +112,7 @@ class Cell extends React.Component {
                 onMouseDown={this.mouseDown}
                 onMouseUp={this.mouseUp}
             >
-                <div className='label-v'>{this.state.label_v}</div><div className='label-h'>{this.state.label_h}</div>
+                <div className='label-v'>{label_v}</div><div className='label-h'>{label_h}</div>
             </div>
         );
     }

@@ -1,20 +1,17 @@
 <html>
-<head>
-    <title>Kakuro</title>
-    <link rel="stylesheet" href="https://cdnjs.com/libraries/semantic-ui" />
-    <link rel="stylesheet" href="http://www.jsdelivr.com/#!semantic-ui" />
-    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="{{ asset('css/kakuro.css') }}" />
-    <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
-</head>
-<body>
-    <div id="content" data-id="{{gridId}}">hmmm...</div>
-    <script>
-        var vars = {
-            grid_name: null
-        }
-    </script>
-    <script src="{{ asset('js/main.js') }}"></script>
-</body>
-</body>
+    <head>
+        <title>Kakuro</title>
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
+        <link rel="stylesheet" href="{{ asset('css/kakuro.css') }}" />
+        <script src="{{ asset('js/jquery-1.10.1.min.js') }}"></script>
+    </head>
+    <body>
+        <div id="content" data-id="{{gridId}}">hmmm...</div>
+        <script>
+            var vars = {
+                grid_name: null
+            }
+        </script>
+        <script src="{{ asset('js/main.js') }}"></script>
+    </body>
 </html>

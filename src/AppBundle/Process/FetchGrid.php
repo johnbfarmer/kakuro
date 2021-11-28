@@ -60,6 +60,7 @@ class FetchGrid extends BaseGrid
         $cellKeyArr = explode(',', $cellKey);
         $cells = [];
         foreach ($cellKeyArr as $idx => $cell) {
+            $this->log($cell);
             $isData = empty($cell);
             $label = !$isData ? explode('/', $cell) : null;
             $labelV = !$isData ? $label[0] : null;

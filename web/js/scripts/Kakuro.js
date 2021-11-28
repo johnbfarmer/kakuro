@@ -17,14 +17,17 @@ export default class Kakuro extends React.Component {
             cells: [],
             height: 0,
             width: 0,
-            active_row: -1,
-            active_col: -1,
+            active_row: 1,
+            active_col: 1,
             solved: false,
             saved_states: [],
             grids: [],
             gridId: 0,
             gridStatus: '', // success, error
             messages: [],
+            reductionLevel: 0,
+            changedStrips: [],
+            runXXX: false,
         };
 
         this.strips = {};
@@ -94,9 +97,22 @@ export default class Kakuro extends React.Component {
             var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
             var cells = processed.cells;
             // this.strips = processed.strips;
-            this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id});
+            this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id}, this.xxx);
             this.saveState();
         });
+    }
+
+    xxx() {
+        let k = 0;
+        let x = setInterval(() => {
+            if (this.state.runXXX) {
+                if (k < 50) {
+                    console.log('line 110', this.state.changedStrips, k, this.state.reductionLevel);
+                    this.reduce3(this.state.changedStrips, k++);}
+                }
+            }
+        , 1000);
+
     }
 
     saveState() {
@@ -160,6 +176,25 @@ export default class Kakuro extends React.Component {
             // this.setState({ cells: cells, height: data.height, width: data.width, savedGameName: data.name });
             // this.saveState();
         });
+    }
+
+    reduce3(cs = [], k = 0) {
+console.log('reduce3', cs, k);
+        let idx = cs.length ? 0 : this.state.active_row * this.state.width + this.state.active_col;
+        let { cells, strips, level, changedStrips, msg } = Reducer.reduce(this.state.reductionLevel, this.state.cells, idx, cs, this.strips, this.state.height, this.state.width);
+console.log('line 184, changedStrips', changedStrips, level);
+        let runXXX = this.state.runXXX;
+        if (!level || level > 10) { console.log('quitting. level: ', level);runXXX = !runXXX; }
+        if (!changedStrips || !changedStrips.length) {
+            if (level >= 30) {
+                for (let sidx in this.strips) {
+                    changedStrips.push(sidx);
+                }
+                console.log('changedStrips: ', changedStrips)
+            }
+        }
+        this.strips = strips;
+        this.setState({ cells: cells, reductionLevel: level, messages: msg, changedStrips, runXXX });
     }
 
     reduce2(level) {
@@ -327,11 +362,20 @@ export default class Kakuro extends React.Component {
         if (keyCode === 66) { // b
             this.reduce2(50);
         }
+        if (keyCode === 69) { // e
+            this.clearChoices();
+        }
+        if (keyCode === 87) { // w
+            this.setState({ runXXX: false });
+        }
+        if (keyCode === 89) { // y
+            this.setState({ runXXX: true });
+        }
         if (keyCode === 90) { // z
-            this.reduce2(60);
+            this.reduce2(70);
         }
         if (keyCode === 88) { // x
-            this.clearChoices();
+            this.reduce3([], 0);
         }
         if (keyCode === 67) { // c
             this.clearAllChoices();
