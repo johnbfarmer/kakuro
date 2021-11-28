@@ -6,7 +6,7 @@ export const Reducer = {
 	width: 0,
 
 	reduce(level, c, i, cs, s, h, w) {
-	console.log('reduce line 9',level, c, i, cs, s, h, w) 
+	console.log('reduce line 9',level, i, cs) 
 		if (!h) {
 			h = this.height;
 		}
@@ -25,19 +25,23 @@ export const Reducer = {
 		}
 
 		if (level === 10) {
-console.log('line 27', i, cs);
 			vals = this.reductionStepOne(10, c, cs, i, s, h, w);
 			let changedStrips = vals.changedStrips.length ? vals.changedStrips : cs;
 			level = vals.changedStrips.length ? 10 : 20;
+			if (level === 20) {
+				for (let sidx in vals.strips) {
+					vals.strips[sidx].changed = true;
+					changedStrips.push(sidx);
+				}
+			}
 			return { cells: vals.cells, strips: vals.strips, changedStrips, level, msg: this.messages}
 
 		}
 
 		if (level === 20) {
 			this.messages = [''];
-			for (let sidx in vals.strips) {vals.strips[sidx].changed = true;}
-			vals = this.reductionByElimination(level, vals.cells, vals.strips);
-			return { cells: vals.cells, strips: vals.strips, level: 30, changedStrips: vals.changedStrips, msg: this.messages };
+			vals = this.reductionByElimination(level, vals.cells, vals.strips, i, cs);
+			return { cells: vals.cells, strips: vals.strips, level: 20, changedStrips: vals.changedStrips, msg: this.messages };
 		}
 
 		if (level === 30) {
@@ -115,14 +119,21 @@ console.log(vals.changedStrips);
 		let strips = vals.strips;
 console.log('reductionStepOne',changedStrips);
 
-
 		return { cells, strips, changedStrips };
 	},
 
-	reductionByElimination(level, cells, strips) {
+	reductionByElimination(level, cells, strips, i, cs) {
 		// if any cell has a single value, remove that from the others and recalculate their choices
 		let changedStrips = [];
-		for (let stripIdx in strips) {
+		if (!cs.length) {
+			cells[i].strips.every(sidx => {
+				cs.push(sidx);
+				return true;
+			});
+		}
+console.log('reductionByElimination', i, cs)
+		let stripIdx;
+		while (stripIdx = cs.shift()) {
 			let s = strips[stripIdx];
 			if (!s.changed) {
 				continue;
@@ -154,7 +165,7 @@ if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' 
 								if (choices.length !== newChoices.length) {
 									hasChanges = true;
 									cells[idx].strips.forEach(sidx => {
-										changedStrips.push(sidx);
+										cs.push(sidx);
 										strips[sidx].changed = true;
 									});
 console.log('newChoices, coords, cs',JSON.stringify(newChoices),this.coords(cells[idx]),changedStrips);
@@ -175,7 +186,8 @@ console.log('newChoices, coords, cs',JSON.stringify(newChoices),this.coords(cell
 			s.changed = hasChanges;
 		};
 
-		return !changedStrips.length ? { cells, strips, changedStrips } : this.reductionByElimination(level, cells, strips)	;
+		// return !changedStrips.length ? { cells, strips, changedStrips } : this.reductionByElimination(level, cells, strips)	;
+		return { cells, strips, changedStrips: cs };
 	},
 
 	reduceAllByIsComplementPossible(level, cs, i, cells, strips) {

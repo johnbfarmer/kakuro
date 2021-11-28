@@ -111,7 +111,7 @@ export default class Kakuro extends React.Component {
                     this.reduce3(this.state.changedStrips, k++);}
                 }
             }
-        , 1000);
+        , 200);
 
     }
 
@@ -375,6 +375,7 @@ console.log('line 184, changedStrips', changedStrips, level);
             this.reduce2(70);
         }
         if (keyCode === 88) { // x
+            console.log(this.state.reductionLevel);
             this.reduce3([], 0);
         }
         if (keyCode === 67) { // c
