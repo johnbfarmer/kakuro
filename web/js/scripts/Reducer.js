@@ -35,20 +35,20 @@ export const Reducer = {
 				}
 			}
 			return { cells: vals.cells, strips: vals.strips, changedStrips, level, msg: this.messages}
-
 		}
 
 		if (level === 20) {
 			this.messages = [''];
+console.log('line 42', cs);
 			vals = this.reductionByElimination(level, vals.cells, vals.strips, i, cs);
-			return { cells: vals.cells, strips: vals.strips, level: 20, changedStrips: vals.changedStrips, msg: this.messages };
+console.log('line 44', vals.changedStrips);
+			level = !vals.changedStrips.length ? 30 : 20;
+			return { cells: vals.cells, strips: vals.strips, level, changedStrips: vals.changedStrips, msg: this.messages };
 		}
 
 		if (level === 30) {
 			this.messages = [''];
-			for (let sidx in vals.strips) {vals.strips[sidx].changed = true;}
 			vals = this.reduceAllByIsComplementPossible(level, cs, i, vals.cells, vals.strips);
-console.log('line 46', vals)
 			level = vals.changedStrips.length ? 30 : 40;
 			return { cells: vals.cells, strips: vals.strips, level, changedStrips: vals.changedStrips, msg: this.messages };
 		}
@@ -122,14 +122,10 @@ console.log('reductionStepOne',changedStrips);
 		return { cells, strips, changedStrips };
 	},
 
+	// if any cell has a single value, remove that from the others and recalculate their choices
 	reductionByElimination(level, cells, strips, i, cs) {
-		// if any cell has a single value, remove that from the others and recalculate their choices
-		let changedStrips = [];
 		if (!cs.length) {
-			cells[i].strips.every(sidx => {
-				cs.push(sidx);
-				return true;
-			});
+			cs = this.buildStripWeb(i, cells, strips);
 		}
 console.log('reductionByElimination', i, cs)
 		let stripIdx;
@@ -138,6 +134,7 @@ console.log('reductionByElimination', i, cs)
 			if (!s.changed) {
 				continue;
 			}
+			s.changed = false;
 			let hasChanges = false;
 			s.cells.forEach(i => {
 				let cell = cells[i];
@@ -148,18 +145,19 @@ console.log('reductionByElimination', i, cs)
 					myStrips.forEach(cellStripIdx => {
 						let cellStrip = strips[cellStripIdx];
 						let used = [];
-						let idxsUsed = [];
+						let idxsToIgnore = [];
 						cellStrip.cells.forEach(idx => {
 							if (cells[idx].choices.length === 1) {
 								used.push(cells[idx].choices[0]);
-								idxsUsed.push(idx);
+								idxsToIgnore.push(idx);
 							}
 						});
 						let pv = this.possibleValues(cellStrip.sum, cellStrip.cells.length, used);
 						cellStrip.cells.forEach(idx => {
 							let choices = cells[idx].choices;
-							if (idxsUsed.indexOf(idx) < 0) {
+							if (idxsToIgnore.indexOf(idx) < 0) {
 								let newChoices = this.intersect(this.union(pv), choices);
+// return error and handle
 if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' + JSON.stringify(pv) + ' ' + JSON.stringify(choices))}
 								cells[idx].choices = newChoices;
 								if (choices.length !== newChoices.length) {
@@ -168,7 +166,7 @@ if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' 
 										cs.push(sidx);
 										strips[sidx].changed = true;
 									});
-console.log('newChoices, coords, cs',JSON.stringify(newChoices),this.coords(cells[idx]),changedStrips);
+console.log('newChoices, coords, cs.len',JSON.stringify(newChoices),this.coords(cells[idx]),cs.length);
 									this.messages.push(this.coords(cells[idx]) + ' choices changed from ' + JSON.stringify(choices) + ' to ' + JSON.stringify(newChoices) + ' ' + JSON.stringify(pv) + ' ' + JSON.stringify(cellStrip) + ' ' + JSON.stringify(used));
 								}
 								if (newChoices.length === 1) {
@@ -183,7 +181,9 @@ console.log('newChoices, coords, cs',JSON.stringify(newChoices),this.coords(cell
 				}
 			});
 
-			s.changed = hasChanges;
+			if (hasChanges) {
+				break;
+			}
 		};
 
 		// return !changedStrips.length ? { cells, strips, changedStrips } : this.reductionByElimination(level, cells, strips)	;
@@ -191,13 +191,18 @@ console.log('newChoices, coords, cs',JSON.stringify(newChoices),this.coords(cell
 	},
 
 	reduceAllByIsComplementPossible(level, cs, i, cells, strips) {
+		if (!cs.length) {
+			cs = this.buildStripWeb(i, cells, strips);
+		}
 console.log('line 154', JSON.stringify({ level, cs, i }));
 		let hasChanges = false;
-		if (!cs.length) {
-			cs = cells[i].strips;
-		}
 		let sidx;
-		while (sidx = cs.pop()) {
+		while (sidx = cs.shift()) {
+			let s = strips[sidx];
+			if (!s.changed) {
+				continue;
+			}
+			s.changed = false;
 			strips[sidx].cells.some(cidx => {
 				let oldChoices = cells[cidx].choices;
 				if (oldChoices.length === 1) {
@@ -207,11 +212,11 @@ console.log('line 154', JSON.stringify({ level, cs, i }));
 				cells = d.cells;
 				strips = d.strips;
 				let newChoices = cells[cidx].choices;
-console.log('line 168', { strip: JSON.stringify(strips[sidx]), oldChoices: JSON.stringify(oldChoices), newChoices: JSON.stringify(newChoices) })
-				if (newChoices.length < 1) {oldChoices
+console.log('line 215', { strip: JSON.stringify(strips[sidx]), oldChoices: JSON.stringify(oldChoices), newChoices: JSON.stringify(newChoices) })
+				if (newChoices.length < 1) {
 					console.log('no choices');
 					cs = [];
-					return true; // break some() loop
+					return true; // break some() loop; this means if once choice fails, move on to the next strip??
 				}
 				if (oldChoices.length !== newChoices.length) {
 					hasChanges = true;
@@ -223,6 +228,10 @@ console.log('line 168', { strip: JSON.stringify(strips[sidx]), oldChoices: JSON.
 					this.messages.push(this.coords(cells[cidx]) + ' choices changed from ' + JSON.stringify(oldChoices) + ' to ' + JSON.stringify(newChoices));
 				}
 			});
+
+			if (hasChanges) {
+				break;
+			}
 		};
 
 		level = cs.length ? level : 100;
@@ -244,9 +253,10 @@ console.log('reductionByIsComplementPossible', this.coords(cells[thisCellIdx]));
 				strip.cells.forEach(cellIdx => {
 					if (cellIdx !== thisCellIdx) {
 						vals.push(JSON.parse(JSON.stringify(cells[cellIdx].choices)));
-console.log('other vals if ' + this.coords(cell) + ' has ' + choice + ': ' + JSON.stringify(vals));
+// console.log('other vals if ' + this.coords(cell) + ' has ' + choice + ': ' + JSON.stringify(vals));
 					}
 				});
+				vals = this.sortByLength(vals);
 				if (!this.isPossible(strip.sum, JSON.parse(JSON.stringify(vals)), JSON.parse(JSON.stringify(strip.possibleSets)))) {
 this.messages.push(this.coords(cell) + ' choice ' + choice + ' NOT ok. Cannot make sum ' + strip.sum + ' with vals ' + JSON.stringify(vals) + ' and possible sets ' + JSON.stringify(strip.possibleSets));					
 					return false;
@@ -275,7 +285,7 @@ this.messages.push(this.coords(cell) + ' choice ' + choice + ' ok');
 	isPossible(sum, vals, combinations, taken = [], nestingLevel = 0) {
 		// example sum=3, vals=[[2,3],[1]], com=[[1,2]] => sum=2, vals=[[2,3]], com=[[2]] => true
 		// example sum=3, vals=[[2,3],[1,2]], com=[[1,2]] => sum=1, vals=[[1,2]], com=[[1]] => true
-let indent = ''; if (nestingLevel) {for (let i=1;i<=nestingLevel;i++){indent = indent + '  '}}
+		let indent = ''; if (nestingLevel) {for (let i=1;i<=nestingLevel;i++){indent = indent + '  '}}
 console.log(indent + 'isPossible', sum, JSON.stringify(vals), JSON.stringify(combinations));
 		if (sum < 0) {
 			return false;
@@ -285,10 +295,10 @@ console.log(indent + 'isPossible', sum, JSON.stringify(vals), JSON.stringify(com
 			return false;
 		}
 		if (vals.length === 1) {
-console.log(indent + 'len is 1',vals[0].indexOf(sum) >= 0, combinations.length === 1, combinations[0].length === 1, combinations[0][0] === sum);
+console.log(indent + 'len is 1', vals[0].indexOf(sum) >= 0, combinations.length === 1, combinations[0].length === 1, combinations[0][0] === sum);
 			return vals[0].indexOf(sum) >= 0 && combinations.length === 1 && combinations[0].length === 1 && combinations[0][0] === sum;
 		}
-		vals = this.sortByLength(vals); // avoid AMAP -- apply before sending here
+		// vals = this.sortByLength(vals); // avoid AMAP -- apply before sending here
 		let intersectionCombos = this.intersection(JSON.parse(JSON.stringify(combinations))); // anything in the intersection must be in the union 
 		let unionChoices = this.union(JSON.parse(JSON.stringify(vals)));
 		let unionCombos = this.union(JSON.parse(JSON.stringify(combinations)));
@@ -297,7 +307,7 @@ console.log(indent + "vals, intersectionCombos, unionChoices", JSON.stringify(va
 			return false;
 		}
 		return vals.some((v,i) => {
-console.log(indent + 'val', v);
+console.log(indent + 'val', JSON.stringify(v));
 			let otherVals = [];
 			vals.forEach((vv, ii) => {
 				if (ii!==i) {
@@ -306,7 +316,6 @@ console.log(indent + 'val', v);
 					}
 				}
 			}); // [[2,3]] [[1,2]]
-console.log(indent + 'otherVals(1)', JSON.stringify(otherVals));
 			return v.some(choice => {
 				if (unionCombos.indexOf(choice) < 0) {
 console.log(indent + 'choice ' + choice + ' not in ' + JSON.stringify(unionCombos));
@@ -314,20 +323,35 @@ console.log(indent + 'choice ' + choice + ' not in ' + JSON.stringify(unionCombo
 				}
 				taken.push(choice);
 				let combos = [];
-				taken.forEach(ch => {
-					otherVals.forEach((vv,ii) => {
-						let idx = vv.indexOf(ch);
-						if (idx >= 0) {
-							vv.splice(idx, 1);
-							if (ii!==i && vv && vv.length) {
-								otherVals[ii] = vv;
+				let ov = [];
+				let allGood = true;
+				let possibleCellVals = [];
+
+				otherVals.forEach((cellVals, ii) => {
+					if (allGood && ii !== i) {
+						possibleCellVals = [];
+						cellVals.forEach(val => {
+							if (taken.indexOf(val) < 0) {
+								possibleCellVals.push(val);
 							}
+						});
+						if (possibleCellVals.length < 1) {
+							allGood = false;
+						} else {
+							ov.push(possibleCellVals);
 						}
-					});
+					}
 				});
-				if (!otherVals.length || (otherVals.length === 1 && !otherVals[0].length)) {
-console.log(indent + 'otherVals is empty', sum, choice);
-					// return sum === choice;
+
+				if (!allGood) {
+console.log(indent + 'some cell would be empty', sum, choice);
+					taken.pop();
+					return false;
+				}
+
+				if (!ov.length || (ov.length === 1 && !ov[0].length)) { // should not happen anymore
+console.log(indent + 'ov is empty', sum, choice);
+					taken.pop();
 					return false;
 				}
 				combinations.forEach((c) => {
@@ -337,10 +361,15 @@ console.log(indent + 'otherVals is empty', sum, choice);
 						combos.push(elts);
 					}
 				});
-// console.log(indent + 'recurse on choice, otherVals, combos, taken', choice, JSON.stringify(otherVals), JSON.stringify(combos), JSON.stringify(taken));
-console.log(indent + 'otherVals(2)', JSON.stringify(otherVals));
+console.log(indent + 'recurse on choice, ov, combos, taken', choice, JSON.stringify(ov), JSON.stringify(combos), JSON.stringify(taken));
 // console.log(indent + 'vals, combinations, taken, nestingLevel', JSON.stringify(vals), JSON.stringify(combinations), JSON.stringify(taken), nestingLevel);
-				return this.isPossible(sum - choice, otherVals, combos, taken, nestingLevel);
+				let ret = this.isPossible(sum - choice, ov, combos, taken, nestingLevel);
+				if (!ret) {
+					taken.pop();
+					return false;
+				}
+
+				return true;
 			});
 		});
 
@@ -538,6 +567,41 @@ console.log('changedStrips for ' + i +': ' +  JSON.stringify(changedStrips));
         strip.unknown = strip.cells.length;
 
         return { cells, strips };
+	},
+
+	buildStripWeb(i, cells, strips, web = [], used = [], queue = []) {
+		if (!web.length) {
+			cells[i].strips.forEach(stripIdx => {
+				web.push(stripIdx);
+				strips[stripIdx].changed = true;
+				queue.push(stripIdx);
+			});
+
+			return this.buildStripWeb(i, cells, strips, web, used, queue);
+		}
+
+		let stripIdx = queue.shift();
+		let tempQueue = [];
+		used.push(stripIdx);
+		strips[stripIdx].cells.forEach(cellIdx => {
+			cells[cellIdx].strips.forEach(sidx => {
+				if (web.indexOf(sidx) < 0) {
+					web.push(sidx);
+					strips[sidx].changed = true;
+				}
+				if (queue.indexOf(sidx) < 0 && used.indexOf(sidx) < 0 && tempQueue.indexOf(sidx) < 0) {
+					tempQueue.push(sidx);
+				}
+			});
+		});
+
+		// tempQueue.sort((x,y)=>{return x.unknown - y.unknown});
+		tempQueue.forEach(q => {
+			queue.push(q);
+		});
+		queue.sort((x,y)=>{return x.unknown - y.unknown});
+
+		return queue.length ? this.buildStripWeb(i, cells, strips, web, used, queue) : web;
 	},
 
 	intersection(arrays) {

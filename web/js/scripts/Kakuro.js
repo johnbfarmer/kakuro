@@ -27,11 +27,11 @@ export default class Kakuro extends React.Component {
             messages: [],
             reductionLevel: 0,
             changedStrips: [],
-            runXXX: false,
+            runLoop: false,
         };
 
         this.strips = {};
-        // this.strips = [];
+        this.loopInterval = null;
 
         this.getGames = this.getGames.bind(this);
         this.getGrid = this.getGrid.bind(this);
@@ -49,6 +49,8 @@ export default class Kakuro extends React.Component {
         this.handleKeyDown = this.handleKeyDown.bind(this);
         this.handleKey = this.handleKey.bind(this);
         this.checkAnswer = this.checkAnswer.bind(this);
+        this.startLoopInterval = this.startLoopInterval.bind(this);
+        this.clearLoopInterval = this.clearLoopInterval.bind(this);
     }
 
     componentDidMount() {
@@ -71,7 +73,7 @@ export default class Kakuro extends React.Component {
 // console.log(Reducer.isPossible(34, [[1],[1,2],[6,8,9],[1,3,4,5,6,8,9],[8,9],[7]], [[1,3,6,7,8,9],[1,4,5,7,8,9],[2,3,5,7,8,9],[2,4,5,6,8,9],[3,4,5,6,7,9]]));
 // console.log(Reducer.isPossible(33, [[3],[3,4,5,6,8,9],[3,4,5,6,7,8,9],[7,8,9],[3,4,5,6,7,8,9]], [[3,6,7,8,9],[4,5,7,8,9]]));
 // console.log(Reducer.isPossible(15, [[7],[7,9]], [[6,9],[7,8]]));
-// var a = [1,2,3],b=[2,3,4],c=Reducer.intersect(a,b);console.log(a,b,c);
+// console.log(Reducer.isPossible(30, [[6],[1,2,3,4,5,6],[4,5,6,7,8,9],[6,7,8,9],[2,3,6,7]], [[1,5,7,8,9],[2,4,7,8,9],[2,5,6,8,9],[3,4,6,8,9],[3,5,6,7,9],[4,5,6,7,8]]));
         this.getGames();
         if (gridId > 0) {
             this.getGrid(gridId);
@@ -97,22 +99,27 @@ export default class Kakuro extends React.Component {
             var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
             var cells = processed.cells;
             // this.strips = processed.strips;
-            this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id}, this.xxx);
+            this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id}, this.startLoopInterval);
             this.saveState();
         });
     }
 
-    xxx() {
+    startLoopInterval() {
         let k = 0;
-        let x = setInterval(() => {
-            if (this.state.runXXX) {
-                if (k < 50) {
-                    console.log('line 110', this.state.changedStrips, k, this.state.reductionLevel);
-                    this.reduce3(this.state.changedStrips, k++);}
+console.log('startLoopInterval', k)
+        this.loopInterval = setInterval(() => {
+            if (this.state.runLoop) {
+                if (k++ < 50) {
+                    console.log('startLoopInterval line 112', this.state.changedStrips, k, this.state.reductionLevel);
+                    this.reduce3(this.state.changedStrips);}
                 }
             }
         , 200);
 
+    }
+
+    clearLoopInterval() {
+        clearInterval(this.loopInterval);
     }
 
     saveState() {
@@ -178,23 +185,17 @@ export default class Kakuro extends React.Component {
         });
     }
 
-    reduce3(cs = [], k = 0) {
-console.log('reduce3', cs, k);
+    reduce3(cs = []) {
         let idx = cs.length ? 0 : this.state.active_row * this.state.width + this.state.active_col;
         let { cells, strips, level, changedStrips, msg } = Reducer.reduce(this.state.reductionLevel, this.state.cells, idx, cs, this.strips, this.state.height, this.state.width);
-console.log('line 184, changedStrips', changedStrips, level);
-        let runXXX = this.state.runXXX;
-        if (!level || level > 10) { console.log('quitting. level: ', level);runXXX = !runXXX; }
-        if (!changedStrips || !changedStrips.length) {
-            if (level >= 30) {
-                for (let sidx in this.strips) {
-                    changedStrips.push(sidx);
-                }
-                console.log('changedStrips: ', changedStrips)
-            }
+        let runLoop = this.state.runLoop;
+        if (!level || (level > 10 && level !== this.state.reductionLevel)) { 
+            console.log('quitting. level: ', level, this.state.reductionLevel);
+            runLoop = !runLoop; 
+            this.clearLoopInterval();
         }
         this.strips = strips;
-        this.setState({ cells: cells, reductionLevel: level, messages: msg, changedStrips, runXXX });
+        this.setState({ cells: cells, reductionLevel: level, messages: msg, changedStrips, runLoop });
     }
 
     reduce2(level) {
@@ -366,17 +367,18 @@ console.log('line 184, changedStrips', changedStrips, level);
             this.clearChoices();
         }
         if (keyCode === 87) { // w
-            this.setState({ runXXX: false });
+            this.setState({ runLoop: false });
+            this.clearLoopInterval();
         }
         if (keyCode === 89) { // y
-            this.setState({ runXXX: true });
+            this.setState({ runLoop: true }, this.startLoopInterval);
         }
         if (keyCode === 90) { // z
             this.reduce2(70);
         }
         if (keyCode === 88) { // x
-            console.log(this.state.reductionLevel);
-            this.reduce3([], 0);
+            // console.log(this.state.reductionLevel);
+            this.reduce3(this.state.changedStrips);
         }
         if (keyCode === 67) { // c
             this.clearAllChoices();
