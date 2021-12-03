@@ -190,7 +190,7 @@ console.log('startLoopInterval', k)
         let { cells, strips, level, changedStrips, msg } = Reducer.reduce(this.state.reductionLevel, this.state.cells, idx, cs, this.strips, this.state.height, this.state.width);
         let runLoop = this.state.runLoop;
         if (!level || (level > 10 && level !== this.state.reductionLevel)) { 
-            console.log('quitting. level: ', level, this.state.reductionLevel);
+            console.log('quitting. level: ', level, this.state.reductionLevel, changedStrips);
             runLoop = !runLoop; 
             this.clearLoopInterval();
         }
@@ -377,7 +377,6 @@ console.log('startLoopInterval', k)
             this.reduce2(70);
         }
         if (keyCode === 88) { // x
-            // console.log(this.state.reductionLevel);
             this.reduce3(this.state.changedStrips);
         }
         if (keyCode === 67) { // c
