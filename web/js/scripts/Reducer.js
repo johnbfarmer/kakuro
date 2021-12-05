@@ -6,7 +6,7 @@ export const Reducer = {
 	width: 0,
 
 	reduce(level, c, i, cs, s, h, w) {
-	console.log('reduce line 9',level, i, cs) 
+console.log('reduce line 9',level, i, cs) 
 		if (!h) {
 			h = this.height;
 		}
@@ -20,12 +20,11 @@ export const Reducer = {
 		let vals = { cells: c, strips: s};
 		if (level === 0) {
 			vals = this.getAllStrips(c, s, h, w);
-			vals = this.reductionStepOne(0, vals.cells, [], i, vals.strips, h, w);
-			return { cells: vals.cells, strips: vals.strips, changedStrips: vals.changedStrips, level: 10, msg: this.messages}
+			return { cells: vals.cells, strips: vals.strips, changedStrips: [], level: 10, msg: this.messages}
 		}
 
 		if (level === 10) {
-			vals = this.reductionStepOne(10, c, cs, i, s, h, w);
+			vals = this.reductionStepOne(10, c, cs, i, s);
 			let changedStrips = vals.changedStrips.length ? vals.changedStrips : cs;
 			level = vals.changedStrips.length ? 10 : 20;
 			if (level === 20) {
@@ -39,9 +38,7 @@ export const Reducer = {
 
 		if (level === 20) {
 			this.messages = [''];
-// console.log('line 42', cs);
 			vals = this.reductionByElimination(level, vals.cells, vals.strips, i, cs);
-// console.log('line 44', vals.changedStrips);
 			level = !vals.changedStrips.length ? 30 : 20;
 			return { cells: vals.cells, strips: vals.strips, level, changedStrips: vals.changedStrips, msg: this.messages };
 		}
@@ -66,60 +63,43 @@ export const Reducer = {
 		return {cells: c, strips: s};
 	},
 
-	reductionStepOne(level, c, cs, i, s, h, w) {
-console.log('reductionStepOne',level, cs, i);
-		i = [i];
-		let vals = {cells: c, strips: s};
-		let changedStrips = [];
-		if (cs.length) {
-			i = [];
-			cs.some(changedStripIdx => {
-				let changedStrip = s[changedStripIdx];
-				if (!changedStrip.changed) {
-					return false;
-				}
-
-				return changedStrip.cells.some(cellIdx => {
-					if (i.indexOf(cellIdx) < 0) {
-						i.push(cellIdx);
-						return true;
-					}
-					return false;
-				});
-			});
-		}
-console.log('reductionStepOne i:', i);
-		if (!i.length) {
-			for (let sidx in s) {
-				let strip = s[sidx];
-				if (strip.changed) {
-					i.push(strip.cells[0]);
-					break;
-				}
+	reductionStepOne(level, c, cs, i, s) {
+		console.log('reductionStepOne',level, cs, i);
+		// if i < 0, and no cs, get web; else use cs
+		// if i >= 0, get i's strips
+		if (i >= 0) {
+			cs = JSON.parse(JSON.stringify(c[i].strips));
+		} else {
+			if (!cs.length) {
+				cs = this.buildStripWeb(i, c, s);
 			}
 		}
-console.log('reductionStepOne ii:', i);
-		i.forEach(cellIdx => {
-			vals = this.fillPossibleValues(vals.cells, vals.strips, cellIdx, 0, level);
-console.log(vals.changedStrips);
-			vals.changedStrips.forEach(vcs => {
-				if (changedStrips.indexOf(vcs) < 0 && changedStrips.length < 1) {
-					changedStrips.push(vcs);
-				}
+		let vals = {cells: c, strips: s, changedStrips: [], level};
+		let stripIdx;
+		while (stripIdx = cs.shift()) {	
+			let strip = s[stripIdx];
+			if (!strip.changed) {
+				continue;
+			}
+			strip.cells.forEach(cellIdx => {
+				vals = this.fillPossibleValues(vals.cells, vals.strips, cellIdx, 0, level);
+				vals.changedStrips.forEach(vcs => {
+					if (cs.indexOf(vcs) < 0) {
+						cs.push(vcs);
+					}
+				});
+				vals = this.fillPossibleValues(vals.cells, vals.strips, cellIdx, 1, level);
+				vals.changedStrips.forEach(vcs => {
+					if (cs.indexOf(vcs) < 0) {
+						cs.push(vcs);
+					}
+				});
 			});
-			vals = this.fillPossibleValues(vals.cells, vals.strips, cellIdx, 1, level);
-console.log(vals.changedStrips);
-			vals.changedStrips.forEach(vcs => {
-				if (changedStrips.indexOf(vcs) < 0 && changedStrips.length < 2) {
-					changedStrips.push(vcs);
-				}
-			});
-		});
+		};
 		let cells = vals.cells;
 		let strips = vals.strips;
-console.log('reductionStepOne',changedStrips);
 
-		return { cells, strips, changedStrips };
+		return { cells, strips, changedStrips: cs, level };
 	},
 
 	// if any cell has a single value, remove that from the others and recalculate their choices
@@ -127,7 +107,7 @@ console.log('reductionStepOne',changedStrips);
 		if (!cs.length) {
 			cs = this.buildStripWeb(i, cells, strips);
 		}
-console.log('reductionByElimination', i, cs)
+
 		let stripIdx;
 		while (stripIdx = cs.shift()) {
 			let s = strips[stripIdx];
@@ -157,8 +137,8 @@ console.log('reductionByElimination', i, cs)
 							let choices = cells[idx].choices;
 							if (idxsToIgnore.indexOf(idx) < 0) {
 								let newChoices = this.intersect(this.union(pv), choices);
-// return error and handle
-if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' + JSON.stringify(pv) + ' ' + JSON.stringify(choices))}
+								// return error and handle
+								if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' + JSON.stringify(pv) + ' ' + JSON.stringify(choices))}
 								cells[idx].choices = newChoices;
 								if (choices.length !== newChoices.length) {
 									hasChanges = true;
@@ -166,7 +146,6 @@ if (!newChoices.length) {this.messages.push(this.coords(cells[idx]) + ' empty ' 
 										cs.push(sidx);
 										strips[sidx].changed = true;
 									});
-console.log('newChoices, coords, cs.len',JSON.stringify(newChoices),this.coords(cells[idx]),cs.length);
 									this.messages.push(this.coords(cells[idx]) + ' choices changed from ' + JSON.stringify(choices) + ' to ' + JSON.stringify(newChoices) + ' ' + JSON.stringify(pv) + ' ' + JSON.stringify(cellStrip) + ' ' + JSON.stringify(used));
 								}
 								if (newChoices.length === 1) {
@@ -239,7 +218,6 @@ console.log('reduceAllByIsComplementPossible strip', sidx);
 		};
 
 		level = cs.length ? level : 100;
-console.log('reduceAllByIsComplementPossible return', { cs, level });
 		return { cells, strips, changedStrips: cs, level };
 	},
 
@@ -385,6 +363,7 @@ this.messages.push(this.coords(cell) + ' choice ' + choice + ' NOT ok. Cannot ma
 	},
 
 	fillPossibleValues(cells, strips, idx, orientation, level) {
+console.log('line 369', cells[idx], orientation, cells[idx].strips[orientation]);
 		let strip = strips[cells[idx].strips[orientation]];
 		let changedStrips = [];
 		if (!strip.changed) {
@@ -575,6 +554,15 @@ console.log('changedStrips for ' + i +': ' +  JSON.stringify(changedStrips));
 
 	buildStripWeb(i, cells, strips, web = [], used = [], queue = []) {
 		if (!web.length) {
+			if (i < 0) {
+				cells.some(c => {
+					if (c.is_data) {
+						i = c.row * this.width + c.col;
+						return true;
+					}
+					return false;
+				});
+			}
 			cells[i].strips.forEach(stripIdx => {
 				web.push(stripIdx);
 				strips[stripIdx].changed = true;

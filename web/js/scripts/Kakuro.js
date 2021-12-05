@@ -27,7 +27,7 @@ export default class Kakuro extends React.Component {
             messages: [],
             reductionLevel: 0,
             changedStrips: [],
-            runLoop: false,
+            runLoop: true,
         };
 
         this.strips = {};
@@ -99,14 +99,14 @@ export default class Kakuro extends React.Component {
             var processed = GridHelper.processData(data.cells, data.height, data.width, this.state.active_row, this.state.active_col);
             var cells = processed.cells;
             // this.strips = processed.strips;
-            this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id}, this.startLoopInterval);
+            this.setState({cells: cells, height: data.height, width: data.width, name: data.name, gridId: id}, this.reduce3);
             this.saveState();
         });
     }
 
     startLoopInterval() {
         let k = 0;
-console.log('startLoopInterval', k)
+console.log('startLoopInterval', this.state.runLoop)
         this.loopInterval = setInterval(() => {
             if (this.state.runLoop) {
                 if (k++ < 50) {
@@ -185,13 +185,16 @@ console.log('startLoopInterval', k)
         });
     }
 
-    reduce3(cs = []) {
-        let idx = cs.length ? 0 : this.state.active_row * this.state.width + this.state.active_col;
-        let { cells, strips, level, changedStrips, msg } = Reducer.reduce(this.state.reductionLevel, this.state.cells, idx, cs, this.strips, this.state.height, this.state.width);
+    reduce3(cs = [], cellIndexToStart = -1, lev = null) {
+        if (lev === null) {
+            lev = this.state.reductionLevel;
+        }
+        let { cells, strips, level, changedStrips, msg } = Reducer.reduce(lev, this.state.cells, cellIndexToStart, cs, this.strips, this.state.height, this.state.width);
+        console.log('line 194: ', level, this.state.reductionLevel, changedStrips, this.strips);
         let runLoop = this.state.runLoop;
         if (!level || (level > 10 && level !== this.state.reductionLevel)) { 
             console.log('quitting. level: ', level, this.state.reductionLevel, changedStrips);
-            runLoop = !runLoop; 
+            runLoop = false; 
             this.clearLoopInterval();
         }
         this.strips = strips;
@@ -358,7 +361,7 @@ console.log('startLoopInterval', k)
             this.reduce2(30);
         }
         if (keyCode === 65) { // a
-            this.reduce2(40);
+            this.reduce3([], this.state.active_row * this.state.width + this.state.active_col, 10);
         }
         if (keyCode === 66) { // b
             this.reduce2(50);
@@ -374,10 +377,10 @@ console.log('startLoopInterval', k)
             this.setState({ runLoop: true }, this.startLoopInterval);
         }
         if (keyCode === 90) { // z
-            this.reduce2(70);
+            this.reduce3([], this.state.active_row * this.state.width + this.state.active_col, 20);
         }
         if (keyCode === 88) { // x
-            this.reduce3(this.state.changedStrips);
+            this.reduce3([], this.state.active_row * this.state.width + this.state.active_col, 30);
         }
         if (keyCode === 67) { // c
             this.clearAllChoices();
