@@ -109,7 +109,7 @@ export default class Kakuro extends React.Component {
 console.log('startLoopInterval', this.state.runLoop)
         this.loopInterval = setInterval(() => {
             if (this.state.runLoop) {
-                if (k++ < 50) {
+                if (k++ < 500) {
                     console.log('startLoopInterval line 112', this.state.changedStrips, k, this.state.reductionLevel);
                     this.reduce3(this.state.changedStrips);}
                 }
@@ -189,10 +189,11 @@ console.log('startLoopInterval', this.state.runLoop)
         if (lev === null) {
             lev = this.state.reductionLevel;
         }
-        let { cells, strips, level, changedStrips, msg } = Reducer.reduce(lev, this.state.cells, cellIndexToStart, cs, this.strips, this.state.height, this.state.width);
+        let vals = Reducer.reduce(lev, this.state.cells, cellIndexToStart, cs, this.strips, this.state.height, this.state.width);
+        let { cells, strips, level, changedStrips, msg } = vals;
         console.log('line 194: ', level, this.state.reductionLevel, changedStrips, this.strips);
         let runLoop = this.state.runLoop;
-        if (!level || (level > 10 && level !== this.state.reductionLevel)) { 
+        if (!level || (level > 70 && level !== this.state.reductionLevel)) { 
             console.log('quitting. level: ', level, this.state.reductionLevel, changedStrips);
             runLoop = false; 
             this.clearLoopInterval();
@@ -201,11 +202,15 @@ console.log('startLoopInterval', this.state.runLoop)
         this.setState({ cells: cells, reductionLevel: level, messages: msg, changedStrips, runLoop });
     }
 
-    reduce2(level) {
-        let idx = this.state.active_row * this.state.width + this.state.active_col;
-        let { cells, strips, msg } = Reducer.reduce(level, this.state.cells, idx, this.strips, this.state.height, this.state.width);
+    reduce2(cellIndexToStart, lev = null) {
+        if (lev === null) {
+            lev = this.state.reductionLevel;
+        }
+        let vals = Reducer.reduce(lev, this.state.cells, cellIndexToStart, [], this.strips, this.state.height, this.state.width);
+        let { cells, strips, level, msg } = vals;
+        console.log(vals);
         this.strips = strips;
-        this.setState({ cells: cells, messages: msg });
+        this.setState({ cells: cells, reductionLevel: level, messages: msg, changedStrips: [], runLoop: false });
     }
 
     reduce(level) {
@@ -242,7 +247,6 @@ console.log('startLoopInterval', this.state.runLoop)
             solved = true;
         }
         this.setState({cells: cells, gridStatus: processed.status, solved});
-        // this.setState({cells: cells}, async () => {console.log('123');});
     }
 
     clearChoices() {
@@ -256,15 +260,18 @@ console.log('startLoopInterval', this.state.runLoop)
     clearAllChoices() {
         var cells = this.state.cells;
         cells.forEach((cell, idx) => {
-            cell.choices = [];
-            cell.strips.forEach(stripIdx => {
-                if (stripIdx in this.strips && 'changed' in this.strips[stripIdx]) {
-                    this.strips[stripIdx].changed = true;
-                }
-            });
+            if (cell.is_data) {
+                cell.choices = [];
+                cell.strips.forEach(stripIdx => {
+                    if (stripIdx in this.strips && 'changed' in this.strips[stripIdx]) {
+                        this.strips[stripIdx].changed = true;
+                        this.strips[stripIdx].unknown = this.strips[stripIdx].length;
+                    }
+                });
+            }
         });
 
-        this.updateChoices(cells);
+        this.setState({ cells, reductionLevel: 0, messages: ['game reset'] }, this.reduce3);
     }
 
     setActive(row, col) {
@@ -352,7 +359,7 @@ console.log('startLoopInterval', this.state.runLoop)
             this.moveActive(0,1);
         }
         if (keyCode === 72) { // h -- hint (one step)
-            this.reduce2(10);
+            this.reduce2(this.state.active_row * this.state.width + this.state.active_col);
         }
         if (keyCode === 80) { // p
             this.reduce2(20);

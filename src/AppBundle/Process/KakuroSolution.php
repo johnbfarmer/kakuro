@@ -56,7 +56,7 @@ class KakuroSolution extends BaseGrid
         }
 
         $sql = '
-        select height, width, name
+        select height, width, name, solution_key
         from grids
         WHERE id = ' . $this->gridId;
 
@@ -64,6 +64,7 @@ class KakuroSolution extends BaseGrid
         $h = $record['height'];
         $w = $record['width'];
         $name = $record['name'];
+        $solutionString = $record['solution_key'];
         $cells = [];
         
         $sql = '
